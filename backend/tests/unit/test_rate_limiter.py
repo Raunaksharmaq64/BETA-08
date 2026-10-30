@@ -31,3 +31,4 @@ def test_rate_limiter_reset():
 
     limiter.reset(key)
     assert limiter.is_allowed(key, max_requests=1, window_seconds=60)[0] is True
+

@@ -69,6 +69,21 @@ class ExportService:
         privacy_dto = await PrivacyService.get_privacy_settings(db, user_id)
         consents = await PrivacyService.list_consents(db, user_id)
 
+        # Resume Intelligence metadata (excluding binary files and internal paths)
+        from app.db.models import ResumeRecord
+        r_query = select(ResumeRecord).where(ResumeRecord.user_id == user_id)
+        r_res = await db.execute(r_query)
+        user_resumes = r_res.scalars().all()
+        resumes_metadata = [
+            {
+                "id": r.id,
+                "title": r.title,
+                "active_version_id": r.active_version_id,
+                "created_at": r.created_at.isoformat(),
+            }
+            for r in user_resumes
+        ]
+
         # 4. Assemble export payload without credentials or internal secrets
         export_payload: Dict[str, Any] = {
             "account": {
@@ -84,6 +99,7 @@ class ExportService:
             "preferences": prefs_dto.model_dump(mode="json"),
             "privacy_settings": privacy_dto.model_dump(mode="json"),
             "consent_records": [c.model_dump(mode="json") for c in consents],
+            "resumes": resumes_metadata,
         }
 
         # 5. Persist record

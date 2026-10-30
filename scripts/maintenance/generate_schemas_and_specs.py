@@ -21,6 +21,21 @@ from contracts.auth.service_identity import ServiceIdentity
 from contracts.auth.schemas import UserResponse, RegisterRequest, LoginRequest
 from contracts.profile.schemas import CandidateProfileResponse, CandidatePreferencesResponse
 from contracts.privacy.schemas import PrivacySettingsResponse, DataExportDownloadResponse, AccountDeletionResponse
+from contracts.resume.schemas import (
+    ResumeUploadResponse,
+    ResumeVersionResponse,
+    ResumeSummaryResponse,
+    ResumeExtractionResponse,
+    ResumeReviewResponse,
+    ATSAnalysisResponse,
+)
+from contracts.sources.schemas import (
+    SourceResponse,
+    SourceObservationResponse,
+    CanonicalOpportunityResponse,
+    SourceRunLogResponse,
+    IngestionTriggerResponse,
+)
 from contracts.opportunities.models import OpportunityEnvelope
 from contracts.leads.models import (
     LeadDiscoveryRequest,
@@ -52,6 +67,17 @@ def export_json_schemas():
         "privacy-settings.schema.json": PrivacySettingsResponse,
         "data-export.schema.json": DataExportDownloadResponse,
         "account-deletion.schema.json": AccountDeletionResponse,
+        "resume-upload.schema.json": ResumeUploadResponse,
+        "resume-version.schema.json": ResumeVersionResponse,
+        "resume-summary.schema.json": ResumeSummaryResponse,
+        "resume-extraction.schema.json": ResumeExtractionResponse,
+        "resume-review.schema.json": ResumeReviewResponse,
+        "ats-analysis.schema.json": ATSAnalysisResponse,
+        "source-response.schema.json": SourceResponse,
+        "source-observation.schema.json": SourceObservationResponse,
+        "canonical-opportunity.schema.json": CanonicalOpportunityResponse,
+        "source-run-log.schema.json": SourceRunLogResponse,
+        "ingestion-trigger.schema.json": IngestionTriggerResponse,
     }
 
     for filename, model in models_to_export.items():

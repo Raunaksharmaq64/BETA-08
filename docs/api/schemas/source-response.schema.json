@@ -1,0 +1,204 @@
+{
+  "$defs": {
+    "AuthType": {
+      "description": "Authentication requirement for the source.",
+      "enum": [
+        "NONE_PUBLIC",
+        "API_KEY",
+        "BEARER_TOKEN",
+        "OAUTH2"
+      ],
+      "title": "AuthType",
+      "type": "string"
+    },
+    "CircuitBreakerState": {
+      "description": "3-State Circuit Breaker operational condition.",
+      "enum": [
+        "CLOSED",
+        "OPEN",
+        "HALF_OPEN"
+      ],
+      "title": "CircuitBreakerState",
+      "type": "string"
+    },
+    "IntegrationMethod": {
+      "description": "Ingestion mechanism.",
+      "enum": [
+        "REST_API",
+        "PULL_FEED",
+        "WEBHOOK"
+      ],
+      "title": "IntegrationMethod",
+      "type": "string"
+    },
+    "PolicyStatus": {
+      "description": "Governance lifecycle status for sources.",
+      "enum": [
+        "DRAFT",
+        "PENDING_REVIEW",
+        "APPROVED",
+        "ACTIVE",
+        "PAUSED",
+        "BLOCKED",
+        "RETIRED"
+      ],
+      "title": "PolicyStatus",
+      "type": "string"
+    },
+    "SourceType": {
+      "description": "Categorization of opportunity data source.",
+      "enum": [
+        "ATS_JOB_BOARD",
+        "OFFICIAL_API",
+        "PERMITTED_FEED"
+      ],
+      "title": "SourceType",
+      "type": "string"
+    }
+  },
+  "description": "Public representation of a registered Job Source.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "source_key": {
+      "title": "Source Key",
+      "type": "string"
+    },
+    "display_name": {
+      "title": "Display Name",
+      "type": "string"
+    },
+    "source_type": {
+      "$ref": "#/$defs/SourceType"
+    },
+    "provider": {
+      "title": "Provider",
+      "type": "string"
+    },
+    "base_url": {
+      "title": "Base Url",
+      "type": "string"
+    },
+    "integration_method": {
+      "$ref": "#/$defs/IntegrationMethod"
+    },
+    "auth_type": {
+      "$ref": "#/$defs/AuthType"
+    },
+    "credential_reference": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Credential Reference"
+    },
+    "enabled": {
+      "title": "Enabled",
+      "type": "boolean"
+    },
+    "policy_status": {
+      "$ref": "#/$defs/PolicyStatus"
+    },
+    "policy_decision_json": {
+      "additionalProperties": true,
+      "title": "Policy Decision Json",
+      "type": "object"
+    },
+    "rate_limit_per_minute": {
+      "title": "Rate Limit Per Minute",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "title": "Timeout Seconds",
+      "type": "number"
+    },
+    "retry_max_attempts": {
+      "title": "Retry Max Attempts",
+      "type": "integer"
+    },
+    "circuit_breaker_state": {
+      "$ref": "#/$defs/CircuitBreakerState"
+    },
+    "consecutive_failures": {
+      "title": "Consecutive Failures",
+      "type": "integer"
+    },
+    "last_failure_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Failure At"
+    },
+    "last_success_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Last Success At"
+    },
+    "cooldown_until": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cooldown Until"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "source_key",
+    "display_name",
+    "source_type",
+    "provider",
+    "base_url",
+    "integration_method",
+    "auth_type",
+    "enabled",
+    "policy_status",
+    "rate_limit_per_minute",
+    "timeout_seconds",
+    "retry_max_attempts",
+    "circuit_breaker_state",
+    "consecutive_failures",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "SourceResponse",
+  "type": "object"
+}

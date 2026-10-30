@@ -81,3 +81,9 @@ class AuditService:
             f"User={user_id or actor_email or 'anonymous'} IP={ip_address}"
         )
         return event
+
+
+# Convenience singleton
+audit_service = AuditService
+
+

@@ -48,6 +48,16 @@ class Settings(BaseSettings):
     RATE_LIMIT_REGISTER: int = 5
     RATE_LIMIT_PASSWORD_RESET: int = 3
     RATE_LIMIT_DATA_EXPORT: int = 2
+    RATE_LIMIT_RESUME_UPLOAD: int = 10
+
+    # Resume Storage & Intelligence
+    RESUME_STORAGE_DIR: str = os.getenv("RESUME_STORAGE_DIR", "./storage/resumes")
+    MAX_RESUME_FILE_SIZE_BYTES: int = 10 * 1024 * 1024  # 10 MB limit
+    ALLOWED_RESUME_EXTENSIONS: List[str] = ["pdf", "docx"]
+    ALLOWED_RESUME_MIME_TYPES: List[str] = [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ]
 
     # Satellite Service Integrations
     LEADHUNTER_BASE_URL: str = os.getenv("LEADHUNTER_BASE_URL", "http://service-leadhunter:8001")

@@ -63,3 +63,4 @@ When background processes (such as resume ingestion or career intelligence analy
 ## 5. Auditability and Transparency
 
 All provenance modifications are persisted in PostgreSQL with audit timestamps. In the unified Next.js dashboard, candidate profile fields display transparent origin badges (e.g. "Self-reported", "Extracted from Resume", "AI Suggested") so candidates always understand why their profile looks the way it does and retain absolute agency over their data.
+

@@ -21,7 +21,9 @@ if str(BACKEND_ROOT) not in sys.path:
 @pytest.fixture(autouse=True)
 async def test_lifecycle_setup():
     """Drops and recreates all tables, and resets rate limiter state before every test."""
+    print("\n--- TEST LIFECYCLE SETUP CALLED ---")
     from app.core.database import Base, engine
+    import app.db.models  # noqa: F401 - ensure all models registered on Base.metadata
     from app.services.rate_limiter import rate_limiter
 
     async with engine.begin() as conn:

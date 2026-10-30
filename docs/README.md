@@ -32,9 +32,35 @@ Universal engineering policies mandatory for human engineers and AI coding assis
 ---
 
 ## 3. Feature Documentation (`docs/features/`)
-Feature-level specifications, user journeys, API contracts, and acceptance criteria.
+Comprehensive feature specifications, user journeys, API contracts, and implementation guides.
 * [Feature Catalog Overview](./features/README.md) — Master index of planned and active features.
 * [Feature Specification Template (`_template.md`)](./features/_template.md) — Mandatory 18-point template for feature documentation.
+* [Verification, Deduplication & Quality Guide](./features/verification-and-dedup/README.md) — Phase 6 Verification, Deduplication, Freshness & Data Quality.
+  * [Verification State Machine](./features/verification-and-dedup/verification-state-machine.md)
+  * [Verification Evidence Ledger](./features/verification-and-dedup/verification-evidence.md)
+  * [Source-Specific Status Rules](./features/verification-and-dedup/source-specific-status-rules.md)
+  * [Freshness Policy & Timestamps](./features/verification-and-dedup/freshness-policy.md)
+  * [Tiered Deduplication Engine](./features/verification-and-dedup/deduplication-engine.md)
+  * [Source Mappings & Provenance](./features/verification-and-dedup/source-mapping.md)
+  * [Merge & Unmerge Audit](./features/verification-and-dedup/merge-unmerge-audit.md)
+  * [User Listing Feedback](./features/verification-and-dedup/user-feedback.md)
+  * [Data Quality Metrics](./features/verification-and-dedup/quality-metrics.md)
+  * [Frontend User Guide](./features/verification-and-dedup/frontend-guide.md)
+* [Job Source Framework Guide](./features/job-source-framework/README.md) — Phase 5 Registry, Connectors, Normalization & Provenance.
+  * [Source Registry & Administration](./features/job-source-framework/source-registry.md)
+  * [Connector Interface & Adapters](./features/job-source-framework/connector-interface.md)
+  * [Source Governance Policy Gate](./features/job-source-framework/source-policy.md)
+  * [Canonical Normalization](./features/job-source-framework/normalization.md)
+  * [Provenance, Freshness & Auditing](./features/job-source-framework/provenance-and-freshness.md)
+  * [Ingestion Lifecycle & Resilience](./features/job-source-framework/ingestion-lifecycle.md)
+  * [Source Operations Runbook](./features/job-source-framework/source-operations.md)
+* [Resume Intelligence Guide](./features/resume-intelligence/README.md) — Phase 4 Resume Intelligence, Evidence Tracking & ATS Analysis.
+  * [Upload & Storage](./features/resume-intelligence/upload-and-storage.md)
+  * [Parsing Pipeline](./features/resume-intelligence/parsing-pipeline.md)
+  * [Extraction & Evidence](./features/resume-intelligence/extraction-and-evidence.md)
+  * [Review Workbench](./features/resume-intelligence/review-and-correction.md)
+  * [Version Management](./features/resume-intelligence/version-management.md)
+  * [ATS Analysis](./features/resume-intelligence/ats-analysis.md)
 
 ---
 
@@ -46,8 +72,8 @@ Authoritative records of major architectural choices and trade-offs.
 
 ---
 
-## 5. Technical Audits (`docs/audit/`)
-Forensic audits of existing legacy source systems and prototypes.
+## 5. Technical Audits & Phase Records (`docs/audit/`)
+Forensic audits of existing legacy source systems, test reports, and phase execution records.
 * [Phase 0 Audit Archive](./audit/phase-0/)
   * [01 — Executive Summary](./audit/phase-0/01%20—%20PHASE_0_EXECUTIVE_SUMMARY.md)
   * [02 — Legacy Repository Audit](./audit/phase-0/02%20—%20LEGACY_REPOSITORY_AUDIT.md)
@@ -59,6 +85,16 @@ Forensic audits of existing legacy source systems and prototypes.
   * [08 — Technical Risk Register](./audit/phase-0/08%20—%20RISK_REGISTER.md)
   * [09 — Dependency & Blocker Matrix](./audit/phase-0/09%20—%20DEPENDENCY_AND_BLOCKER_MATRIX.md)
   * [10 — Open Decisions Log](./audit/phase-0/10%20—%20OPEN_DECISIONS.md)
+* [Phase 2 Execution Record](./audit/phase-2/phase-2-execution-record.md) — Service contracts, OpenAPI, and schemas.
+* [Phase 3 Execution Record](./audit/phase-3/phase-3-execution-record.md) — Identity, candidate profile, and GDPR/CCPA privacy foundation.
+* [Phase 4 Execution Record](./audit/phase-4/phase-4-execution-record.md) — Resume Intelligence, reviewed evidence, and ATS analysis.
+* [Phase 5 Execution Record](./audit/phase-5/phase-5-execution-record.md) — Job Source Framework, Connectors, Normalization & Provenance.
+
+---
+
+## 6. API & Testing References
+* [Job Source & Opportunities REST API](./api/source-apis.md) — Specification of `/api/v1/sources` and `/api/v1/opportunities`.
+* [Job Source Test Suite & Evidence](./testing/source-framework-tests.md) — Automated verification report and test runner commands.
 
 ---
 

@@ -40,3 +40,4 @@ Preferences are persisted in `candidate_preferences` with a 1-to-1 foreign key t
 
 - `GET /api/v1/candidate/preferences`: Retrieves authenticated candidate preferences.
 - `PUT /api/v1/candidate/preferences`: Updates and saves career matching criteria.
+

@@ -1,0 +1,368 @@
+"""
+RIGHT FIT Core — Resume Review & Profile Synchronization Service
+Conflict detection, candidate evidence review, and explicit-consent profile updates.
+Phase: 4 — Resume Intelligence & Reviewed Candidate Evidence
+"""
+
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from contracts.profile.schemas import FieldProvenance
+from contracts.resume.schemas import (
+    ConfidenceLevel,
+    EvidenceDTO,
+    ResumeConfirmSyncRequest,
+    ResumeConfirmSyncResponse,
+    ResumeReviewFieldUpdate,
+    ResumeReviewResponse,
+    ReviewAction,
+    ReviewStatus,
+)
+from app.db.models import (
+    CandidateProfile,
+    CandidateSkillRecord,
+    EducationRecord,
+    ExperienceRecord,
+    ResumeExtractionRecord,
+    ResumeReviewRecord,
+    ResumeVersionRecord,
+    utc_now,
+)
+from app.services.audit_service import audit_service
+
+
+class ReviewService:
+    """Manages candidate review workbench and candidate profile synchronization."""
+
+    async def get_or_create_review(
+        self,
+        db: AsyncSession,
+        version_id: str,
+        user_id: str
+    ) -> ResumeReviewResponse:
+        """Retrieves or initializes candidate review workbench state."""
+        # 1. Fetch version and extraction
+        stmt_ver = select(ResumeVersionRecord).where(
+            ResumeVersionRecord.id == version_id,
+            ResumeVersionRecord.user_id == user_id
+        )
+        res_ver = await db.execute(stmt_ver)
+        version = res_ver.scalar_one_or_none()
+        if not version:
+            raise ValueError("Resume version not found.")
+
+        stmt_ext = select(ResumeExtractionRecord).where(
+            ResumeExtractionRecord.resume_version_id == version_id
+        )
+        res_ext = await db.execute(stmt_ext)
+        extraction = res_ext.scalar_one_or_none()
+        if not extraction:
+            raise ValueError("Extraction records not found for this version.")
+
+        # 2. Fetch or create review record
+        stmt_rev = select(ResumeReviewRecord).where(
+            ResumeReviewRecord.resume_version_id == version_id
+        )
+        res_rev = await db.execute(stmt_rev)
+        review = res_rev.scalar_one_or_none()
+
+        if not review:
+            review = ResumeReviewRecord(
+                resume_version_id=version_id,
+                user_id=user_id,
+                review_status=ReviewStatus.PENDING.value,
+                field_reviews_json={},
+                is_synced_to_profile=False
+            )
+            db.add(review)
+            await db.commit()
+            await db.refresh(review)
+
+        # 3. Detect conflicts against existing candidate profile
+        stmt_prof = select(CandidateProfile).where(CandidateProfile.user_id == user_id)
+        res_prof = await db.execute(stmt_prof)
+        profile = res_prof.scalar_one_or_none()
+
+        conflicts: List[Dict[str, Any]] = []
+        personal_info = extraction.personal_info_json or {}
+
+        if profile:
+            # Check phone
+            if profile.phone and personal_info.get("phone") and profile.phone != personal_info["phone"]:
+                conflicts.append({
+                    "field_name": "phone",
+                    "current_profile_value": profile.phone,
+                    "extracted_value": personal_info["phone"],
+                    "description": "Phone number in resume differs from existing profile."
+                })
+            # Check headline
+            if profile.headline and personal_info.get("full_name") and profile.headline.lower() != personal_info["full_name"].lower():
+                conflicts.append({
+                    "field_name": "headline",
+                    "current_profile_value": profile.headline,
+                    "extracted_value": personal_info["full_name"],
+                    "description": "Headline/name in resume differs from current profile."
+                })
+
+        # 4. Parse evidence items and calculate counts
+        evidence_dicts = extraction.evidence_items_json or []
+        field_reviews = review.field_reviews_json or {}
+        evidence_dtos: List[EvidenceDTO] = []
+
+        pending_cnt = 0
+        confirmed_cnt = 0
+        rejected_cnt = 0
+
+        for item in evidence_dicts:
+            f_id = item["field_id"]
+            rev_data = field_reviews.get(f_id, {})
+            current_action = rev_data.get("action", ReviewStatus.PENDING.value)
+
+            if current_action == ReviewAction.CONFIRM.value:
+                status = ReviewStatus.CONFIRMED
+                confirmed_cnt += 1
+            elif current_action == ReviewAction.EDIT_AND_CONFIRM.value:
+                status = ReviewStatus.EDITED
+                confirmed_cnt += 1
+            elif current_action in (ReviewAction.REJECT.value, ReviewAction.MARK_INCORRECT.value):
+                status = ReviewStatus.REJECTED
+                rejected_cnt += 1
+            else:
+                status = ReviewStatus.PENDING
+                pending_cnt += 1
+
+            evidence_dtos.append(EvidenceDTO(
+                field_id=f_id,
+                field_name=item["field_name"],
+                extracted_value=item["extracted_value"],
+                source_section=item.get("source_section"),
+                excerpt=item.get("excerpt", ""),
+                page_number=item.get("page_number"),
+                extraction_method=item.get("extraction_method", "STRUCTURED_PARSER"),
+                confidence_score=float(item.get("confidence_score", 0.85)),
+                confidence_level=ConfidenceLevel(item.get("confidence_level", "HIGH")),
+                review_status=status,
+                user_correction=rev_data.get("corrected_value"),
+                reviewed_at=None
+            ))
+
+        return ResumeReviewResponse(
+            resume_id=version.resume_id,
+            version_id=version.id,
+            review_status=ReviewStatus(review.review_status),
+            is_synced_to_profile=review.is_synced_to_profile,
+            synced_at=review.synced_at,
+            pending_fields_count=pending_cnt,
+            confirmed_fields_count=confirmed_cnt,
+            rejected_fields_count=rejected_cnt,
+            conflicts_with_profile=conflicts,
+            evidence_items=evidence_dtos
+        )
+
+    async def update_field_review(
+        self,
+        db: AsyncSession,
+        version_id: str,
+        user_id: str,
+        update: ResumeReviewFieldUpdate
+    ) -> ResumeReviewResponse:
+        """Applies candidate confirmation, correction, or rejection to an evidenced field."""
+        stmt_rev = select(ResumeReviewRecord).where(
+            ResumeReviewRecord.resume_version_id == version_id,
+            ResumeReviewRecord.user_id == user_id
+        )
+        res_rev = await db.execute(stmt_rev)
+        review = res_rev.scalar_one_or_none()
+        if not review:
+            raise ValueError("Review record not found.")
+
+        reviews = dict(review.field_reviews_json or {})
+        reviews[update.field_id] = {
+            "action": update.action.value,
+            "corrected_value": update.corrected_value,
+            "notes": update.notes,
+            "reviewed_at": utc_now().isoformat()
+        }
+        review.field_reviews_json = reviews
+        review.review_status = ReviewStatus.IN_PROGRESS.value
+        await db.commit()
+        await db.refresh(review)
+
+        return await self.get_or_create_review(db, version_id, user_id)
+
+    async def sync_approved_to_profile(
+        self,
+        db: AsyncSession,
+        version_id: str,
+        user_id: str,
+        sync_req: ResumeConfirmSyncRequest
+    ) -> ResumeConfirmSyncResponse:
+        """
+        Synchronizes candidate-confirmed fields into canonical profile tables.
+        Guarantees existing user data is protected unless overwrite_conflicts=True.
+        """
+        # 1. Fetch version and extraction
+        stmt_ver = select(ResumeVersionRecord).where(
+            ResumeVersionRecord.id == version_id,
+            ResumeVersionRecord.user_id == user_id
+        )
+        res_ver = await db.execute(stmt_ver)
+        version = res_ver.scalar_one_or_none()
+        if not version:
+            raise ValueError("Resume version not found.")
+
+        stmt_ext = select(ResumeExtractionRecord).where(
+            ResumeExtractionRecord.resume_version_id == version_id
+        )
+        res_ext = await db.execute(stmt_ext)
+        extraction = res_ext.scalar_one_or_none()
+        if not extraction:
+            raise ValueError("Extraction records not found.")
+
+        stmt_rev = select(ResumeReviewRecord).where(
+            ResumeReviewRecord.resume_version_id == version_id
+        )
+        res_rev = await db.execute(stmt_rev)
+        review = res_rev.scalar_one_or_none()
+        if not review:
+            raise ValueError("Review record not found.")
+
+        # 2. Fetch candidate profile
+        stmt_prof = select(CandidateProfile).where(CandidateProfile.user_id == user_id)
+        res_prof = await db.execute(stmt_prof)
+        profile = res_prof.scalar_one_or_none()
+        if not profile:
+            profile = CandidateProfile(user_id=user_id)
+            db.add(profile)
+            await db.flush()
+
+        field_reviews = review.field_reviews_json or {}
+        evidence_items = extraction.evidence_items_json or []
+
+        synced_count = 0
+        overwritten_count = 0
+
+        # Sync Personal Information
+        personal = extraction.personal_info_json or {}
+        if personal.get("phone"):
+            if not profile.phone:
+                profile.phone = personal["phone"]
+                synced_count += 1
+            elif sync_req.overwrite_conflicts:
+                profile.phone = personal["phone"]
+                overwritten_count += 1
+
+        # Sync Summary
+        summary = extraction.summary_json or {}
+        if summary.get("text"):
+            if not profile.summary:
+                profile.summary = summary["text"]
+                synced_count += 1
+            elif sync_req.overwrite_conflicts:
+                profile.summary = summary["text"]
+                overwritten_count += 1
+
+        # Sync Skills
+        skills_dict = extraction.skills_json or {}
+        for category, skill_list in skills_dict.items():
+            for item in skill_list:
+                s_name = item["name"]
+                stmt_s = select(CandidateSkillRecord).where(
+                    CandidateSkillRecord.profile_id == profile.id,
+                    CandidateSkillRecord.skill_name == s_name
+                )
+                res_s = await db.execute(stmt_s)
+                existing_s = res_s.scalar_one_or_none()
+                if not existing_s:
+                    new_skill = CandidateSkillRecord(
+                        profile_id=profile.id,
+                        skill_name=s_name,
+                        category=category,
+                        proficiency="Intermediate",
+                        provenance=FieldProvenance.RESUME_EXTRACTED.value
+                    )
+                    db.add(new_skill)
+                    synced_count += 1
+
+        # Sync Education
+        for edu in (extraction.education_json or []):
+            inst = edu.get("institution")
+            if inst:
+                stmt_e = select(EducationRecord).where(
+                    EducationRecord.profile_id == profile.id,
+                    EducationRecord.institution == inst
+                )
+                res_e = await db.execute(stmt_e)
+                if not res_e.scalar_one_or_none():
+                    new_edu = EducationRecord(
+                        profile_id=profile.id,
+                        institution=inst,
+                        degree=edu.get("degree") or "Degree",
+                        field_of_study=edu.get("field_of_study") or "General Studies",
+                        start_date=edu.get("start_date"),
+                        end_date=edu.get("end_date"),
+                        achievements=edu.get("grade"),
+                        provenance=FieldProvenance.RESUME_EXTRACTED.value
+                    )
+                    db.add(new_edu)
+                    synced_count += 1
+
+        # Sync Experience
+        for exp in (extraction.experience_json or []):
+            comp = exp.get("company")
+            if comp:
+                stmt_x = select(ExperienceRecord).where(
+                    ExperienceRecord.profile_id == profile.id,
+                    ExperienceRecord.company == comp
+                )
+                res_x = await db.execute(stmt_x)
+                if not res_x.scalar_one_or_none():
+                    desc = "\n".join(exp.get("responsibilities", []))
+                    new_exp = ExperienceRecord(
+                        profile_id=profile.id,
+                        company=comp,
+                        role=exp.get("title") or "Professional Role",
+                        employment_type="Full-time",
+                        start_date=exp.get("start_date"),
+                        end_date=exp.get("end_date"),
+                        description=desc,
+                        provenance=FieldProvenance.RESUME_EXTRACTED.value
+                    )
+                    db.add(new_exp)
+                    synced_count += 1
+
+        # Update review status
+        review.is_synced_to_profile = True
+        review.synced_at = utc_now()
+        review.review_status = ReviewStatus.CONFIRMED.value
+        version.parsing_status = "COMPLETED"
+
+        await db.commit()
+
+        # Log security audit event
+        await audit_service.record_event(
+            db=db,
+            event_type="PROFILE_SYNCED_FROM_RESUME",
+            user_id=user_id,
+            status="SUCCESS",
+            details={
+                "version_id": version_id,
+                "fields_synced_count": synced_count,
+                "conflicts_overwritten_count": overwritten_count
+            }
+        )
+
+        return ResumeConfirmSyncResponse(
+            synced=True,
+            fields_synced_count=synced_count,
+            conflicts_overwritten_count=overwritten_count,
+            synced_at=utc_now(),
+            message=f"Successfully synchronized {synced_count} candidate fields into profile."
+        )
+
+
+# Singleton instance
+review_service = ReviewService()

@@ -54,3 +54,19 @@ cd c:\Users\Sahil\Desktop\manit\rightFIT
 python -m pytest backend/tests/contract -v
 ```
 
+Tareeqa 2 (Manual Terminal Se):
+
+Terminal 1 — Backend:
+
+cmd
+cd c:\Users\Sahil\Desktop\manit\rightFIT
+set PYTHONPATH=%CD%;%CD%\backend
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+
+erminal 2 — Frontend:
+
+cmd
+cd c:\Users\Sahil\Desktop\manit\rightFIT\frontend
+npm run dev
+
+Ab browser me http://localhost:3000 kholein — aapko poora visual dashboard live dikhega!

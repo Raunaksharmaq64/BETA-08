@@ -1,0 +1,72 @@
+{
+  "$defs": {
+    "ParsingStatus": {
+      "description": "Resume parsing task lifecycle states.",
+      "enum": [
+        "UPLOADED",
+        "QUEUED",
+        "PROCESSING",
+        "PARSED",
+        "REVIEW_REQUIRED",
+        "COMPLETED",
+        "FAILED",
+        "DELETION_PENDING",
+        "DELETED"
+      ],
+      "title": "ParsingStatus",
+      "type": "string"
+    }
+  },
+  "description": "Response returned upon successful resume file upload.",
+  "properties": {
+    "resume_id": {
+      "title": "Resume Id",
+      "type": "string"
+    },
+    "version_id": {
+      "title": "Version Id",
+      "type": "string"
+    },
+    "version_number": {
+      "title": "Version Number",
+      "type": "integer"
+    },
+    "version_label": {
+      "title": "Version Label",
+      "type": "string"
+    },
+    "filename": {
+      "title": "Filename",
+      "type": "string"
+    },
+    "file_type": {
+      "title": "File Type",
+      "type": "string"
+    },
+    "file_size_bytes": {
+      "title": "File Size Bytes",
+      "type": "integer"
+    },
+    "parsing_status": {
+      "$ref": "#/$defs/ParsingStatus"
+    },
+    "uploaded_at": {
+      "format": "date-time",
+      "title": "Uploaded At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "resume_id",
+    "version_id",
+    "version_number",
+    "version_label",
+    "filename",
+    "file_type",
+    "file_size_bytes",
+    "parsing_status",
+    "uploaded_at"
+  ],
+  "title": "ResumeUploadResponse",
+  "type": "object"
+}

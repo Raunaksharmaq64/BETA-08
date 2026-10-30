@@ -210,3 +210,4 @@ async def resend_verification(
         data={"message": "If this account is unverified, a verification link has been sent."},
         meta=make_meta(req_id),
     )
+

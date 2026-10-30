@@ -1,0 +1,230 @@
+{
+  "$defs": {
+    "EmploymentType": {
+      "description": "Employment arrangement classification.",
+      "enum": [
+        "FULL_TIME",
+        "PART_TIME",
+        "CONTRACT",
+        "INTERNSHIP",
+        "OTHER"
+      ],
+      "title": "EmploymentType",
+      "type": "string"
+    },
+    "WorkplaceType": {
+      "description": "Workplace location mode.",
+      "enum": [
+        "REMOTE",
+        "HYBRID",
+        "ON_SITE",
+        "UNKNOWN"
+      ],
+      "title": "WorkplaceType",
+      "type": "string"
+    }
+  },
+  "description": "Canonical, normalized career opportunity.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "external_job_id": {
+      "title": "External Job Id",
+      "type": "string"
+    },
+    "dedup_key_sha256": {
+      "title": "Dedup Key Sha256",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "company_name": {
+      "title": "Company Name",
+      "type": "string"
+    },
+    "description_clean": {
+      "title": "Description Clean",
+      "type": "string"
+    },
+    "employment_type": {
+      "$ref": "#/$defs/EmploymentType"
+    },
+    "workplace_type": {
+      "$ref": "#/$defs/WorkplaceType"
+    },
+    "department": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Department"
+    },
+    "city": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "City"
+    },
+    "state": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "State"
+    },
+    "country": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Country"
+    },
+    "is_remote": {
+      "title": "Is Remote",
+      "type": "boolean"
+    },
+    "min_salary": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Min Salary"
+    },
+    "max_salary": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Salary"
+    },
+    "currency": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Currency"
+    },
+    "salary_period": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Salary Period"
+    },
+    "is_salary_estimated": {
+      "title": "Is Salary Estimated",
+      "type": "boolean"
+    },
+    "required_skills": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Required Skills",
+      "type": "array"
+    },
+    "application_url": {
+      "title": "Application Url",
+      "type": "string"
+    },
+    "source_published_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Published At"
+    },
+    "first_seen_at": {
+      "format": "date-time",
+      "title": "First Seen At",
+      "type": "string"
+    },
+    "last_seen_at": {
+      "format": "date-time",
+      "title": "Last Seen At",
+      "type": "string"
+    },
+    "is_active": {
+      "title": "Is Active",
+      "type": "boolean"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "id",
+    "source_id",
+    "external_job_id",
+    "dedup_key_sha256",
+    "title",
+    "company_name",
+    "description_clean",
+    "employment_type",
+    "workplace_type",
+    "is_remote",
+    "is_salary_estimated",
+    "application_url",
+    "first_seen_at",
+    "last_seen_at",
+    "is_active"
+  ],
+  "title": "CanonicalOpportunityResponse",
+  "type": "object"
+}

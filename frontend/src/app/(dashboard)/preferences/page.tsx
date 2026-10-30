@@ -210,3 +210,4 @@ export default function PreferencesPage() {
     </div>
   );
 }
+

@@ -797,6 +797,930 @@ paths:
                 $ref: '#/components/schemas/StandardResponse_Union_AccountDeletionResponse__NoneType__'
       security:
       - HTTPBearer: []
+  /api/v1/resumes:
+    get:
+      tags:
+      - Resume Intelligence
+      summary: List Resumes
+      description: Lists all resume containers owned by the candidate.
+      operationId: list_resumes_api_v1_resumes_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ResumeSummaryResponse'
+                type: array
+                title: Response List Resumes Api V1 Resumes Get
+      security:
+      - HTTPBearer: []
+    post:
+      tags:
+      - Resume Intelligence
+      summary: Upload Resume
+      description: Securely uploads an initial resume document (PDF or DOCX).
+      operationId: upload_resume_api_v1_resumes_post
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_resume_api_v1_resumes_post'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeUploadResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/resumes/{resume_id}:
+    get:
+      tags:
+      - Resume Intelligence
+      summary: Get Resume
+      description: Retrieves resume summary and active version details.
+      operationId: get_resume_api_v1_resumes__resume_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: resume_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resume Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeSummaryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Resume Intelligence
+      summary: Delete Resume
+      description: Permanently deletes a resume, all versions, extraction data, and
+        stored files.
+      operationId: delete_resume_api_v1_resumes__resume_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: resume_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resume Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/resumes/{resume_id}/versions:
+    post:
+      tags:
+      - Resume Intelligence
+      summary: Upload New Version
+      description: Uploads an additional version to an existing candidate resume.
+      operationId: upload_new_version_api_v1_resumes__resume_id__versions_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: resume_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resume Id
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_new_version_api_v1_resumes__resume_id__versions_post'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeUploadResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - Resume Intelligence
+      summary: List Versions
+      description: Lists all versions of a specific resume.
+      operationId: list_versions_api_v1_resumes__resume_id__versions_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: resume_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resume Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResumeVersionResponse'
+                title: Response List Versions Api V1 Resumes  Resume Id  Versions
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/resumes/{resume_id}/active-version:
+    patch:
+      tags:
+      - Resume Intelligence
+      summary: Set Active Version
+      description: Designates a specific version as the active resume.
+      operationId: set_active_version_api_v1_resumes__resume_id__active_version_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: resume_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resume Id
+      - name: version_id
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Version Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeSummaryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/resumes/{resume_id}/parse:
+    post:
+      tags:
+      - Resume Intelligence
+      summary: Parse Resume
+      description: Triggers the document text extraction and structured parsing pipeline.
+      operationId: parse_resume_api_v1_resumes__resume_id__parse_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: resume_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resume Id
+      - name: version_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeExtractionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/resumes/{resume_id}/extraction:
+    get:
+      tags:
+      - Resume Intelligence
+      summary: Get Extraction
+      description: Retrieves structured extractions and evidence for a parsed resume.
+      operationId: get_extraction_api_v1_resumes__resume_id__extraction_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: resume_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resume Id
+      - name: version_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeExtractionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/resumes/{resume_id}/review:
+    get:
+      tags:
+      - Resume Intelligence
+      summary: Get Review Workbench
+      description: Retrieves review workbench state with profile conflict detection.
+      operationId: get_review_workbench_api_v1_resumes__resume_id__review_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: resume_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resume Id
+      - name: version_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeReviewResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - Resume Intelligence
+      summary: Update Field Review
+      description: Confirms, corrects, or rejects an extracted field.
+      operationId: update_field_review_api_v1_resumes__resume_id__review_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: resume_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resume Id
+      - name: version_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResumeReviewFieldUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeReviewResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/resumes/{resume_id}/confirm:
+    post:
+      tags:
+      - Resume Intelligence
+      summary: Confirm And Sync Profile
+      description: Synchronizes candidate-confirmed fields into canonical candidate
+        profile tables.
+      operationId: confirm_and_sync_profile_api_v1_resumes__resume_id__confirm_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: resume_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resume Id
+      - name: version_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResumeConfirmSyncRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeConfirmSyncResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/resumes/{resume_id}/ats-analysis:
+    post:
+      tags:
+      - Resume Intelligence
+      summary: Analyze Ats Compatibility
+      description: Evaluates ATS keyword coverage, bullet impact, and non-fabricating
+        advice.
+      operationId: analyze_ats_compatibility_api_v1_resumes__resume_id__ats_analysis_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: resume_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resume Id
+      - name: version_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ATSAnalysisRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ATSAnalysisResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/resumes/{resume_id}/ats-analysis/{analysis_id}:
+    get:
+      tags:
+      - Resume Intelligence
+      summary: Get Ats Analysis
+      description: Retrieves an existing ATS analysis result.
+      operationId: get_ats_analysis_api_v1_resumes__resume_id__ats_analysis__analysis_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: resume_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resume Id
+      - name: analysis_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Analysis Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ATSAnalysisResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/resumes/{resume_id}/download:
+    get:
+      tags:
+      - Resume Intelligence
+      summary: Download Resume File
+      description: Authenticated streaming download of the candidate's original resume
+        file.
+      operationId: download_resume_file_api_v1_resumes__resume_id__download_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: resume_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Resume Id
+      - name: version_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/sources:
+    get:
+      tags:
+      - Job Sources & Opportunities
+      summary: List Sources
+      description: Lists registered job sources with filtering and pagination.
+      operationId: list_sources_api_v1_sources_get
+      parameters:
+      - name: policy_status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter by policy status (e.g. ACTIVE, DRAFT)
+          title: Policy Status
+        description: Filter by policy status (e.g. ACTIVE, DRAFT)
+      - name: enabled
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          description: Filter by enabled state
+          title: Enabled
+        description: Filter by enabled state
+      - name: provider
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter by provider (e.g. greenhouse, ashby)
+          title: Provider
+        description: Filter by provider (e.g. greenhouse, ashby)
+      - name: skip
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Skip
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_List_SourceResponse__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - Job Sources & Opportunities
+      summary: Create Source
+      description: 'Registers a new opportunity data source (default state: DRAFT).'
+      operationId: create_source_api_v1_sources_post
+      security:
+      - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourceCreateRequest'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_SourceResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/sources/{source_id}:
+    get:
+      tags:
+      - Job Sources & Opportunities
+      summary: Get Source
+      description: Retrieves source configuration and operational status by UUID.
+      operationId: get_source_api_v1_sources__source_id__get
+      parameters:
+      - name: source_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Source Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_SourceResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - Job Sources & Opportunities
+      summary: Update Source
+      description: Updates runtime limits, display name, or URL of an existing source.
+      operationId: update_source_api_v1_sources__source_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: source_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Source Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourceUpdateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_SourceResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/sources/{source_id}/policy:
+    patch:
+      tags:
+      - Job Sources & Opportunities
+      summary: Update Source Policy
+      description: Updates governance policy status (DRAFT, PENDING_REVIEW, APPROVED,
+        ACTIVE, PAUSED, BLOCKED, RETIRED).
+      operationId: update_source_policy_api_v1_sources__source_id__policy_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: source_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Source Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SourcePolicyUpdateRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_SourceResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/sources/{source_id}/ingest:
+    post:
+      tags:
+      - Job Sources & Opportunities
+      summary: Trigger Ingestion
+      description: Triggers an ingestion run for an active source with resilience
+        guardrails.
+      operationId: trigger_ingestion_api_v1_sources__source_id__ingest_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: source_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Source Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestionTriggerRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_IngestionTriggerResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/sources/{source_id}/runs:
+    get:
+      tags:
+      - Job Sources & Opportunities
+      summary: Get Source Runs
+      description: Retrieves execution metrics and logs for a source.
+      operationId: get_source_runs_api_v1_sources__source_id__runs_get
+      parameters:
+      - name: source_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Source Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_List_SourceRunLogResponse__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/sources/{source_id}/observations:
+    get:
+      tags:
+      - Job Sources & Opportunities
+      summary: Get Source Observations
+      description: Retrieves raw observation payloads and provenance for a source.
+      operationId: get_source_observations_api_v1_sources__source_id__observations_get
+      parameters:
+      - name: source_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Source Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_List_SourceObservationResponse__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/opportunities:
+    get:
+      tags:
+      - Job Sources & Opportunities
+      summary: Search Opportunities
+      description: Searches canonical career opportunities ingested from all active
+        sources.
+      operationId: search_opportunities_api_v1_opportunities_get
+      parameters:
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Keyword search in title, company, description
+          title: Search
+        description: Keyword search in title, company, description
+      - name: remote_only
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          description: Filter for remote jobs
+          title: Remote Only
+        description: Filter for remote jobs
+      - name: employment_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: FULL_TIME, CONTRACT, INTERNSHIP
+          title: Employment Type
+        description: FULL_TIME, CONTRACT, INTERNSHIP
+      - name: department
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Department name
+          title: Department
+        description: Department name
+      - name: skip
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Skip
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_List_CanonicalOpportunityResponse__'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/opportunities/{opportunity_id}:
+    get:
+      tags:
+      - Job Sources & Opportunities
+      summary: Get Opportunity
+      description: Retrieves a single canonical opportunity by UUID.
+      operationId: get_opportunity_api_v1_opportunities__opportunity_id__get
+      parameters:
+      - name: opportunity_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Opportunity Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_CanonicalOpportunityResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /:
     get:
       tags:
@@ -815,6 +1739,103 @@ paths:
                 title: Response Root  Get
 components:
   schemas:
+    ATSAnalysisRequest:
+      properties:
+        target_job_title:
+          type: string
+          maxLength: 150
+          minLength: 2
+          title: Target Job Title
+        target_job_description:
+          type: string
+          maxLength: 25000
+          minLength: 10
+          title: Target Job Description
+      type: object
+      required:
+      - target_job_title
+      - target_job_description
+      title: ATSAnalysisRequest
+      description: Request to score ATS keyword coverage and bullet strength against
+        a target job.
+    ATSAnalysisResponse:
+      properties:
+        analysis_id:
+          type: string
+          title: Analysis Id
+        resume_id:
+          type: string
+          title: Resume Id
+        version_id:
+          type: string
+          title: Version Id
+        target_job_title:
+          type: string
+          title: Target Job Title
+        coverage_score:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Coverage Score
+          description: Fraction of top JD keywords found in resume text
+        matched_keywords:
+          items:
+            type: string
+          type: array
+          title: Matched Keywords
+        missing_keywords:
+          items:
+            type: string
+          type: array
+          title: Missing Keywords
+        bullet_impact_score:
+          type: number
+          maximum: 100.0
+          minimum: 0.0
+          title: Bullet Impact Score
+          description: Percentage of quantified/impactful bullets
+        bullet_impact_analysis:
+          additionalProperties: true
+          type: object
+          title: Bullet Impact Analysis
+        actionable_suggestions:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Actionable Suggestions
+          description: Suggestions strictly grounded in document evidence; never fabricates
+            facts
+        formatting_observations:
+          items:
+            type: string
+          type: array
+          title: Formatting Observations
+        methodology_and_limitations:
+          type: string
+          title: Methodology And Limitations
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - analysis_id
+      - resume_id
+      - version_id
+      - target_job_title
+      - coverage_score
+      - matched_keywords
+      - missing_keywords
+      - bullet_impact_score
+      - bullet_impact_analysis
+      - actionable_suggestions
+      - formatting_observations
+      - methodology_and_limitations
+      - created_at
+      title: ATSAnalysisResponse
+      description: Transparent ATS keyword coverage, bullet impact, and non-fabricating
+        advice.
     AccountDeletionRequest:
       properties:
         confirmation:
@@ -869,6 +1890,44 @@ components:
       - DELETED
       title: AccountStatus
       description: Lifecycle states of a user account.
+    AuthType:
+      type: string
+      enum:
+      - NONE_PUBLIC
+      - API_KEY
+      - BEARER_TOKEN
+      - OAUTH2
+      title: AuthType
+      description: Authentication requirement for the source.
+    Body_upload_new_version_api_v1_resumes__resume_id__versions_post:
+      properties:
+        version_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Version Label
+        file:
+          type: string
+          format: binary
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_new_version_api_v1_resumes__resume_id__versions_post
+    Body_upload_resume_api_v1_resumes_post:
+      properties:
+        title:
+          type: string
+          title: Title
+          default: My Resume
+        file:
+          type: string
+          format: binary
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_resume_api_v1_resumes_post
     CandidatePreferencesResponse:
       properties:
         preferred_roles:
@@ -1112,6 +2171,127 @@ components:
           title: Timezone
       type: object
       title: CandidateProfileUpdate
+    CanonicalOpportunityResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        source_id:
+          type: string
+          title: Source Id
+        external_job_id:
+          type: string
+          title: External Job Id
+        dedup_key_sha256:
+          type: string
+          title: Dedup Key Sha256
+        title:
+          type: string
+          title: Title
+        company_name:
+          type: string
+          title: Company Name
+        description_clean:
+          type: string
+          title: Description Clean
+        employment_type:
+          $ref: '#/components/schemas/EmploymentType'
+        workplace_type:
+          $ref: '#/components/schemas/WorkplaceType'
+        department:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Department
+        city:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: City
+        state:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: State
+        country:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country
+        is_remote:
+          type: boolean
+          title: Is Remote
+        min_salary:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Min Salary
+        max_salary:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Max Salary
+        currency:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Currency
+        salary_period:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Salary Period
+        is_salary_estimated:
+          type: boolean
+          title: Is Salary Estimated
+        required_skills:
+          items:
+            type: string
+          type: array
+          title: Required Skills
+        application_url:
+          type: string
+          title: Application Url
+        source_published_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Source Published At
+        first_seen_at:
+          type: string
+          format: date-time
+          title: First Seen At
+        last_seen_at:
+          type: string
+          format: date-time
+          title: Last Seen At
+        is_active:
+          type: boolean
+          title: Is Active
+        provenance:
+          additionalProperties: true
+          type: object
+          title: Provenance
+      type: object
+      required:
+      - id
+      - source_id
+      - external_job_id
+      - dedup_key_sha256
+      - title
+      - company_name
+      - description_clean
+      - employment_type
+      - workplace_type
+      - is_remote
+      - is_salary_estimated
+      - application_url
+      - first_seen_at
+      - last_seen_at
+      - is_active
+      title: CanonicalOpportunityResponse
+      description: Canonical, normalized career opportunity.
     ChangePasswordRequest:
       properties:
         current_password:
@@ -1130,6 +2310,23 @@ components:
       - new_password
       title: ChangePasswordRequest
       description: In-session password change payload.
+    CircuitBreakerState:
+      type: string
+      enum:
+      - CLOSED
+      - OPEN
+      - HALF_OPEN
+      title: CircuitBreakerState
+      description: 3-State Circuit Breaker operational condition.
+    ConfidenceLevel:
+      type: string
+      enum:
+      - HIGH
+      - MEDIUM
+      - LOW
+      - EVIDENCE_UNAVAILABLE
+      title: ConfidenceLevel
+      description: Extraction confidence classification for candidate presentation.
     ConsentGrantRequest:
       properties:
         purpose:
@@ -1381,6 +2578,83 @@ components:
       - field_of_study
       - id
       title: EducationResponse
+    EmploymentType:
+      type: string
+      enum:
+      - FULL_TIME
+      - PART_TIME
+      - CONTRACT
+      - INTERNSHIP
+      - OTHER
+      title: EmploymentType
+      description: Employment arrangement classification.
+    EvidenceDTO:
+      properties:
+        field_id:
+          type: string
+          title: Field Id
+          description: Unique identifier for the evidenced field
+        field_name:
+          type: string
+          title: Field Name
+          description: Semantic field path, e.g. 'personal_info.phone' or 'skills.languages'
+        extracted_value:
+          title: Extracted Value
+          description: Original value extracted from document
+        source_section:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Section
+          description: Document section containing evidence
+        excerpt:
+          type: string
+          title: Excerpt
+          description: Exact snippet or sentence from resume supporting this fact
+        page_number:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Page Number
+          description: Page number where excerpt was located
+        extraction_method:
+          type: string
+          title: Extraction Method
+          description: 'Method: REGEX, SECTION_PARSER, KEYWORD_MATCHER'
+          default: STRUCTURED_PARSER
+        confidence_score:
+          type: number
+          maximum: 1.0
+          minimum: 0.0
+          title: Confidence Score
+          description: Raw algorithmic confidence score
+        confidence_level:
+          $ref: '#/components/schemas/ConfidenceLevel'
+          default: HIGH
+        review_status:
+          $ref: '#/components/schemas/ReviewStatus'
+          default: PENDING
+        user_correction:
+          anyOf:
+          - {}
+          - type: 'null'
+          title: User Correction
+          description: Candidate-corrected value if edited
+        reviewed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reviewed At
+      type: object
+      required:
+      - field_id
+      - field_name
+      - extracted_value
+      - excerpt
+      - confidence_score
+      title: EvidenceDTO
+      description: Supporting document evidence for an extracted field.
     ExperienceCreate:
       properties:
         company:
@@ -1529,6 +2803,80 @@ components:
       - unhealthy
       title: HealthStatus
       description: Service health state.
+    IngestionTriggerRequest:
+      properties:
+        max_records:
+          type: integer
+          maximum: 500.0
+          minimum: 1.0
+          title: Max Records
+          description: Maximum listings to ingest in this run
+          default: 50
+        force:
+          type: boolean
+          title: Force
+          description: Bypass cooldown if circuit is in HALF_OPEN
+          default: false
+      additionalProperties: false
+      type: object
+      title: IngestionTriggerRequest
+      description: Payload to trigger an ingestion run on demand.
+    IngestionTriggerResponse:
+      properties:
+        run_id:
+          type: string
+          title: Run Id
+        source_id:
+          type: string
+          title: Source Id
+        source_key:
+          type: string
+          title: Source Key
+        status:
+          $ref: '#/components/schemas/RunStatus'
+        records_fetched:
+          type: integer
+          title: Records Fetched
+        records_inserted:
+          type: integer
+          title: Records Inserted
+        records_updated:
+          type: integer
+          title: Records Updated
+        duplicates_skipped:
+          type: integer
+          title: Duplicates Skipped
+        duration_seconds:
+          type: number
+          title: Duration Seconds
+        circuit_state:
+          $ref: '#/components/schemas/CircuitBreakerState'
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - run_id
+      - source_id
+      - source_key
+      - status
+      - records_fetched
+      - records_inserted
+      - records_updated
+      - duplicates_skipped
+      - duration_seconds
+      - circuit_state
+      - message
+      title: IngestionTriggerResponse
+      description: Result of an ingestion run execution.
+    IntegrationMethod:
+      type: string
+      enum:
+      - REST_API
+      - PULL_FEED
+      - WEBHOOK
+      title: IntegrationMethod
+      description: Ingestion mechanism.
     LivenessResponse:
       properties:
         status:
@@ -1566,6 +2914,41 @@ components:
       - password
       title: LoginRequest
       description: Account login payload.
+    NormalizationStatus:
+      type: string
+      enum:
+      - RAW
+      - NORMALIZED
+      - FAILED
+      - DUPLICATE
+      title: NormalizationStatus
+      description: Status of raw payload normalization.
+    ParsingStatus:
+      type: string
+      enum:
+      - UPLOADED
+      - QUEUED
+      - PROCESSING
+      - PARSED
+      - REVIEW_REQUIRED
+      - COMPLETED
+      - FAILED
+      - DELETION_PENDING
+      - DELETED
+      title: ParsingStatus
+      description: Resume parsing task lifecycle states.
+    PolicyStatus:
+      type: string
+      enum:
+      - DRAFT
+      - PENDING_REVIEW
+      - APPROVED
+      - ACTIVE
+      - PAUSED
+      - BLOCKED
+      - RETIRED
+      title: PolicyStatus
+      description: Governance lifecycle status for sources.
     PrivacySettingsResponse:
       properties:
         profile_visibility:
@@ -1797,6 +3180,366 @@ components:
       - request_id
       title: ResponseMeta
       description: Metadata attached to every standard API response.
+    ResumeConfirmSyncRequest:
+      properties:
+        approved_field_ids:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Approved Field Ids
+          description: Optional list of specific field_ids to sync. If omitted, all
+            confirmed/edited fields are synced.
+        overwrite_conflicts:
+          type: boolean
+          title: Overwrite Conflicts
+          description: Whether to overwrite existing user-provided fields if conflicts
+            exist. Requires explicit candidate consent.
+          default: false
+      type: object
+      title: ResumeConfirmSyncRequest
+      description: Request to synchronize confirmed extracted fields into the canonical
+        candidate profile.
+    ResumeConfirmSyncResponse:
+      properties:
+        synced:
+          type: boolean
+          title: Synced
+        fields_synced_count:
+          type: integer
+          title: Fields Synced Count
+        conflicts_overwritten_count:
+          type: integer
+          title: Conflicts Overwritten Count
+        synced_at:
+          type: string
+          format: date-time
+          title: Synced At
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - synced
+      - fields_synced_count
+      - conflicts_overwritten_count
+      - synced_at
+      - message
+      title: ResumeConfirmSyncResponse
+      description: Result of synchronizing approved resume fields to candidate profile.
+    ResumeExtractionResponse:
+      properties:
+        resume_id:
+          type: string
+          title: Resume Id
+        version_id:
+          type: string
+          title: Version Id
+        parsing_status:
+          $ref: '#/components/schemas/ParsingStatus'
+        personal_info:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Personal Info
+        summary:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Summary
+        education:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Education
+        experience:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Experience
+        skills:
+          additionalProperties:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+          type: object
+          title: Skills
+        projects:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Projects
+        certifications:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Certifications
+        evidence_items:
+          items:
+            $ref: '#/components/schemas/EvidenceDTO'
+          type: array
+          title: Evidence Items
+        parsed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Parsed At
+      type: object
+      required:
+      - resume_id
+      - version_id
+      - parsing_status
+      title: ResumeExtractionResponse
+      description: Structured candidate information extracted from a resume version.
+    ResumeReviewFieldUpdate:
+      properties:
+        field_id:
+          type: string
+          title: Field Id
+        action:
+          $ref: '#/components/schemas/ReviewAction'
+        corrected_value:
+          anyOf:
+          - {}
+          - type: 'null'
+          title: Corrected Value
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+      type: object
+      required:
+      - field_id
+      - action
+      title: ResumeReviewFieldUpdate
+      description: Payload to review or correct a specific extracted field.
+    ResumeReviewResponse:
+      properties:
+        resume_id:
+          type: string
+          title: Resume Id
+        version_id:
+          type: string
+          title: Version Id
+        review_status:
+          $ref: '#/components/schemas/ReviewStatus'
+        is_synced_to_profile:
+          type: boolean
+          title: Is Synced To Profile
+        synced_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Synced At
+        pending_fields_count:
+          type: integer
+          title: Pending Fields Count
+        confirmed_fields_count:
+          type: integer
+          title: Confirmed Fields Count
+        rejected_fields_count:
+          type: integer
+          title: Rejected Fields Count
+        conflicts_with_profile:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Conflicts With Profile
+          description: List of fields where extracted data differs from existing candidate
+            profile
+        evidence_items:
+          items:
+            $ref: '#/components/schemas/EvidenceDTO'
+          type: array
+          title: Evidence Items
+      type: object
+      required:
+      - resume_id
+      - version_id
+      - review_status
+      - is_synced_to_profile
+      - pending_fields_count
+      - confirmed_fields_count
+      - rejected_fields_count
+      title: ResumeReviewResponse
+      description: Review workbench state showing approvals, rejections, and profile
+        conflicts.
+    ResumeSummaryResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        title:
+          type: string
+          title: Title
+        active_version_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Active Version Id
+        active_version:
+          anyOf:
+          - $ref: '#/components/schemas/ResumeVersionResponse'
+          - type: 'null'
+        version_count:
+          type: integer
+          title: Version Count
+          default: 1
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - title
+      - created_at
+      - updated_at
+      title: ResumeSummaryResponse
+      description: Summary of a candidate resume including its active version.
+    ResumeUploadResponse:
+      properties:
+        resume_id:
+          type: string
+          title: Resume Id
+        version_id:
+          type: string
+          title: Version Id
+        version_number:
+          type: integer
+          title: Version Number
+        version_label:
+          type: string
+          title: Version Label
+        filename:
+          type: string
+          title: Filename
+        file_type:
+          type: string
+          title: File Type
+        file_size_bytes:
+          type: integer
+          title: File Size Bytes
+        parsing_status:
+          $ref: '#/components/schemas/ParsingStatus'
+        uploaded_at:
+          type: string
+          format: date-time
+          title: Uploaded At
+      type: object
+      required:
+      - resume_id
+      - version_id
+      - version_number
+      - version_label
+      - filename
+      - file_type
+      - file_size_bytes
+      - parsing_status
+      - uploaded_at
+      title: ResumeUploadResponse
+      description: Response returned upon successful resume file upload.
+    ResumeVersionResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        resume_id:
+          type: string
+          title: Resume Id
+        version_number:
+          type: integer
+          title: Version Number
+        version_label:
+          type: string
+          title: Version Label
+        original_filename:
+          type: string
+          title: Original Filename
+        file_type:
+          type: string
+          title: File Type
+        file_size_bytes:
+          type: integer
+          title: File Size Bytes
+        parsing_status:
+          $ref: '#/components/schemas/ParsingStatus'
+        error_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Message
+        is_active:
+          type: boolean
+          title: Is Active
+        uploaded_at:
+          type: string
+          format: date-time
+          title: Uploaded At
+        parsed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Parsed At
+      type: object
+      required:
+      - id
+      - resume_id
+      - version_number
+      - version_label
+      - original_filename
+      - file_type
+      - file_size_bytes
+      - parsing_status
+      - is_active
+      - uploaded_at
+      title: ResumeVersionResponse
+      description: Metadata for a specific version of a candidate resume.
+    ReviewAction:
+      type: string
+      enum:
+      - CONFIRM
+      - EDIT_AND_CONFIRM
+      - REJECT
+      - MARK_INCORRECT
+      title: ReviewAction
+      description: Candidate review actions on extracted candidate fields.
+    ReviewStatus:
+      type: string
+      enum:
+      - PENDING
+      - CONFIRMED
+      - EDITED
+      - REJECTED
+      - IN_PROGRESS
+      title: ReviewStatus
+      description: Review status for individual fields and overall extraction.
+    RunStatus:
+      type: string
+      enum:
+      - RUNNING
+      - SUCCESS
+      - PARTIAL_FAILURE
+      - FAILED
+      title: RunStatus
+      description: Ingestion run execution outcome.
     SkillCreate:
       properties:
         skill_name:
@@ -1862,6 +3605,391 @@ components:
       - skill_name
       - id
       title: SkillResponse
+    SourceCreateRequest:
+      properties:
+        source_key:
+          type: string
+          maxLength: 100
+          minLength: 2
+          title: Source Key
+          description: Unique slug identifying source (e.g. 'greenhouse-stripe')
+        display_name:
+          type: string
+          maxLength: 150
+          minLength: 2
+          title: Display Name
+          description: Human readable name
+        source_type:
+          $ref: '#/components/schemas/SourceType'
+          description: Source classification
+          default: ATS_JOB_BOARD
+        provider:
+          type: string
+          maxLength: 50
+          minLength: 2
+          title: Provider
+          description: Provider/adapter name ('greenhouse', 'ashby', 'synthetic')
+        base_url:
+          type: string
+          title: Base Url
+          description: Target board or API base URL
+        integration_method:
+          $ref: '#/components/schemas/IntegrationMethod'
+          default: REST_API
+        auth_type:
+          $ref: '#/components/schemas/AuthType'
+          default: NONE_PUBLIC
+        credential_reference:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Credential Reference
+          description: Secret manager or vault key reference
+        rate_limit_per_minute:
+          type: integer
+          maximum: 1200.0
+          minimum: 1.0
+          title: Rate Limit Per Minute
+          description: Allowed requests per minute
+          default: 60
+        timeout_seconds:
+          type: number
+          maximum: 120.0
+          minimum: 1.0
+          title: Timeout Seconds
+          description: HTTP request timeout in seconds
+          default: 30.0
+        retry_max_attempts:
+          type: integer
+          maximum: 10.0
+          minimum: 0.0
+          title: Retry Max Attempts
+          description: Max retry attempts on transient errors
+          default: 3
+        notes:
+          anyOf:
+          - type: string
+            maxLength: 1000
+          - type: 'null'
+          title: Notes
+          description: Operational or compliance notes
+      additionalProperties: false
+      type: object
+      required:
+      - source_key
+      - display_name
+      - provider
+      - base_url
+      title: SourceCreateRequest
+      description: Payload to register a new job source.
+    SourceObservationResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        source_id:
+          type: string
+          title: Source Id
+        external_job_id:
+          type: string
+          title: External Job Id
+        listing_url:
+          type: string
+          title: Listing Url
+        observed_at:
+          type: string
+          format: date-time
+          title: Observed At
+        source_published_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Source Published At
+        source_updated_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Source Updated At
+        payload_hash_sha256:
+          type: string
+          title: Payload Hash Sha256
+        normalization_status:
+          $ref: '#/components/schemas/NormalizationStatus'
+        error_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Message
+        first_seen_at:
+          type: string
+          format: date-time
+          title: First Seen At
+        last_seen_at:
+          type: string
+          format: date-time
+          title: Last Seen At
+      type: object
+      required:
+      - id
+      - source_id
+      - external_job_id
+      - listing_url
+      - observed_at
+      - payload_hash_sha256
+      - normalization_status
+      - first_seen_at
+      - last_seen_at
+      title: SourceObservationResponse
+      description: Provenance and raw signal observation record.
+    SourcePolicyUpdateRequest:
+      properties:
+        policy_status:
+          $ref: '#/components/schemas/PolicyStatus'
+          description: Target governance status
+        review_notes:
+          type: string
+          maxLength: 1000
+          minLength: 3
+          title: Review Notes
+          description: Audit rationale for decision
+      additionalProperties: false
+      type: object
+      required:
+      - policy_status
+      - review_notes
+      title: SourcePolicyUpdateRequest
+      description: Payload to update the governance policy status of a source.
+    SourceResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        source_key:
+          type: string
+          title: Source Key
+        display_name:
+          type: string
+          title: Display Name
+        source_type:
+          $ref: '#/components/schemas/SourceType'
+        provider:
+          type: string
+          title: Provider
+        base_url:
+          type: string
+          title: Base Url
+        integration_method:
+          $ref: '#/components/schemas/IntegrationMethod'
+        auth_type:
+          $ref: '#/components/schemas/AuthType'
+        credential_reference:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Credential Reference
+        enabled:
+          type: boolean
+          title: Enabled
+        policy_status:
+          $ref: '#/components/schemas/PolicyStatus'
+        policy_decision_json:
+          additionalProperties: true
+          type: object
+          title: Policy Decision Json
+        rate_limit_per_minute:
+          type: integer
+          title: Rate Limit Per Minute
+        timeout_seconds:
+          type: number
+          title: Timeout Seconds
+        retry_max_attempts:
+          type: integer
+          title: Retry Max Attempts
+        circuit_breaker_state:
+          $ref: '#/components/schemas/CircuitBreakerState'
+        consecutive_failures:
+          type: integer
+          title: Consecutive Failures
+        last_failure_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Failure At
+        last_success_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Success At
+        cooldown_until:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Cooldown Until
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - source_key
+      - display_name
+      - source_type
+      - provider
+      - base_url
+      - integration_method
+      - auth_type
+      - enabled
+      - policy_status
+      - rate_limit_per_minute
+      - timeout_seconds
+      - retry_max_attempts
+      - circuit_breaker_state
+      - consecutive_failures
+      - created_at
+      - updated_at
+      title: SourceResponse
+      description: Public representation of a registered Job Source.
+    SourceRunLogResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        source_id:
+          type: string
+          title: Source Id
+        trigger_type:
+          $ref: '#/components/schemas/TriggerType'
+        status:
+          $ref: '#/components/schemas/RunStatus'
+        records_fetched:
+          type: integer
+          title: Records Fetched
+        records_normalized:
+          type: integer
+          title: Records Normalized
+        records_inserted:
+          type: integer
+          title: Records Inserted
+        records_updated:
+          type: integer
+          title: Records Updated
+        duplicates_skipped:
+          type: integer
+          title: Duplicates Skipped
+        error_category:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Category
+        safe_error_summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Safe Error Summary
+        started_at:
+          type: string
+          format: date-time
+          title: Started At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+        duration_seconds:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Duration Seconds
+      type: object
+      required:
+      - id
+      - source_id
+      - trigger_type
+      - status
+      - records_fetched
+      - records_normalized
+      - records_inserted
+      - records_updated
+      - duplicates_skipped
+      - started_at
+      title: SourceRunLogResponse
+      description: Execution log and metrics for a source ingestion run.
+    SourceType:
+      type: string
+      enum:
+      - ATS_JOB_BOARD
+      - OFFICIAL_API
+      - PERMITTED_FEED
+      title: SourceType
+      description: Categorization of opportunity data source.
+    SourceUpdateRequest:
+      properties:
+        display_name:
+          anyOf:
+          - type: string
+            maxLength: 150
+            minLength: 2
+          - type: 'null'
+          title: Display Name
+        base_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Base Url
+        enabled:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Enabled
+        rate_limit_per_minute:
+          anyOf:
+          - type: integer
+            maximum: 1200.0
+            minimum: 1.0
+          - type: 'null'
+          title: Rate Limit Per Minute
+        timeout_seconds:
+          anyOf:
+          - type: number
+            maximum: 120.0
+            minimum: 1.0
+          - type: 'null'
+          title: Timeout Seconds
+        retry_max_attempts:
+          anyOf:
+          - type: integer
+            maximum: 10.0
+            minimum: 0.0
+          - type: 'null'
+          title: Retry Max Attempts
+        credential_reference:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Credential Reference
+        notes:
+          anyOf:
+          - type: string
+            maxLength: 1000
+          - type: 'null'
+          title: Notes
+      additionalProperties: false
+      type: object
+      title: SourceUpdateRequest
+      description: Payload to update an existing job source configuration.
     StandardResponse_AccountDeletionResponse_:
       properties:
         success:
@@ -1916,6 +4044,24 @@ components:
       - data
       - meta
       title: StandardResponse[CandidateProfileResponse]
+    StandardResponse_CanonicalOpportunityResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/CanonicalOpportunityResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[CanonicalOpportunityResponse]
     StandardResponse_ConsentRecordResponse_:
       properties:
         success:
@@ -2006,6 +4152,45 @@ components:
       - data
       - meta
       title: StandardResponse[ExperienceResponse]
+    StandardResponse_IngestionTriggerResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/IngestionTriggerResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[IngestionTriggerResponse]
+    StandardResponse_List_CanonicalOpportunityResponse__:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          items:
+            $ref: '#/components/schemas/CanonicalOpportunityResponse'
+          type: array
+          title: Data
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[List[CanonicalOpportunityResponse]]
     StandardResponse_List_ConsentRecordResponse__:
       properties:
         success:
@@ -2027,6 +4212,69 @@ components:
       - data
       - meta
       title: StandardResponse[List[ConsentRecordResponse]]
+    StandardResponse_List_SourceObservationResponse__:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          items:
+            $ref: '#/components/schemas/SourceObservationResponse'
+          type: array
+          title: Data
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[List[SourceObservationResponse]]
+    StandardResponse_List_SourceResponse__:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          items:
+            $ref: '#/components/schemas/SourceResponse'
+          type: array
+          title: Data
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[List[SourceResponse]]
+    StandardResponse_List_SourceRunLogResponse__:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          items:
+            $ref: '#/components/schemas/SourceRunLogResponse'
+          type: array
+          title: Data
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[List[SourceRunLogResponse]]
     StandardResponse_PrivacySettingsResponse_:
       properties:
         success:
@@ -2081,6 +4329,24 @@ components:
       - data
       - meta
       title: StandardResponse[SkillResponse]
+    StandardResponse_SourceResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/SourceResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[SourceResponse]
     StandardResponse_TokenResponse_:
       properties:
         success:
@@ -2184,6 +4450,14 @@ components:
       - expires_in
       title: TokenResponse
       description: Standard authentication token response.
+    TriggerType:
+      type: string
+      enum:
+      - MANUAL
+      - SCHEDULED
+      - SYSTEM
+      title: TriggerType
+      description: Origin of the ingestion execution.
     UserResponse:
       properties:
         id:
@@ -2265,6 +4539,15 @@ components:
       - token
       title: VerifyEmailRequest
       description: Email verification payload.
+    WorkplaceType:
+      type: string
+      enum:
+      - REMOTE
+      - HYBRID
+      - ON_SITE
+      - UNKNOWN
+      title: WorkplaceType
+      description: Workplace location mode.
   securitySchemes:
     HTTPBearer:
       type: http

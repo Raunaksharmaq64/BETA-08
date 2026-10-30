@@ -124,3 +124,4 @@ class DeletionService:
             service_status=record.service_status_json or {},
             message="Account deletion is pending completion.",
         )
+

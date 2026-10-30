@@ -69,3 +69,4 @@ Privacy settings are managed via REST endpoints exposed under `/api/v1/privacy/s
    - When satellite agents request candidate opportunities via Core API contracts, Core filters out candidates where `allow_opportunity_matching == False` or `profile_visibility == 'PRIVATE'`.
 2. **AI Execution Boundaries**:
    - Background tasks evaluating skill gaps or generating personalized pitches check `allow_ai_profile_analysis`. If disabled, automated processing halts and returns standard generic templates.
+

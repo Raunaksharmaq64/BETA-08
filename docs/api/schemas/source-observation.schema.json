@@ -1,0 +1,107 @@
+{
+  "$defs": {
+    "NormalizationStatus": {
+      "description": "Status of raw payload normalization.",
+      "enum": [
+        "RAW",
+        "NORMALIZED",
+        "FAILED",
+        "DUPLICATE"
+      ],
+      "title": "NormalizationStatus",
+      "type": "string"
+    }
+  },
+  "description": "Provenance and raw signal observation record.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "external_job_id": {
+      "title": "External Job Id",
+      "type": "string"
+    },
+    "listing_url": {
+      "title": "Listing Url",
+      "type": "string"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "source_published_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Published At"
+    },
+    "source_updated_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Updated At"
+    },
+    "payload_hash_sha256": {
+      "title": "Payload Hash Sha256",
+      "type": "string"
+    },
+    "normalization_status": {
+      "$ref": "#/$defs/NormalizationStatus"
+    },
+    "error_message": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error Message"
+    },
+    "first_seen_at": {
+      "format": "date-time",
+      "title": "First Seen At",
+      "type": "string"
+    },
+    "last_seen_at": {
+      "format": "date-time",
+      "title": "Last Seen At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "source_id",
+    "external_job_id",
+    "listing_url",
+    "observed_at",
+    "payload_hash_sha256",
+    "normalization_status",
+    "first_seen_at",
+    "last_seen_at"
+  ],
+  "title": "SourceObservationResponse",
+  "type": "object"
+}

@@ -40,3 +40,4 @@ class SecurityAuditEventResponse(BaseModel):
     status: str
     ip_address: Optional[str] = None
     details: Dict[str, Any] = Field(default_factory=dict)
+

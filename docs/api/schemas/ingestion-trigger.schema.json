@@ -1,0 +1,85 @@
+{
+  "$defs": {
+    "CircuitBreakerState": {
+      "description": "3-State Circuit Breaker operational condition.",
+      "enum": [
+        "CLOSED",
+        "OPEN",
+        "HALF_OPEN"
+      ],
+      "title": "CircuitBreakerState",
+      "type": "string"
+    },
+    "RunStatus": {
+      "description": "Ingestion run execution outcome.",
+      "enum": [
+        "RUNNING",
+        "SUCCESS",
+        "PARTIAL_FAILURE",
+        "FAILED"
+      ],
+      "title": "RunStatus",
+      "type": "string"
+    }
+  },
+  "description": "Result of an ingestion run execution.",
+  "properties": {
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "source_key": {
+      "title": "Source Key",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/RunStatus"
+    },
+    "records_fetched": {
+      "title": "Records Fetched",
+      "type": "integer"
+    },
+    "records_inserted": {
+      "title": "Records Inserted",
+      "type": "integer"
+    },
+    "records_updated": {
+      "title": "Records Updated",
+      "type": "integer"
+    },
+    "duplicates_skipped": {
+      "title": "Duplicates Skipped",
+      "type": "integer"
+    },
+    "duration_seconds": {
+      "title": "Duration Seconds",
+      "type": "number"
+    },
+    "circuit_state": {
+      "$ref": "#/$defs/CircuitBreakerState"
+    },
+    "message": {
+      "title": "Message",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "source_id",
+    "source_key",
+    "status",
+    "records_fetched",
+    "records_inserted",
+    "records_updated",
+    "duplicates_skipped",
+    "duration_seconds",
+    "circuit_state",
+    "message"
+  ],
+  "title": "IngestionTriggerResponse",
+  "type": "object"
+}

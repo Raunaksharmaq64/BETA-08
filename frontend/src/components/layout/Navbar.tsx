@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const router = useRouter();
@@ -16,6 +16,10 @@ export default function Navbar() {
   };
 
   const navLinks = [
+    { name: "Resumes", href: "/resumes" },
+    { name: "Opportunities", href: "/opportunities" },
+    { name: "Job Sources", href: "/sources" },
+    { name: "Data Quality", href: "/quality" },
     { name: "Candidate Profile", href: "/profile" },
     { name: "Onboarding Wizard", href: "/onboarding" },
     { name: "Preferences", href: "/preferences" },
@@ -78,3 +82,4 @@ export default function Navbar() {
     </nav>
   );
 }
+

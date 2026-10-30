@@ -10,6 +10,9 @@ from app.api.v1.endpoints.auth import router as auth_router
 from app.api.v1.endpoints.candidate import router as candidate_router
 from app.api.v1.endpoints.health import router as health_router
 from app.api.v1.endpoints.privacy import router as privacy_router
+from app.api.v1.endpoints.resume import router as resume_router
+from app.api.v1.endpoints.sources import router as sources_router
+from app.api.v1.endpoints.verification import router as verification_router
 
 api_v1_router = APIRouter()
 
@@ -18,3 +21,6 @@ api_v1_router.include_router(health_router)
 api_v1_router.include_router(auth_router)
 api_v1_router.include_router(candidate_router)
 api_v1_router.include_router(privacy_router)
+api_v1_router.include_router(resume_router)
+api_v1_router.include_router(sources_router)
+api_v1_router.include_router(verification_router)

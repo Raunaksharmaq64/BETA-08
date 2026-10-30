@@ -91,3 +91,4 @@ class VerifyEmailRequest(BaseModel):
 class ResendVerificationRequest(BaseModel):
     """Resend email verification payload."""
     email: EmailStr = Field(..., description="Account email.")
+

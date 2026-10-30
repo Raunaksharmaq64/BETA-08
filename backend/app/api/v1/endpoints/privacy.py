@@ -152,3 +152,4 @@ async def get_account_deletion_status(
     req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
     resp = await DeletionService.get_deletion_status(db, current_user.id)
     return StandardResponse(data=resp, meta=make_meta(req_id))
+

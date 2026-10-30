@@ -147,3 +147,4 @@ class CandidatePreferencesResponse(CandidatePreferencesUpdate):
     id: str = Field(..., description="Preference record UUID.")
     user_id: str = Field(..., description="Owner User UUID.")
     updated_at: datetime
+

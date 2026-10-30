@@ -344,3 +344,4 @@ class ProfileService:
             has_preferences=has_prefs,
             missing_sections=missing,
         )
+

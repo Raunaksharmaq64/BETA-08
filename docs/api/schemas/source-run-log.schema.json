@@ -1,0 +1,130 @@
+{
+  "$defs": {
+    "RunStatus": {
+      "description": "Ingestion run execution outcome.",
+      "enum": [
+        "RUNNING",
+        "SUCCESS",
+        "PARTIAL_FAILURE",
+        "FAILED"
+      ],
+      "title": "RunStatus",
+      "type": "string"
+    },
+    "TriggerType": {
+      "description": "Origin of the ingestion execution.",
+      "enum": [
+        "MANUAL",
+        "SCHEDULED",
+        "SYSTEM"
+      ],
+      "title": "TriggerType",
+      "type": "string"
+    }
+  },
+  "description": "Execution log and metrics for a source ingestion run.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "source_id": {
+      "title": "Source Id",
+      "type": "string"
+    },
+    "trigger_type": {
+      "$ref": "#/$defs/TriggerType"
+    },
+    "status": {
+      "$ref": "#/$defs/RunStatus"
+    },
+    "records_fetched": {
+      "title": "Records Fetched",
+      "type": "integer"
+    },
+    "records_normalized": {
+      "title": "Records Normalized",
+      "type": "integer"
+    },
+    "records_inserted": {
+      "title": "Records Inserted",
+      "type": "integer"
+    },
+    "records_updated": {
+      "title": "Records Updated",
+      "type": "integer"
+    },
+    "duplicates_skipped": {
+      "title": "Duplicates Skipped",
+      "type": "integer"
+    },
+    "error_category": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error Category"
+    },
+    "safe_error_summary": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Safe Error Summary"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Completed At"
+    },
+    "duration_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Duration Seconds"
+    }
+  },
+  "required": [
+    "id",
+    "source_id",
+    "trigger_type",
+    "status",
+    "records_fetched",
+    "records_normalized",
+    "records_inserted",
+    "records_updated",
+    "duplicates_skipped",
+    "started_at"
+  ],
+  "title": "SourceRunLogResponse",
+  "type": "object"
+}

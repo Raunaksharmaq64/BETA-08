@@ -1,0 +1,96 @@
+{
+  "description": "Transparent ATS keyword coverage, bullet impact, and non-fabricating advice.",
+  "properties": {
+    "analysis_id": {
+      "title": "Analysis Id",
+      "type": "string"
+    },
+    "resume_id": {
+      "title": "Resume Id",
+      "type": "string"
+    },
+    "version_id": {
+      "title": "Version Id",
+      "type": "string"
+    },
+    "target_job_title": {
+      "title": "Target Job Title",
+      "type": "string"
+    },
+    "coverage_score": {
+      "description": "Fraction of top JD keywords found in resume text",
+      "maximum": 1.0,
+      "minimum": 0.0,
+      "title": "Coverage Score",
+      "type": "number"
+    },
+    "matched_keywords": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Matched Keywords",
+      "type": "array"
+    },
+    "missing_keywords": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing Keywords",
+      "type": "array"
+    },
+    "bullet_impact_score": {
+      "description": "Percentage of quantified/impactful bullets",
+      "maximum": 100.0,
+      "minimum": 0.0,
+      "title": "Bullet Impact Score",
+      "type": "number"
+    },
+    "bullet_impact_analysis": {
+      "additionalProperties": true,
+      "title": "Bullet Impact Analysis",
+      "type": "object"
+    },
+    "actionable_suggestions": {
+      "description": "Suggestions strictly grounded in document evidence; never fabricates facts",
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Actionable Suggestions",
+      "type": "array"
+    },
+    "formatting_observations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Formatting Observations",
+      "type": "array"
+    },
+    "methodology_and_limitations": {
+      "title": "Methodology And Limitations",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "analysis_id",
+    "resume_id",
+    "version_id",
+    "target_job_title",
+    "coverage_score",
+    "matched_keywords",
+    "missing_keywords",
+    "bullet_impact_score",
+    "bullet_impact_analysis",
+    "actionable_suggestions",
+    "formatting_observations",
+    "methodology_and_limitations",
+    "created_at"
+  ],
+  "title": "ATSAnalysisResponse",
+  "type": "object"
+}

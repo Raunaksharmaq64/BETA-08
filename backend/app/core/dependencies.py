@@ -107,3 +107,4 @@ async def get_current_active_user(
             detail="Account is pending deletion. Normal authenticated actions are restricted.",
         )
     return current_user
+

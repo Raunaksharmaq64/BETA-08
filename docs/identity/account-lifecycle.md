@@ -57,3 +57,4 @@ This completely mitigates account enumeration attacks.
    - The new password is encrypted with Argon2id.
    - **All existing active refresh sessions are immediately revoked**, forcing all client devices to re-authenticate.
    - A `PASSWORD_RESET_COMPLETE` security audit event is recorded.
+

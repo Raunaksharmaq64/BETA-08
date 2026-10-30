@@ -81,3 +81,4 @@ def test_secure_random_token_and_hashing():
     h2 = hash_token(t1)
     assert h1 == h2
     assert len(h1) == 64  # SHA-256 hex digest length
+

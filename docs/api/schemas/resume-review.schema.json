@@ -1,0 +1,201 @@
+{
+  "$defs": {
+    "ConfidenceLevel": {
+      "description": "Extraction confidence classification for candidate presentation.",
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+        "EVIDENCE_UNAVAILABLE"
+      ],
+      "title": "ConfidenceLevel",
+      "type": "string"
+    },
+    "EvidenceDTO": {
+      "description": "Supporting document evidence for an extracted field.",
+      "properties": {
+        "field_id": {
+          "description": "Unique identifier for the evidenced field",
+          "title": "Field Id",
+          "type": "string"
+        },
+        "field_name": {
+          "description": "Semantic field path, e.g. 'personal_info.phone' or 'skills.languages'",
+          "title": "Field Name",
+          "type": "string"
+        },
+        "extracted_value": {
+          "description": "Original value extracted from document",
+          "title": "Extracted Value"
+        },
+        "source_section": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Document section containing evidence",
+          "title": "Source Section"
+        },
+        "excerpt": {
+          "description": "Exact snippet or sentence from resume supporting this fact",
+          "title": "Excerpt",
+          "type": "string"
+        },
+        "page_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Page number where excerpt was located",
+          "title": "Page Number"
+        },
+        "extraction_method": {
+          "default": "STRUCTURED_PARSER",
+          "description": "Method: REGEX, SECTION_PARSER, KEYWORD_MATCHER",
+          "title": "Extraction Method",
+          "type": "string"
+        },
+        "confidence_score": {
+          "description": "Raw algorithmic confidence score",
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence Score",
+          "type": "number"
+        },
+        "confidence_level": {
+          "$ref": "#/$defs/ConfidenceLevel",
+          "default": "HIGH"
+        },
+        "review_status": {
+          "$ref": "#/$defs/ReviewStatus",
+          "default": "PENDING"
+        },
+        "user_correction": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Candidate-corrected value if edited",
+          "title": "User Correction"
+        },
+        "reviewed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reviewed At"
+        }
+      },
+      "required": [
+        "field_id",
+        "field_name",
+        "extracted_value",
+        "excerpt",
+        "confidence_score"
+      ],
+      "title": "EvidenceDTO",
+      "type": "object"
+    },
+    "ReviewStatus": {
+      "description": "Review status for individual fields and overall extraction.",
+      "enum": [
+        "PENDING",
+        "CONFIRMED",
+        "EDITED",
+        "REJECTED",
+        "IN_PROGRESS"
+      ],
+      "title": "ReviewStatus",
+      "type": "string"
+    }
+  },
+  "description": "Review workbench state showing approvals, rejections, and profile conflicts.",
+  "properties": {
+    "resume_id": {
+      "title": "Resume Id",
+      "type": "string"
+    },
+    "version_id": {
+      "title": "Version Id",
+      "type": "string"
+    },
+    "review_status": {
+      "$ref": "#/$defs/ReviewStatus"
+    },
+    "is_synced_to_profile": {
+      "title": "Is Synced To Profile",
+      "type": "boolean"
+    },
+    "synced_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Synced At"
+    },
+    "pending_fields_count": {
+      "title": "Pending Fields Count",
+      "type": "integer"
+    },
+    "confirmed_fields_count": {
+      "title": "Confirmed Fields Count",
+      "type": "integer"
+    },
+    "rejected_fields_count": {
+      "title": "Rejected Fields Count",
+      "type": "integer"
+    },
+    "conflicts_with_profile": {
+      "description": "List of fields where extracted data differs from existing candidate profile",
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Conflicts With Profile",
+      "type": "array"
+    },
+    "evidence_items": {
+      "items": {
+        "$ref": "#/$defs/EvidenceDTO"
+      },
+      "title": "Evidence Items",
+      "type": "array"
+    }
+  },
+  "required": [
+    "resume_id",
+    "version_id",
+    "review_status",
+    "is_synced_to_profile",
+    "pending_fields_count",
+    "confirmed_fields_count",
+    "rejected_fields_count"
+  ],
+  "title": "ResumeReviewResponse",
+  "type": "object"
+}

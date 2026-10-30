@@ -114,3 +114,4 @@ class AccountDeletionResponse(BaseModel):
         description="Tracks deletion acknowledgment across independent services (leadhunter, startup_intel)."
     )
     message: str
+

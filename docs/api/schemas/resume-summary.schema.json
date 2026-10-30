@@ -1,0 +1,161 @@
+{
+  "$defs": {
+    "ParsingStatus": {
+      "description": "Resume parsing task lifecycle states.",
+      "enum": [
+        "UPLOADED",
+        "QUEUED",
+        "PROCESSING",
+        "PARSED",
+        "REVIEW_REQUIRED",
+        "COMPLETED",
+        "FAILED",
+        "DELETION_PENDING",
+        "DELETED"
+      ],
+      "title": "ParsingStatus",
+      "type": "string"
+    },
+    "ResumeVersionResponse": {
+      "description": "Metadata for a specific version of a candidate resume.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "resume_id": {
+          "title": "Resume Id",
+          "type": "string"
+        },
+        "version_number": {
+          "title": "Version Number",
+          "type": "integer"
+        },
+        "version_label": {
+          "title": "Version Label",
+          "type": "string"
+        },
+        "original_filename": {
+          "title": "Original Filename",
+          "type": "string"
+        },
+        "file_type": {
+          "title": "File Type",
+          "type": "string"
+        },
+        "file_size_bytes": {
+          "title": "File Size Bytes",
+          "type": "integer"
+        },
+        "parsing_status": {
+          "$ref": "#/$defs/ParsingStatus"
+        },
+        "error_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Message"
+        },
+        "is_active": {
+          "title": "Is Active",
+          "type": "boolean"
+        },
+        "uploaded_at": {
+          "format": "date-time",
+          "title": "Uploaded At",
+          "type": "string"
+        },
+        "parsed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parsed At"
+        }
+      },
+      "required": [
+        "id",
+        "resume_id",
+        "version_number",
+        "version_label",
+        "original_filename",
+        "file_type",
+        "file_size_bytes",
+        "parsing_status",
+        "is_active",
+        "uploaded_at"
+      ],
+      "title": "ResumeVersionResponse",
+      "type": "object"
+    }
+  },
+  "description": "Summary of a candidate resume including its active version.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "active_version_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Active Version Id"
+    },
+    "active_version": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ResumeVersionResponse"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "version_count": {
+      "default": 1,
+      "title": "Version Count",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "ResumeSummaryResponse",
+  "type": "object"
+}

@@ -106,3 +106,4 @@ class PreferencesService:
             job_notification_frequency=pref.job_notification_frequency,
             updated_at=pref.updated_at,
         )
+

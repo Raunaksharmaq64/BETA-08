@@ -64,3 +64,4 @@ Active sessions are revoked upon:
 - Password recovery reset (`POST /api/v1/auth/reset-password`)
 - Account deletion initiation (`POST /api/v1/candidate/account-deletion`)
 - Account suspension by administrative action
+

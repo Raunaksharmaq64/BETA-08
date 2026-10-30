@@ -62,3 +62,4 @@ Endpoint: `GET /api/v1/candidate/profile/completeness` returns the numerical sco
 - `DELETE /api/v1/candidate/experience/{exp_id}`: Removes experience record.
 - `POST /api/v1/candidate/skills`: Appends skill.
 - `DELETE /api/v1/candidate/skills/{skill_id}`: Removes skill.
+

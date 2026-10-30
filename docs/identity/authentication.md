@@ -63,3 +63,4 @@ To support both modern Single Page Applications (Next.js) and programmatic API c
 - `POST /api/v1/auth/login`: Verifies Argon2id hash and returns token pair + cookie.
 - `POST /api/v1/auth/logout`: Revokes active refresh token and clears session cookies.
 - `GET /api/v1/auth/me`: Returns public authenticated user profile.
+

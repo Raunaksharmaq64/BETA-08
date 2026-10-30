@@ -175,3 +175,4 @@ async def update_preferences(
     req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
     prefs = await PreferencesService.update_preferences(db, current_user.id, payload)
     return StandardResponse(data=prefs, meta=make_meta(req_id))
+
