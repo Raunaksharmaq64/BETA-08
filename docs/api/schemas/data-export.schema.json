@@ -1,0 +1,36 @@
+{
+  "properties": {
+    "export_id": {
+      "title": "Export Id",
+      "type": "string"
+    },
+    "user_id": {
+      "title": "User Id",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "title": "Metadata",
+      "type": "object"
+    },
+    "data": {
+      "additionalProperties": true,
+      "title": "Data",
+      "type": "object"
+    }
+  },
+  "required": [
+    "export_id",
+    "user_id",
+    "generated_at",
+    "metadata",
+    "data"
+  ],
+  "title": "DataExportDownloadResponse",
+  "type": "object"
+}

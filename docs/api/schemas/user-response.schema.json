@@ -1,0 +1,75 @@
+{
+  "$defs": {
+    "AccountStatus": {
+      "description": "Lifecycle states of a user account.",
+      "enum": [
+        "PENDING_VERIFICATION",
+        "ACTIVE",
+        "SUSPENDED",
+        "DELETION_PENDING",
+        "DELETED"
+      ],
+      "title": "AccountStatus",
+      "type": "string"
+    },
+    "UserRole": {
+      "description": "User authorization roles.",
+      "enum": [
+        "CANDIDATE",
+        "RECRUITER",
+        "ADMIN"
+      ],
+      "title": "UserRole",
+      "type": "string"
+    }
+  },
+  "description": "Public user identity representation.",
+  "properties": {
+    "id": {
+      "description": "Unique user UUID.",
+      "title": "Id",
+      "type": "string"
+    },
+    "email": {
+      "description": "User email address.",
+      "format": "email",
+      "title": "Email",
+      "type": "string"
+    },
+    "full_name": {
+      "description": "User full name.",
+      "title": "Full Name",
+      "type": "string"
+    },
+    "role": {
+      "$ref": "#/$defs/UserRole",
+      "description": "Assigned role."
+    },
+    "status": {
+      "$ref": "#/$defs/AccountStatus",
+      "description": "Account lifecycle state."
+    },
+    "is_email_verified": {
+      "description": "Whether email has been verified.",
+      "title": "Is Email Verified",
+      "type": "boolean"
+    },
+    "created_at": {
+      "description": "Account creation timestamp.",
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "email",
+    "full_name",
+    "role",
+    "status",
+    "is_email_verified",
+    "created_at"
+  ],
+  "title": "UserResponse",
+  "type": "object"
+}

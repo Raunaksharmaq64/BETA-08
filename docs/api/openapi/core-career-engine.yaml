@@ -1,0 +1,2271 @@
+openapi: 3.1.0
+info:
+  title: RIGHT FIT Core Career Engine
+  description: Central career intelligence orchestration, candidate identity, ATS
+    aggregation, and contract gateway.
+  version: 1.0.0
+paths:
+  /health/live:
+    get:
+      tags:
+      - Health & Readiness
+      summary: Liveness Probe
+      description: 'Liveness probe confirming the application process is running.
+
+        Does NOT check external dependencies (DB/Redis) to avoid cascading container
+        restarts.'
+      operationId: liveness_probe_health_live_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LivenessResponse'
+  /health/ready:
+    get:
+      tags:
+      - Health & Readiness
+      summary: Readiness Probe
+      description: 'Readiness probe confirming the application can accept user traffic.
+
+        Checks connectivity to critical dependencies.'
+      operationId: readiness_probe_health_ready_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+  /api/v1/health/live:
+    get:
+      tags:
+      - Health & Readiness
+      summary: Liveness Probe
+      description: 'Liveness probe confirming the application process is running.
+
+        Does NOT check external dependencies (DB/Redis) to avoid cascading container
+        restarts.'
+      operationId: liveness_probe_api_v1_health_live_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LivenessResponse'
+  /api/v1/health/ready:
+    get:
+      tags:
+      - Health & Readiness
+      summary: Readiness Probe
+      description: 'Readiness probe confirming the application can accept user traffic.
+
+        Checks connectivity to critical dependencies.'
+      operationId: readiness_probe_api_v1_health_ready_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+  /api/v1/auth/register:
+    post:
+      tags:
+      - Authentication & Identity
+      summary: Register
+      description: Registers a candidate user and sets up initial profile and privacy
+        records.
+      operationId: register_api_v1_auth_register_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_UserResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/login:
+    post:
+      tags:
+      - Authentication & Identity
+      summary: Login
+      description: Authenticates user, issues access & refresh tokens, and attaches
+        secure HttpOnly cookie.
+      operationId: login_api_v1_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_TokenResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/logout:
+    post:
+      tags:
+      - Authentication & Identity
+      summary: Logout
+      description: Terminates active session and clears authentication cookies.
+      operationId: logout_api_v1_auth_logout_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_dict_'
+      security:
+      - HTTPBearer: []
+  /api/v1/auth/refresh:
+    post:
+      tags:
+      - Authentication & Identity
+      summary: Refresh Token
+      description: Rotates refresh token and issues renewed access token with replay-attack
+        detection.
+      operationId: refresh_token_api_v1_auth_refresh_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_TokenResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/me:
+    get:
+      tags:
+      - Authentication & Identity
+      summary: Get Current User Profile
+      description: Returns authenticated user identity.
+      operationId: get_current_user_profile_api_v1_auth_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_UserResponse_'
+      security:
+      - HTTPBearer: []
+  /api/v1/auth/change-password:
+    post:
+      tags:
+      - Authentication & Identity
+      summary: Change Password
+      description: Updates password and revokes all active refresh sessions.
+      operationId: change_password_api_v1_auth_change_password_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_dict_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/auth/forgot-password:
+    post:
+      tags:
+      - Authentication & Identity
+      summary: Forgot Password
+      description: Initiates password recovery without leaking account existence.
+      operationId: forgot_password_api_v1_auth_forgot_password_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_dict_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/reset-password:
+    post:
+      tags:
+      - Authentication & Identity
+      summary: Reset Password
+      description: Completes password reset using single-use cryptographic token.
+      operationId: reset_password_api_v1_auth_reset_password_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_dict_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/verify-email:
+    post:
+      tags:
+      - Authentication & Identity
+      summary: Verify Email
+      description: Verifies candidate email address via single-use token.
+      operationId: verify_email_api_v1_auth_verify_email_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_dict_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/resend-verification:
+    post:
+      tags:
+      - Authentication & Identity
+      summary: Resend Verification
+      description: Resends email verification link with rate limiting.
+      operationId: resend_verification_api_v1_auth_resend_verification_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendVerificationRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_dict_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidate/profile:
+    get:
+      tags:
+      - Candidate Profile & Preferences
+      summary: Get Profile
+      description: Retrieves authenticated candidate profile including education,
+        experience, and skills.
+      operationId: get_profile_api_v1_candidate_profile_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_CandidateProfileResponse_'
+      security:
+      - HTTPBearer: []
+    put:
+      tags:
+      - Candidate Profile & Preferences
+      summary: Update Profile
+      description: Updates candidate headline, summary, and location.
+      operationId: update_profile_api_v1_candidate_profile_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidateProfileUpdate'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_CandidateProfileResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/candidate/profile/completeness:
+    get:
+      tags:
+      - Candidate Profile & Preferences
+      summary: Get Profile Completeness
+      description: Calculates profile completeness score and lists missing sections.
+      operationId: get_profile_completeness_api_v1_candidate_profile_completeness_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_ProfileCompletenessResponse_'
+      security:
+      - HTTPBearer: []
+  /api/v1/candidate/education:
+    post:
+      tags:
+      - Candidate Profile & Preferences
+      summary: Add Education
+      description: Adds an education credential with provenance.
+      operationId: add_education_api_v1_candidate_education_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EducationCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_EducationResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/candidate/education/{edu_id}:
+    delete:
+      tags:
+      - Candidate Profile & Preferences
+      summary: Delete Education
+      description: Deletes an education entry with strict ownership check.
+      operationId: delete_education_api_v1_candidate_education__edu_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: edu_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Edu Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_dict_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidate/experience:
+    post:
+      tags:
+      - Candidate Profile & Preferences
+      summary: Add Experience
+      description: Adds a professional experience record.
+      operationId: add_experience_api_v1_candidate_experience_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExperienceCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_ExperienceResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/candidate/experience/{exp_id}:
+    delete:
+      tags:
+      - Candidate Profile & Preferences
+      summary: Delete Experience
+      description: Deletes an experience entry with strict ownership check.
+      operationId: delete_experience_api_v1_candidate_experience__exp_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: exp_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Exp Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_dict_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidate/skills:
+    post:
+      tags:
+      - Candidate Profile & Preferences
+      summary: Add Skill
+      description: Appends a skill to candidate profile.
+      operationId: add_skill_api_v1_candidate_skills_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_SkillResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/candidate/skills/{skill_id}:
+    delete:
+      tags:
+      - Candidate Profile & Preferences
+      summary: Delete Skill
+      description: Deletes a skill entry with strict ownership check.
+      operationId: delete_skill_api_v1_candidate_skills__skill_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: skill_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Skill Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_dict_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidate/preferences:
+    get:
+      tags:
+      - Candidate Profile & Preferences
+      summary: Get Preferences
+      description: Retrieves candidate employment and role preferences.
+      operationId: get_preferences_api_v1_candidate_preferences_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_CandidatePreferencesResponse_'
+      security:
+      - HTTPBearer: []
+    put:
+      tags:
+      - Candidate Profile & Preferences
+      summary: Update Preferences
+      description: Updates candidate employment and role preferences.
+      operationId: update_preferences_api_v1_candidate_preferences_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidatePreferencesUpdate'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_CandidatePreferencesResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/candidate/privacy:
+    get:
+      tags:
+      - Privacy, Consent & Data Rights
+      summary: Get Privacy Settings
+      description: Retrieves candidate privacy and visibility preferences.
+      operationId: get_privacy_settings_api_v1_candidate_privacy_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_PrivacySettingsResponse_'
+      security:
+      - HTTPBearer: []
+    put:
+      tags:
+      - Privacy, Consent & Data Rights
+      summary: Update Privacy Settings
+      description: Updates candidate privacy and visibility preferences.
+      operationId: update_privacy_settings_api_v1_candidate_privacy_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrivacySettingsUpdate'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_PrivacySettingsResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/candidate/consents:
+    get:
+      tags:
+      - Privacy, Consent & Data Rights
+      summary: List Consents
+      description: Lists auditable consent history.
+      operationId: list_consents_api_v1_candidate_consents_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_List_ConsentRecordResponse__'
+      security:
+      - HTTPBearer: []
+    post:
+      tags:
+      - Privacy, Consent & Data Rights
+      summary: Grant Consent
+      description: Records explicit consent for a processing purpose.
+      operationId: grant_consent_api_v1_candidate_consents_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConsentGrantRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_ConsentRecordResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/candidate/consents/{consent_id}:
+    delete:
+      tags:
+      - Privacy, Consent & Data Rights
+      summary: Withdraw Consent
+      description: Withdraws an existing consent grant.
+      operationId: withdraw_consent_api_v1_candidate_consents__consent_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: consent_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Consent Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_ConsentRecordResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidate/data-export:
+    post:
+      tags:
+      - Privacy, Consent & Data Rights
+      summary: Request Data Export
+      description: Generates a structured, machine-readable JSON data archive of all
+        candidate information.
+      operationId: request_data_export_api_v1_candidate_data_export_post
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_DataExportResponse_'
+      security:
+      - HTTPBearer: []
+  /api/v1/candidate/data-export/{export_id}/download:
+    get:
+      tags:
+      - Privacy, Consent & Data Rights
+      summary: Download Data Export
+      description: Downloads the candidate's exported data payload with strict ownership
+        verification.
+      operationId: download_data_export_api_v1_candidate_data_export__export_id__download_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: export_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Export Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_DataExportDownloadResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/candidate/account-deletion:
+    post:
+      tags:
+      - Privacy, Consent & Data Rights
+      summary: Request Account Deletion
+      description: Initiates account deletion workflow, revokes sessions, and coordinates
+        satellite deletion.
+      operationId: request_account_deletion_api_v1_candidate_account_deletion_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountDeletionRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_AccountDeletionResponse_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/candidate/account-deletion/status:
+    get:
+      tags:
+      - Privacy, Consent & Data Rights
+      summary: Get Account Deletion Status
+      description: Retrieves current deletion workflow status.
+      operationId: get_account_deletion_status_api_v1_candidate_account_deletion_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StandardResponse_Union_AccountDeletionResponse__NoneType__'
+      security:
+      - HTTPBearer: []
+  /:
+    get:
+      tags:
+      - Root
+      summary: Root
+      description: Root metadata discovery endpoint.
+      operationId: root__get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Root  Get
+components:
+  schemas:
+    AccountDeletionRequest:
+      properties:
+        confirmation:
+          type: string
+          title: Confirmation
+          description: Must explicitly match 'DELETE MY ACCOUNT'
+        reason:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Reason
+      type: object
+      required:
+      - confirmation
+      title: AccountDeletionRequest
+    AccountDeletionResponse:
+      properties:
+        deletion_id:
+          type: string
+          title: Deletion Id
+        status:
+          $ref: '#/components/schemas/DeletionStatus'
+        scheduled_deletion_at:
+          type: string
+          format: date-time
+          title: Scheduled Deletion At
+        service_status:
+          additionalProperties:
+            type: string
+          type: object
+          title: Service Status
+          description: Tracks deletion acknowledgment across independent services
+            (leadhunter, startup_intel).
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - deletion_id
+      - status
+      - scheduled_deletion_at
+      - message
+      title: AccountDeletionResponse
+    AccountStatus:
+      type: string
+      enum:
+      - PENDING_VERIFICATION
+      - ACTIVE
+      - SUSPENDED
+      - DELETION_PENDING
+      - DELETED
+      title: AccountStatus
+      description: Lifecycle states of a user account.
+    CandidatePreferencesResponse:
+      properties:
+        preferred_roles:
+          items:
+            type: string
+          type: array
+          title: Preferred Roles
+        preferred_skills:
+          items:
+            type: string
+          type: array
+          title: Preferred Skills
+        preferred_industries:
+          items:
+            type: string
+          type: array
+          title: Preferred Industries
+        preferred_locations:
+          items:
+            type: string
+          type: array
+          title: Preferred Locations
+        remote_preference:
+          $ref: '#/components/schemas/RemotePreference'
+          default: ANY
+        min_salary:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Min Salary
+        max_salary:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Max Salary
+        currency:
+          type: string
+          maxLength: 3
+          title: Currency
+          default: USD
+        employment_types:
+          items:
+            type: string
+          type: array
+          title: Employment Types
+        job_notification_frequency:
+          type: string
+          title: Job Notification Frequency
+          default: DAILY
+        id:
+          type: string
+          title: Id
+          description: Preference record UUID.
+        user_id:
+          type: string
+          title: User Id
+          description: Owner User UUID.
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - user_id
+      - updated_at
+      title: CandidatePreferencesResponse
+    CandidatePreferencesUpdate:
+      properties:
+        preferred_roles:
+          items:
+            type: string
+          type: array
+          title: Preferred Roles
+        preferred_skills:
+          items:
+            type: string
+          type: array
+          title: Preferred Skills
+        preferred_industries:
+          items:
+            type: string
+          type: array
+          title: Preferred Industries
+        preferred_locations:
+          items:
+            type: string
+          type: array
+          title: Preferred Locations
+        remote_preference:
+          $ref: '#/components/schemas/RemotePreference'
+          default: ANY
+        min_salary:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Min Salary
+        max_salary:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Max Salary
+        currency:
+          type: string
+          maxLength: 3
+          title: Currency
+          default: USD
+        employment_types:
+          items:
+            type: string
+          type: array
+          title: Employment Types
+        job_notification_frequency:
+          type: string
+          title: Job Notification Frequency
+          default: DAILY
+      type: object
+      title: CandidatePreferencesUpdate
+    CandidateProfileResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+          description: Profile UUID.
+        user_id:
+          type: string
+          title: User Id
+          description: Owner User UUID.
+        headline:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Headline
+        summary:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Summary
+        phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Phone
+        city:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: City
+        state:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: State
+        country:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Country
+        timezone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Timezone
+        education:
+          items:
+            $ref: '#/components/schemas/EducationResponse'
+          type: array
+          title: Education
+        experience:
+          items:
+            $ref: '#/components/schemas/ExperienceResponse'
+          type: array
+          title: Experience
+        skills:
+          items:
+            $ref: '#/components/schemas/SkillResponse'
+          type: array
+          title: Skills
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - user_id
+      - created_at
+      - updated_at
+      title: CandidateProfileResponse
+    CandidateProfileUpdate:
+      properties:
+        headline:
+          anyOf:
+          - type: string
+            maxLength: 140
+          - type: 'null'
+          title: Headline
+        summary:
+          anyOf:
+          - type: string
+            maxLength: 2000
+          - type: 'null'
+          title: Summary
+        phone:
+          anyOf:
+          - type: string
+            maxLength: 30
+          - type: 'null'
+          title: Phone
+        city:
+          anyOf:
+          - type: string
+            maxLength: 80
+          - type: 'null'
+          title: City
+        state:
+          anyOf:
+          - type: string
+            maxLength: 80
+          - type: 'null'
+          title: State
+        country:
+          anyOf:
+          - type: string
+            maxLength: 80
+          - type: 'null'
+          title: Country
+        timezone:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Timezone
+      type: object
+      title: CandidateProfileUpdate
+    ChangePasswordRequest:
+      properties:
+        current_password:
+          type: string
+          title: Current Password
+          description: Current password for verification.
+        new_password:
+          type: string
+          maxLength: 128
+          minLength: 8
+          title: New Password
+          description: New password.
+      type: object
+      required:
+      - current_password
+      - new_password
+      title: ChangePasswordRequest
+      description: In-session password change payload.
+    ConsentGrantRequest:
+      properties:
+        purpose:
+          $ref: '#/components/schemas/ConsentPurpose'
+        policy_version:
+          type: string
+          title: Policy Version
+          default: '1.0'
+      type: object
+      required:
+      - purpose
+      title: ConsentGrantRequest
+    ConsentPurpose:
+      type: string
+      enum:
+      - DATA_PROCESSING
+      - AI_CAREER_MATCHING
+      - THIRD_PARTY_OUTREACH
+      - MARKETING_ALERTS
+      - ANALYTICS_RESEARCH
+      title: ConsentPurpose
+    ConsentRecordResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        user_id:
+          type: string
+          title: User Id
+        purpose:
+          type: string
+          title: Purpose
+        granted:
+          type: boolean
+          title: Granted
+        policy_version:
+          type: string
+          title: Policy Version
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        withdrawn_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Withdrawn At
+      type: object
+      required:
+      - id
+      - user_id
+      - purpose
+      - granted
+      - policy_version
+      - created_at
+      title: ConsentRecordResponse
+    DataExportDownloadResponse:
+      properties:
+        export_id:
+          type: string
+          title: Export Id
+        user_id:
+          type: string
+          title: User Id
+        generated_at:
+          type: string
+          format: date-time
+          title: Generated At
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+      type: object
+      required:
+      - export_id
+      - user_id
+      - generated_at
+      - metadata
+      - data
+      title: DataExportDownloadResponse
+    DataExportResponse:
+      properties:
+        export_id:
+          type: string
+          title: Export Id
+        status:
+          $ref: '#/components/schemas/DataExportStatus'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        expires_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Expires At
+        download_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Download Url
+      type: object
+      required:
+      - export_id
+      - status
+      - created_at
+      title: DataExportResponse
+    DataExportStatus:
+      type: string
+      enum:
+      - PENDING
+      - COMPLETED
+      - FAILED
+      title: DataExportStatus
+    DeletionStatus:
+      type: string
+      enum:
+      - PENDING
+      - PROCESSING
+      - COMPLETED
+      - FAILED
+      title: DeletionStatus
+    DependencyHealth:
+      properties:
+        status:
+          $ref: '#/components/schemas/HealthStatus'
+          description: Health status of the dependency.
+        latency_ms:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Latency Ms
+          description: Round-trip check latency in milliseconds.
+        message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Message
+          description: Diagnostic note (no secrets).
+      type: object
+      required:
+      - status
+      title: DependencyHealth
+      description: Health indicator for an individual subsystem dependency.
+    EducationCreate:
+      properties:
+        institution:
+          type: string
+          maxLength: 150
+          minLength: 2
+          title: Institution
+        degree:
+          type: string
+          maxLength: 100
+          minLength: 2
+          title: Degree
+        field_of_study:
+          type: string
+          maxLength: 100
+          minLength: 2
+          title: Field Of Study
+        start_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Start Date
+          description: YYYY-MM or YYYY format
+        end_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: End Date
+          description: YYYY-MM or YYYY format
+        is_current:
+          type: boolean
+          title: Is Current
+          default: false
+        achievements:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Achievements
+        provenance:
+          $ref: '#/components/schemas/FieldProvenance'
+          default: USER_PROVIDED
+      type: object
+      required:
+      - institution
+      - degree
+      - field_of_study
+      title: EducationCreate
+    EducationResponse:
+      properties:
+        institution:
+          type: string
+          maxLength: 150
+          minLength: 2
+          title: Institution
+        degree:
+          type: string
+          maxLength: 100
+          minLength: 2
+          title: Degree
+        field_of_study:
+          type: string
+          maxLength: 100
+          minLength: 2
+          title: Field Of Study
+        start_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Start Date
+          description: YYYY-MM or YYYY format
+        end_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: End Date
+          description: YYYY-MM or YYYY format
+        is_current:
+          type: boolean
+          title: Is Current
+          default: false
+        achievements:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Achievements
+        provenance:
+          $ref: '#/components/schemas/FieldProvenance'
+          default: USER_PROVIDED
+        id:
+          type: string
+          title: Id
+          description: Unique education entry UUID.
+      type: object
+      required:
+      - institution
+      - degree
+      - field_of_study
+      - id
+      title: EducationResponse
+    ExperienceCreate:
+      properties:
+        company:
+          type: string
+          maxLength: 150
+          minLength: 2
+          title: Company
+        role:
+          type: string
+          maxLength: 100
+          minLength: 2
+          title: Role
+        employment_type:
+          type: string
+          maxLength: 50
+          title: Employment Type
+          default: Full-time
+        start_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Start Date
+          description: YYYY-MM or YYYY
+        end_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: End Date
+          description: YYYY-MM or YYYY
+        is_current:
+          type: boolean
+          title: Is Current
+          default: false
+        description:
+          anyOf:
+          - type: string
+            maxLength: 2000
+          - type: 'null'
+          title: Description
+        skills:
+          items:
+            type: string
+          type: array
+          title: Skills
+        provenance:
+          $ref: '#/components/schemas/FieldProvenance'
+          default: USER_PROVIDED
+      type: object
+      required:
+      - company
+      - role
+      title: ExperienceCreate
+    ExperienceResponse:
+      properties:
+        company:
+          type: string
+          maxLength: 150
+          minLength: 2
+          title: Company
+        role:
+          type: string
+          maxLength: 100
+          minLength: 2
+          title: Role
+        employment_type:
+          type: string
+          maxLength: 50
+          title: Employment Type
+          default: Full-time
+        start_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Start Date
+          description: YYYY-MM or YYYY
+        end_date:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: End Date
+          description: YYYY-MM or YYYY
+        is_current:
+          type: boolean
+          title: Is Current
+          default: false
+        description:
+          anyOf:
+          - type: string
+            maxLength: 2000
+          - type: 'null'
+          title: Description
+        skills:
+          items:
+            type: string
+          type: array
+          title: Skills
+        provenance:
+          $ref: '#/components/schemas/FieldProvenance'
+          default: USER_PROVIDED
+        id:
+          type: string
+          title: Id
+          description: Unique experience entry UUID.
+      type: object
+      required:
+      - company
+      - role
+      - id
+      title: ExperienceResponse
+    FieldProvenance:
+      type: string
+      enum:
+      - USER_PROVIDED
+      - RESUME_EXTRACTED
+      - AI_SUGGESTED
+      - IMPORTED
+      - VERIFIED
+      title: FieldProvenance
+      description: Source provenance tracking for profile data attributes.
+    ForgotPasswordRequest:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+          description: Account email to dispatch reset token to.
+      type: object
+      required:
+      - email
+      title: ForgotPasswordRequest
+      description: Account recovery request.
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthStatus:
+      type: string
+      enum:
+      - healthy
+      - degraded
+      - unhealthy
+      title: HealthStatus
+      description: Service health state.
+    LivenessResponse:
+      properties:
+        status:
+          $ref: '#/components/schemas/HealthStatus'
+          description: Process operational status.
+          default: healthy
+        service:
+          type: string
+          title: Service
+          description: Service identifier.
+        timestamp:
+          type: string
+          format: date-time
+          title: Timestamp
+          description: Timestamp of probe execution.
+      type: object
+      required:
+      - service
+      title: LivenessResponse
+      description: Response returned by /health/live.
+    LoginRequest:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+          description: Registered account email.
+        password:
+          type: string
+          title: Password
+          description: Account password.
+      type: object
+      required:
+      - email
+      - password
+      title: LoginRequest
+      description: Account login payload.
+    PrivacySettingsResponse:
+      properties:
+        profile_visibility:
+          $ref: '#/components/schemas/ProfileVisibility'
+          default: PUBLIC
+        opportunity_alerts:
+          type: boolean
+          title: Opportunity Alerts
+          default: true
+        email_notifications:
+          type: boolean
+          title: Email Notifications
+          default: true
+        ai_processing_enabled:
+          type: boolean
+          title: Ai Processing Enabled
+          default: true
+        data_usage_research:
+          type: boolean
+          title: Data Usage Research
+          default: false
+        id:
+          type: string
+          title: Id
+        user_id:
+          type: string
+          title: User Id
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - user_id
+      - updated_at
+      title: PrivacySettingsResponse
+    PrivacySettingsUpdate:
+      properties:
+        profile_visibility:
+          $ref: '#/components/schemas/ProfileVisibility'
+          default: PUBLIC
+        opportunity_alerts:
+          type: boolean
+          title: Opportunity Alerts
+          default: true
+        email_notifications:
+          type: boolean
+          title: Email Notifications
+          default: true
+        ai_processing_enabled:
+          type: boolean
+          title: Ai Processing Enabled
+          default: true
+        data_usage_research:
+          type: boolean
+          title: Data Usage Research
+          default: false
+      type: object
+      title: PrivacySettingsUpdate
+    ProfileCompletenessResponse:
+      properties:
+        score_percentage:
+          type: integer
+          maximum: 100.0
+          minimum: 0.0
+          title: Score Percentage
+        has_basic_info:
+          type: boolean
+          title: Has Basic Info
+        has_education:
+          type: boolean
+          title: Has Education
+        has_experience:
+          type: boolean
+          title: Has Experience
+        has_skills:
+          type: boolean
+          title: Has Skills
+        has_preferences:
+          type: boolean
+          title: Has Preferences
+        missing_sections:
+          items:
+            type: string
+          type: array
+          title: Missing Sections
+      type: object
+      required:
+      - score_percentage
+      - has_basic_info
+      - has_education
+      - has_experience
+      - has_skills
+      - has_preferences
+      title: ProfileCompletenessResponse
+      description: Calculated profile completeness score and section metrics.
+    ProfileVisibility:
+      type: string
+      enum:
+      - PUBLIC
+      - PRIVATE
+      - ANONYMIZED
+      title: ProfileVisibility
+    ReadinessResponse:
+      properties:
+        status:
+          $ref: '#/components/schemas/HealthStatus'
+          description: Overall readiness to accept user traffic.
+        service:
+          type: string
+          title: Service
+          description: Service identifier.
+        dependencies:
+          additionalProperties:
+            $ref: '#/components/schemas/DependencyHealth'
+          type: object
+          title: Dependencies
+          description: Status of critical dependencies (e.g. database, redis, satellites).
+        timestamp:
+          type: string
+          format: date-time
+          title: Timestamp
+          description: Timestamp of probe execution.
+      type: object
+      required:
+      - status
+      - service
+      title: ReadinessResponse
+      description: Response returned by /health/ready.
+    RefreshTokenRequest:
+      properties:
+        refresh_token:
+          type: string
+          title: Refresh Token
+          description: Rotating refresh token.
+      type: object
+      required:
+      - refresh_token
+      title: RefreshTokenRequest
+      description: Session renewal payload.
+    RegisterRequest:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+          description: Unique email address.
+        password:
+          type: string
+          maxLength: 128
+          minLength: 8
+          title: Password
+          description: Password (min 8 chars, mixed complexity).
+        full_name:
+          type: string
+          maxLength: 120
+          minLength: 2
+          title: Full Name
+          description: Legal or professional full name.
+        role:
+          $ref: '#/components/schemas/UserRole'
+          description: Account role.
+          default: CANDIDATE
+      type: object
+      required:
+      - email
+      - password
+      - full_name
+      title: RegisterRequest
+      description: Candidate account registration payload.
+    RemotePreference:
+      type: string
+      enum:
+      - REMOTE
+      - HYBRID
+      - ON_SITE
+      - ANY
+      title: RemotePreference
+      description: Work arrangement preference.
+    ResendVerificationRequest:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+          description: Account email.
+      type: object
+      required:
+      - email
+      title: ResendVerificationRequest
+      description: Resend email verification payload.
+    ResetPasswordRequest:
+      properties:
+        token:
+          type: string
+          title: Token
+          description: Cryptographically secure reset token.
+        new_password:
+          type: string
+          maxLength: 128
+          minLength: 8
+          title: New Password
+          description: New account password.
+      type: object
+      required:
+      - token
+      - new_password
+      title: ResetPasswordRequest
+      description: Password reset completion payload.
+    ResponseMeta:
+      properties:
+        request_id:
+          type: string
+          title: Request Id
+          description: Unique correlation UUID identifying the request trace.
+        timestamp:
+          type: string
+          format: date-time
+          title: Timestamp
+          description: ISO 8601 UTC timestamp when the response was generated.
+        service:
+          type: string
+          title: Service
+          description: Identifier of the responding service.
+          default: core
+      type: object
+      required:
+      - request_id
+      title: ResponseMeta
+      description: Metadata attached to every standard API response.
+    SkillCreate:
+      properties:
+        skill_name:
+          type: string
+          maxLength: 80
+          minLength: 1
+          title: Skill Name
+        category:
+          type: string
+          maxLength: 50
+          title: Category
+          default: Technical
+        proficiency:
+          type: string
+          maxLength: 30
+          title: Proficiency
+          default: Intermediate
+        years_experience:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Years Experience
+        provenance:
+          $ref: '#/components/schemas/FieldProvenance'
+          default: USER_PROVIDED
+      type: object
+      required:
+      - skill_name
+      title: SkillCreate
+    SkillResponse:
+      properties:
+        skill_name:
+          type: string
+          maxLength: 80
+          minLength: 1
+          title: Skill Name
+        category:
+          type: string
+          maxLength: 50
+          title: Category
+          default: Technical
+        proficiency:
+          type: string
+          maxLength: 30
+          title: Proficiency
+          default: Intermediate
+        years_experience:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: 'null'
+          title: Years Experience
+        provenance:
+          $ref: '#/components/schemas/FieldProvenance'
+          default: USER_PROVIDED
+        id:
+          type: string
+          title: Id
+          description: Unique skill entry UUID.
+      type: object
+      required:
+      - skill_name
+      - id
+      title: SkillResponse
+    StandardResponse_AccountDeletionResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/AccountDeletionResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[AccountDeletionResponse]
+    StandardResponse_CandidatePreferencesResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/CandidatePreferencesResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[CandidatePreferencesResponse]
+    StandardResponse_CandidateProfileResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/CandidateProfileResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[CandidateProfileResponse]
+    StandardResponse_ConsentRecordResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/ConsentRecordResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[ConsentRecordResponse]
+    StandardResponse_DataExportDownloadResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/DataExportDownloadResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[DataExportDownloadResponse]
+    StandardResponse_DataExportResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/DataExportResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[DataExportResponse]
+    StandardResponse_EducationResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/EducationResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[EducationResponse]
+    StandardResponse_ExperienceResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/ExperienceResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[ExperienceResponse]
+    StandardResponse_List_ConsentRecordResponse__:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          items:
+            $ref: '#/components/schemas/ConsentRecordResponse'
+          type: array
+          title: Data
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[List[ConsentRecordResponse]]
+    StandardResponse_PrivacySettingsResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/PrivacySettingsResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[PrivacySettingsResponse]
+    StandardResponse_ProfileCompletenessResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/ProfileCompletenessResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[ProfileCompletenessResponse]
+    StandardResponse_SkillResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/SkillResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[SkillResponse]
+    StandardResponse_TokenResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/TokenResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[TokenResponse]
+    StandardResponse_Union_AccountDeletionResponse__NoneType__:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          anyOf:
+          - $ref: '#/components/schemas/AccountDeletionResponse'
+          - type: 'null'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[Union[AccountDeletionResponse, NoneType]]
+    StandardResponse_UserResponse_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          $ref: '#/components/schemas/UserResponse'
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[UserResponse]
+    StandardResponse_dict_:
+      properties:
+        success:
+          type: boolean
+          title: Success
+          description: Always true for success responses.
+          default: true
+        data:
+          additionalProperties: true
+          type: object
+          title: Data
+          description: Payload data object.
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+          description: Traceability and metadata block.
+      type: object
+      required:
+      - data
+      - meta
+      title: StandardResponse[dict]
+    TokenResponse:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+          description: Short-lived JWT access token.
+        token_type:
+          type: string
+          title: Token Type
+          description: Token schema type.
+          default: Bearer
+        expires_in:
+          type: integer
+          title: Expires In
+          description: Access token expiration window in seconds.
+        refresh_token:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Refresh Token
+          description: Rotating refresh token for session renewal.
+      type: object
+      required:
+      - access_token
+      - expires_in
+      title: TokenResponse
+      description: Standard authentication token response.
+    UserResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+          description: Unique user UUID.
+        email:
+          type: string
+          format: email
+          title: Email
+          description: User email address.
+        full_name:
+          type: string
+          title: Full Name
+          description: User full name.
+        role:
+          $ref: '#/components/schemas/UserRole'
+          description: Assigned role.
+        status:
+          $ref: '#/components/schemas/AccountStatus'
+          description: Account lifecycle state.
+        is_email_verified:
+          type: boolean
+          title: Is Email Verified
+          description: Whether email has been verified.
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+          description: Account creation timestamp.
+      type: object
+      required:
+      - id
+      - email
+      - full_name
+      - role
+      - status
+      - is_email_verified
+      - created_at
+      title: UserResponse
+      description: Public user identity representation.
+    UserRole:
+      type: string
+      enum:
+      - CANDIDATE
+      - RECRUITER
+      - ADMIN
+      title: UserRole
+      description: User authorization roles.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    VerifyEmailRequest:
+      properties:
+        token:
+          type: string
+          title: Token
+          description: Verification token dispatched to user email.
+      type: object
+      required:
+      - token
+      title: VerifyEmailRequest
+      description: Email verification payload.
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer

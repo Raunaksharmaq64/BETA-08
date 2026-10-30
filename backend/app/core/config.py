@@ -1,0 +1,67 @@
+"""
+RIGHT FIT Core — Application Configuration
+Version: 1.0.0
+Phase: 3 — Identity, Candidate Profile & Privacy Foundation
+"""
+
+from __future__ import annotations
+
+import os
+from typing import List, Optional
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Central configuration settings for RIGHT FIT Core Career Engine."""
+
+    APP_NAME: str = "RIGHT FIT Core Career Engine"
+    APP_ENV: str = os.getenv("APP_ENV", "development")
+    DEBUG: bool = os.getenv("DEBUG", "true").lower() in ("true", "1")
+    API_V1_STR: str = "/api/v1"
+
+    # Cryptography & JWT
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "rightfit_dev_super_secret_signing_key_32bytes_min!")
+    JWT_SECRET: str = os.getenv("JWT_SECRET", "rightfit_jwt_signing_secret_key_minimum_32_bytes!")
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # Short-lived access tokens
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7    # Rotating refresh tokens
+    VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
+    RESET_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # Cookie Authentication
+    AUTH_COOKIE_NAME: str = "rightfit_session"
+    COOKIE_SECURE: bool = os.getenv("APP_ENV", "development") == "production"
+    COOKIE_SAMESITE: str = "lax"
+    COOKIE_HTTPONLY: bool = True
+
+    # Database: Async SQLite for local/offline dev & testing, PostgreSQL in production
+    DATABASE_URL: str = os.getenv(
+        "DATABASE_URL",
+        "sqlite+aiosqlite:///./rightfit_core.db"
+    )
+
+    # Redis: Task queues and rate limiting
+    REDIS_URL: Optional[str] = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+    # Rate Limiting (Requests per minute)
+    RATE_LIMIT_LOGIN: int = 10
+    RATE_LIMIT_REGISTER: int = 5
+    RATE_LIMIT_PASSWORD_RESET: int = 3
+    RATE_LIMIT_DATA_EXPORT: int = 2
+
+    # Satellite Service Integrations
+    LEADHUNTER_BASE_URL: str = os.getenv("LEADHUNTER_BASE_URL", "http://service-leadhunter:8001")
+    STARTUP_INTELLIGENCE_BASE_URL: str = os.getenv("STARTUP_INTELLIGENCE_BASE_URL", "http://service-startup-intelligence:8002")
+    INTERNAL_SERVICE_KEY: str = os.getenv("INTERNAL_SERVICE_KEY", "rightfit_internal_shared_secret_key_123")
+
+    # CORS
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="allow",
+    )
+
+
+settings = Settings()

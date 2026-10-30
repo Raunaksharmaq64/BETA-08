@@ -1,0 +1,195 @@
+# ==============================================================================
+# RIGHT FIT — Local Development Docker Compose Specification
+# PHASE 2: CONTRACTS & LOCAL FOUNDATION
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # Central Relational Database (PostgreSQL 16 with isolated schemas)
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: rightfit-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rightfit_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rightfit_dev_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-rightfit_core}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/database:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rightfit_admin} -d ${POSTGRES_DB:-rightfit_core}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - rightfit-network
+
+  # ----------------------------------------------------------------------------
+  # In-Memory Cache & Message Broker (Redis 7)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: rightfit-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - rightfit-network
+
+  # ----------------------------------------------------------------------------
+  # Core Career Engine Backend (FastAPI API Service)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: rightfit-backend-dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - APP_ENV=development
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-rightfit_admin}:${POSTGRES_PASSWORD:-rightfit_dev_secret}@postgres:5432/${POSTGRES_DB:-rightfit_core}
+      - REDIS_URL=redis://redis:6379/0
+      - LEADHUNTER_BASE_URL=http://service-leadhunter:8001
+      - STARTUP_INTELLIGENCE_BASE_URL=http://service-startup-intelligence:8002
+      - MOCK_SATELLITE_SERVICES=true
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+      - ./contracts:/app/contracts
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - rightfit-network
+
+  # ----------------------------------------------------------------------------
+  # Core Asynchronous Task Worker (Celery / Background Worker)
+  # ----------------------------------------------------------------------------
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: rightfit-worker-dev
+    command: ["python", "-m", "app.workers.tasks"]
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - APP_ENV=development
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-rightfit_admin}:${POSTGRES_PASSWORD:-rightfit_dev_secret}@postgres:5432/${POSTGRES_DB:-rightfit_core}
+      - REDIS_URL=redis://redis:6379/0
+    networks:
+      - rightfit-network
+
+  # ----------------------------------------------------------------------------
+  # Unified Web Client (Next.js 16 Presentation Layer)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: rightfit-frontend-dev
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - rightfit-network
+
+  # ----------------------------------------------------------------------------
+  # Independent Freelance Service (LeadHunter Context)
+  # ----------------------------------------------------------------------------
+  service-leadhunter:
+    build:
+      context: ./services/leadhunter
+      dockerfile: Dockerfile
+    container_name: rightfit-leadhunter-dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - SERVICE_PORT=8001
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-rightfit_admin}:${POSTGRES_PASSWORD:-rightfit_dev_secret}@postgres:5432/rightfit_leadhunter
+      - REDIS_URL=redis://redis:6379/1
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - rightfit-network
+
+  # ----------------------------------------------------------------------------
+  # Independent Startup Discovery Service (Startup Intelligence Context)
+  # ----------------------------------------------------------------------------
+  service-startup-intelligence:
+    build:
+      context: ./services/startup_intelligence
+      dockerfile: Dockerfile
+    container_name: rightfit-startup-intel-dev
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - SERVICE_PORT=8002
+      - REDIS_URL=redis://redis:6379/2
+    ports:
+      - "8002:8002"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8002/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - rightfit-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  rightfit-network:
+    driver: bridge

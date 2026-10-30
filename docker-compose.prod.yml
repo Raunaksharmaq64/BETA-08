@@ -1,0 +1,96 @@
+# ==============================================================================
+# RIGHT FIT — Production Docker Compose Specification
+# STATUS: TEMPLATE / ARCHITECTURE SETUP PHASE (NOT CONFIGURED FOR PRODUCTION RUNTIME)
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # Production Ingress & Reverse Proxy (Nginx with SSL termination)
+  # ----------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: rightfit-nginx-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - rightfit-prod-network
+
+  # ----------------------------------------------------------------------------
+  # Unified Frontend (Production Next.js Node Runner)
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: runner
+    container_name: rightfit-frontend-prod
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.rightfit.internal/api/v1
+    expose:
+      - "3000"
+    networks:
+      - rightfit-prod-network
+
+  # ----------------------------------------------------------------------------
+  # Core Career Engine Backend (Gunicorn/Uvicorn Multi-Worker)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rightfit-backend-prod
+    restart: always
+    environment:
+      - APP_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
+    expose:
+      - "8000"
+    networks:
+      - rightfit-prod-network
+
+  # ----------------------------------------------------------------------------
+  # Independent LeadHunter Service (Internal Only)
+  # ----------------------------------------------------------------------------
+  service-leadhunter:
+    build:
+      context: ./services/leadhunter
+      dockerfile: Dockerfile
+    container_name: rightfit-leadhunter-prod
+    restart: always
+    expose:
+      - "8001"
+    networks:
+      - rightfit-prod-network
+
+  # ----------------------------------------------------------------------------
+  # Independent Startup Discovery Service (Internal Only)
+  # ----------------------------------------------------------------------------
+  service-startup-intelligence:
+    build:
+      context: ./services/startup_intelligence
+      dockerfile: Dockerfile
+    container_name: rightfit-startup-intel-prod
+    restart: always
+    expose:
+      - "8002"
+    networks:
+      - rightfit-prod-network
+
+networks:
+  rightfit-prod-network:
+    driver: bridge
+

@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "RemotePreference": {
+      "description": "Work arrangement preference.",
+      "enum": [
+        "REMOTE",
+        "HYBRID",
+        "ON_SITE",
+        "ANY"
+      ],
+      "title": "RemotePreference",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "preferred_roles": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Preferred Roles",
+      "type": "array"
+    },
+    "preferred_skills": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Preferred Skills",
+      "type": "array"
+    },
+    "preferred_industries": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Preferred Industries",
+      "type": "array"
+    },
+    "preferred_locations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Preferred Locations",
+      "type": "array"
+    },
+    "remote_preference": {
+      "$ref": "#/$defs/RemotePreference",
+      "default": "ANY"
+    },
+    "min_salary": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Min Salary"
+    },
+    "max_salary": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Salary"
+    },
+    "currency": {
+      "default": "USD",
+      "maxLength": 3,
+      "title": "Currency",
+      "type": "string"
+    },
+    "employment_types": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Employment Types",
+      "type": "array"
+    },
+    "job_notification_frequency": {
+      "default": "DAILY",
+      "title": "Job Notification Frequency",
+      "type": "string"
+    },
+    "id": {
+      "description": "Preference record UUID.",
+      "title": "Id",
+      "type": "string"
+    },
+    "user_id": {
+      "description": "Owner User UUID.",
+      "title": "User Id",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "user_id",
+    "updated_at"
+  ],
+  "title": "CandidatePreferencesResponse",
+  "type": "object"
+}

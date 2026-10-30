@@ -1,0 +1,59 @@
+{
+  "description": "Universal asynchronous task message contract.",
+  "properties": {
+    "task_id": {
+      "description": "Unique UUID identifying this task instance.",
+      "title": "Task Id",
+      "type": "string"
+    },
+    "task_type": {
+      "description": "Dot-separated task identifier (e.g., 'lead.discovery', 'resume.parse').",
+      "title": "Task Type",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": "1.0",
+      "description": "Contract schema version for payload evolution.",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "correlation_id": {
+      "description": "Original client request correlation UUID.",
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "created_at": {
+      "description": "ISO 8601 UTC timestamp when the task was dispatched.",
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "max_retries": {
+      "default": 3,
+      "description": "Maximum automated retry attempts on transient failure.",
+      "minimum": 0,
+      "title": "Max Retries",
+      "type": "integer"
+    },
+    "timeout_seconds": {
+      "default": 300,
+      "description": "Worker execution timeout in seconds.",
+      "minimum": 1,
+      "title": "Timeout Seconds",
+      "type": "integer"
+    },
+    "payload": {
+      "additionalProperties": true,
+      "description": "Typed arguments specific to the task type.",
+      "title": "Payload",
+      "type": "object"
+    }
+  },
+  "required": [
+    "task_id",
+    "task_type",
+    "correlation_id"
+  ],
+  "title": "TaskEnvelope",
+  "type": "object"
+}

@@ -1,0 +1,36 @@
+name: RIGHT FIT — Continuous Integration Template
+
+# STATUS: TEMPLATE / ARCHITECTURE SETUP PHASE
+# Active testing steps are commented out until Phase 1 implementation.
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  foundation-check:
+    name: Repository Architecture & Formatting Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify Architecture Layout
+        run: |
+          echo "Verifying RIGHT FIT structure..."
+          test -d frontend
+          test -d backend
+          test -d services
+          test -d docs
+          test -f AGENTS.md
+          test -f README.md
+          echo "Architecture foundation verified."
+
+      # Future Phase 1 CI steps:
+      # - name: Run Backend Linting (Ruff)
+      # - name: Run Backend Pytest
+      # - name: Run Frontend Linting & Typecheck
+

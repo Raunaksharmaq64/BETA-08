@@ -1,0 +1,373 @@
+{
+  "$defs": {
+    "EducationResponse": {
+      "properties": {
+        "institution": {
+          "maxLength": 150,
+          "minLength": 2,
+          "title": "Institution",
+          "type": "string"
+        },
+        "degree": {
+          "maxLength": 100,
+          "minLength": 2,
+          "title": "Degree",
+          "type": "string"
+        },
+        "field_of_study": {
+          "maxLength": 100,
+          "minLength": 2,
+          "title": "Field Of Study",
+          "type": "string"
+        },
+        "start_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "YYYY-MM or YYYY format",
+          "title": "Start Date"
+        },
+        "end_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "YYYY-MM or YYYY format",
+          "title": "End Date"
+        },
+        "is_current": {
+          "default": false,
+          "title": "Is Current",
+          "type": "boolean"
+        },
+        "achievements": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Achievements"
+        },
+        "provenance": {
+          "$ref": "#/$defs/FieldProvenance",
+          "default": "USER_PROVIDED"
+        },
+        "id": {
+          "description": "Unique education entry UUID.",
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "institution",
+        "degree",
+        "field_of_study",
+        "id"
+      ],
+      "title": "EducationResponse",
+      "type": "object"
+    },
+    "ExperienceResponse": {
+      "properties": {
+        "company": {
+          "maxLength": 150,
+          "minLength": 2,
+          "title": "Company",
+          "type": "string"
+        },
+        "role": {
+          "maxLength": 100,
+          "minLength": 2,
+          "title": "Role",
+          "type": "string"
+        },
+        "employment_type": {
+          "default": "Full-time",
+          "maxLength": 50,
+          "title": "Employment Type",
+          "type": "string"
+        },
+        "start_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "YYYY-MM or YYYY",
+          "title": "Start Date"
+        },
+        "end_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "YYYY-MM or YYYY",
+          "title": "End Date"
+        },
+        "is_current": {
+          "default": false,
+          "title": "Is Current",
+          "type": "boolean"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "skills": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Skills",
+          "type": "array"
+        },
+        "provenance": {
+          "$ref": "#/$defs/FieldProvenance",
+          "default": "USER_PROVIDED"
+        },
+        "id": {
+          "description": "Unique experience entry UUID.",
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "company",
+        "role",
+        "id"
+      ],
+      "title": "ExperienceResponse",
+      "type": "object"
+    },
+    "FieldProvenance": {
+      "description": "Source provenance tracking for profile data attributes.",
+      "enum": [
+        "USER_PROVIDED",
+        "RESUME_EXTRACTED",
+        "AI_SUGGESTED",
+        "IMPORTED",
+        "VERIFIED"
+      ],
+      "title": "FieldProvenance",
+      "type": "string"
+    },
+    "SkillResponse": {
+      "properties": {
+        "skill_name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Skill Name",
+          "type": "string"
+        },
+        "category": {
+          "default": "Technical",
+          "maxLength": 50,
+          "title": "Category",
+          "type": "string"
+        },
+        "proficiency": {
+          "default": "Intermediate",
+          "maxLength": 30,
+          "title": "Proficiency",
+          "type": "string"
+        },
+        "years_experience": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Years Experience"
+        },
+        "provenance": {
+          "$ref": "#/$defs/FieldProvenance",
+          "default": "USER_PROVIDED"
+        },
+        "id": {
+          "description": "Unique skill entry UUID.",
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skill_name",
+        "id"
+      ],
+      "title": "SkillResponse",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "id": {
+      "description": "Profile UUID.",
+      "title": "Id",
+      "type": "string"
+    },
+    "user_id": {
+      "description": "Owner User UUID.",
+      "title": "User Id",
+      "type": "string"
+    },
+    "headline": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Headline"
+    },
+    "summary": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Summary"
+    },
+    "phone": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Phone"
+    },
+    "city": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "City"
+    },
+    "state": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "State"
+    },
+    "country": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Country"
+    },
+    "timezone": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Timezone"
+    },
+    "education": {
+      "items": {
+        "$ref": "#/$defs/EducationResponse"
+      },
+      "title": "Education",
+      "type": "array"
+    },
+    "experience": {
+      "items": {
+        "$ref": "#/$defs/ExperienceResponse"
+      },
+      "title": "Experience",
+      "type": "array"
+    },
+    "skills": {
+      "items": {
+        "$ref": "#/$defs/SkillResponse"
+      },
+      "title": "Skills",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "user_id",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "CandidateProfileResponse",
+  "type": "object"
+}

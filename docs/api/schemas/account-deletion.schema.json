@@ -1,0 +1,48 @@
+{
+  "$defs": {
+    "DeletionStatus": {
+      "enum": [
+        "PENDING",
+        "PROCESSING",
+        "COMPLETED",
+        "FAILED"
+      ],
+      "title": "DeletionStatus",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "deletion_id": {
+      "title": "Deletion Id",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/DeletionStatus"
+    },
+    "scheduled_deletion_at": {
+      "format": "date-time",
+      "title": "Scheduled Deletion At",
+      "type": "string"
+    },
+    "service_status": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Tracks deletion acknowledgment across independent services (leadhunter, startup_intel).",
+      "title": "Service Status",
+      "type": "object"
+    },
+    "message": {
+      "title": "Message",
+      "type": "string"
+    }
+  },
+  "required": [
+    "deletion_id",
+    "status",
+    "scheduled_deletion_at",
+    "message"
+  ],
+  "title": "AccountDeletionResponse",
+  "type": "object"
+}

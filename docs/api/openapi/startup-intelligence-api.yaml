@@ -1,0 +1,354 @@
+openapi: 3.1.0
+info:
+  title: "RIGHT FIT \u2014 Startup Intelligence Satellite API"
+  version: 1.0.0
+  description: Internal REST API for developer community pain-point detection and
+    founder problem discovery.
+servers:
+- url: http://service-startup-intelligence:8002/api/v1
+  description: Internal Docker Bridge
+paths:
+  /health/live:
+    get:
+      summary: Liveness Probe
+      responses:
+        '200':
+          description: Service is live
+  /health/ready:
+    get:
+      summary: Readiness Probe
+      responses:
+        '200':
+          description: Service dependencies ready
+  /startups/discovery:
+    post:
+      summary: Trigger Startup Technical Bottleneck Discovery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $defs:
+                CommunitySource:
+                  description: Permitted developer community channels.
+                  enum:
+                  - reddit
+                  - github
+                  - hackernews
+                  - producthunt
+                  - devto
+                  - all
+                  title: CommunitySource
+                  type: string
+              description: Payload sent by Core Backend to trigger a startup pain-point
+                scan.
+              properties:
+                sources:
+                  description: Communities to crawl.
+                  items:
+                    $ref: '#/$defs/CommunitySource'
+                  title: Sources
+                  type: array
+                keywords:
+                  description: Target keywords (e.g. ['postgres', 'slow', 'react']).
+                  items:
+                    type: string
+                  title: Keywords
+                  type: array
+                categories:
+                  description: Problem categories (e.g. ['Performance', 'Database',
+                    'Mobile']).
+                  items:
+                    type: string
+                  title: Categories
+                  type: array
+                max_signals:
+                  default: 20
+                  description: Maximum raw signals to parse and classify.
+                  maximum: 100
+                  minimum: 1
+                  title: Max Signals
+                  type: integer
+              title: StartupDiscoveryRequest
+              type: object
+      responses:
+        '202':
+          description: Discovery task queued
+          content:
+            application/json:
+              schema:
+                $defs:
+                  StartupScanStatus:
+                    description: Lifecycle states of an asynchronous Startup Intelligence
+                      scan.
+                    enum:
+                    - QUEUED
+                    - SCANNING
+                    - COMPLETED
+                    - FAILED
+                    title: StartupScanStatus
+                    type: string
+                description: Status response for an ongoing or completed startup pain-point
+                  scan.
+                properties:
+                  discovery_id:
+                    description: Tracking UUID for the scan job.
+                    title: Discovery Id
+                    type: string
+                  status:
+                    $ref: '#/$defs/StartupScanStatus'
+                    description: Current scan lifecycle state.
+                  progress_percentage:
+                    default: 0
+                    description: Completion percentage (0-100).
+                    maximum: 100
+                    minimum: 0
+                    title: Progress Percentage
+                    type: integer
+                  total_signals_analyzed:
+                    default: 0
+                    description: Total raw posts parsed.
+                    minimum: 0
+                    title: Total Signals Analyzed
+                    type: integer
+                  total_opportunities_found:
+                    default: 0
+                    description: Total actionable leads produced.
+                    minimum: 0
+                    title: Total Opportunities Found
+                    type: integer
+                  created_at:
+                    description: Timestamp when scan was scheduled.
+                    format: date-time
+                    title: Created At
+                    type: string
+                  completed_at:
+                    anyOf:
+                    - format: date-time
+                      type: string
+                    - type: 'null'
+                    default: null
+                    description: Timestamp when scan completed.
+                    title: Completed At
+                required:
+                - discovery_id
+                - status
+                title: StartupDiscoveryStatus
+                type: object
+  /startups/discovery/{discovery_id}:
+    get:
+      summary: Get Startup Discovery Results
+      parameters:
+      - name: discovery_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Startup problems list
+          content:
+            application/json:
+              schema:
+                $defs:
+                  StartupProblemSummary:
+                    description: Normalized startup technical bottleneck candidate.
+                    properties:
+                      signal_id:
+                        description: Unique identifier for the detected problem signal.
+                        title: Signal Id
+                        type: string
+                      startup_name:
+                        description: Target startup name or author username.
+                        title: Startup Name
+                        type: string
+                      category:
+                        description: Problem category (e.g., 'Performance', 'SEO',
+                          'Mobile', 'Database').
+                        title: Category
+                        type: string
+                      pain_point:
+                        description: Detailed explanation of the technical bottleneck.
+                        title: Pain Point
+                        type: string
+                      detected_signal:
+                        description: Summary of the raw signal (e.g. hiring post,
+                          founder complaint).
+                        title: Detected Signal
+                        type: string
+                      community_source:
+                        description: Originating community channel (e.g. 'Reddit r/saas').
+                        title: Community Source
+                        type: string
+                      source_url:
+                        description: Permalink to original discussion or issue.
+                        title: Source Url
+                        type: string
+                      tech_stack:
+                        description: Technologies flagged in context.
+                        items:
+                          type: string
+                        title: Tech Stack
+                        type: array
+                      urgency_score:
+                        default: 5
+                        description: Hiring or problem urgency score (1-10).
+                        maximum: 10
+                        minimum: 1
+                        title: Urgency Score
+                        type: integer
+                      suggested_pitch:
+                        anyOf:
+                        - type: string
+                        - type: 'null'
+                        default: null
+                        description: AI-generated outreach proposal.
+                        title: Suggested Pitch
+                      published_at:
+                        anyOf:
+                        - format: date-time
+                          type: string
+                        - type: 'null'
+                        default: null
+                        description: Original post publication timestamp.
+                        title: Published At
+                    required:
+                    - signal_id
+                    - startup_name
+                    - category
+                    - pain_point
+                    - detected_signal
+                    - community_source
+                    - source_url
+                    title: StartupProblemSummary
+                    type: object
+                description: Collection response containing startup opportunities
+                  discovered by a scan.
+                properties:
+                  discovery_id:
+                    description: Tracking UUID for the scan job.
+                    title: Discovery Id
+                    type: string
+                  problems:
+                    description: Actionable technical pain points.
+                    items:
+                      $ref: '#/$defs/StartupProblemSummary'
+                    title: Problems
+                    type: array
+                  total_count:
+                    description: Total count of items returned.
+                    minimum: 0
+                    title: Total Count
+                    type: integer
+                required:
+                - discovery_id
+                - total_count
+                title: StartupDiscoveryResult
+                type: object
+  /startups/problems/{signal_id}:
+    get:
+      summary: Get Detailed Startup Problem and Founder Context
+      parameters:
+      - name: signal_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Problem and founder details
+          content:
+            application/json:
+              schema:
+                $defs:
+                  StartupProblemSummary:
+                    description: Normalized startup technical bottleneck candidate.
+                    properties:
+                      signal_id:
+                        description: Unique identifier for the detected problem signal.
+                        title: Signal Id
+                        type: string
+                      startup_name:
+                        description: Target startup name or author username.
+                        title: Startup Name
+                        type: string
+                      category:
+                        description: Problem category (e.g., 'Performance', 'SEO',
+                          'Mobile', 'Database').
+                        title: Category
+                        type: string
+                      pain_point:
+                        description: Detailed explanation of the technical bottleneck.
+                        title: Pain Point
+                        type: string
+                      detected_signal:
+                        description: Summary of the raw signal (e.g. hiring post,
+                          founder complaint).
+                        title: Detected Signal
+                        type: string
+                      community_source:
+                        description: Originating community channel (e.g. 'Reddit r/saas').
+                        title: Community Source
+                        type: string
+                      source_url:
+                        description: Permalink to original discussion or issue.
+                        title: Source Url
+                        type: string
+                      tech_stack:
+                        description: Technologies flagged in context.
+                        items:
+                          type: string
+                        title: Tech Stack
+                        type: array
+                      urgency_score:
+                        default: 5
+                        description: Hiring or problem urgency score (1-10).
+                        maximum: 10
+                        minimum: 1
+                        title: Urgency Score
+                        type: integer
+                      suggested_pitch:
+                        anyOf:
+                        - type: string
+                        - type: 'null'
+                        default: null
+                        description: AI-generated outreach proposal.
+                        title: Suggested Pitch
+                      published_at:
+                        anyOf:
+                        - format: date-time
+                          type: string
+                        - type: 'null'
+                        default: null
+                        description: Original post publication timestamp.
+                        title: Published At
+                    required:
+                    - signal_id
+                    - startup_name
+                    - category
+                    - pain_point
+                    - detected_signal
+                    - community_source
+                    - source_url
+                    title: StartupProblemSummary
+                    type: object
+                description: Comprehensive detail for a single startup problem opportunity.
+                properties:
+                  problem:
+                    $ref: '#/$defs/StartupProblemSummary'
+                    description: Core problem details.
+                  raw_excerpt:
+                    description: Verbatim text of the original community post or GitHub
+                      issue.
+                    title: Raw Excerpt
+                    type: string
+                  founder_contact_info:
+                    additionalProperties: true
+                    description: Enriched founder contacts (Twitter/X, LinkedIn, email).
+                    title: Founder Contact Info
+                    type: object
+                required:
+                - problem
+                - raw_excerpt
+                title: StartupProblemDetailResponse
+                type: object

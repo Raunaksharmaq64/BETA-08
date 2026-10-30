@@ -1,0 +1,59 @@
+{
+  "$defs": {
+    "ProfileVisibility": {
+      "enum": [
+        "PUBLIC",
+        "PRIVATE",
+        "ANONYMIZED"
+      ],
+      "title": "ProfileVisibility",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "profile_visibility": {
+      "$ref": "#/$defs/ProfileVisibility",
+      "default": "PUBLIC"
+    },
+    "opportunity_alerts": {
+      "default": true,
+      "title": "Opportunity Alerts",
+      "type": "boolean"
+    },
+    "email_notifications": {
+      "default": true,
+      "title": "Email Notifications",
+      "type": "boolean"
+    },
+    "ai_processing_enabled": {
+      "default": true,
+      "title": "Ai Processing Enabled",
+      "type": "boolean"
+    },
+    "data_usage_research": {
+      "default": false,
+      "title": "Data Usage Research",
+      "type": "boolean"
+    },
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "user_id": {
+      "title": "User Id",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "user_id",
+    "updated_at"
+  ],
+  "title": "PrivacySettingsResponse",
+  "type": "object"
+}

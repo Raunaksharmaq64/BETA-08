@@ -1,0 +1,418 @@
+openapi: 3.1.0
+info:
+  title: "RIGHT FIT \u2014 LeadHunter AI Satellite API"
+  version: 1.0.0
+  description: Internal REST API for local business lead discovery and automated website
+    audits.
+servers:
+- url: http://service-leadhunter:8001/api/v1
+  description: Internal Docker Bridge
+paths:
+  /health/live:
+    get:
+      summary: Liveness Probe
+      responses:
+        '200':
+          description: Service is live
+  /health/ready:
+    get:
+      summary: Readiness Probe
+      responses:
+        '200':
+          description: Service dependencies ready
+  /leads/discovery:
+    post:
+      summary: Trigger Business Lead Discovery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              description: Payload sent by Core Backend to trigger a local business
+                lead discovery scan.
+              properties:
+                query:
+                  description: Target search query (e.g., 'Dentists', 'Accountants').
+                  minLength: 2
+                  title: Query
+                  type: string
+                city:
+                  description: Target city or metropolitan area (e.g., 'Austin, TX',
+                    'Bhopal').
+                  minLength: 2
+                  title: City
+                  type: string
+                max_results:
+                  default: 20
+                  description: Maximum number of business candidates to evaluate.
+                  maximum: 100
+                  minimum: 1
+                  title: Max Results
+                  type: integer
+                include_with_website:
+                  default: false
+                  description: Whether to include businesses that already have functioning
+                    websites.
+                  title: Include With Website
+                  type: boolean
+                deep_scan:
+                  default: true
+                  description: Whether to perform subpage crawling for owner email
+                    & social links.
+                  title: Deep Scan
+                  type: boolean
+              required:
+              - query
+              - city
+              title: LeadDiscoveryRequest
+              type: object
+      responses:
+        '202':
+          description: Scan queued or initiated
+          content:
+            application/json:
+              schema:
+                $defs:
+                  ScanJobStatus:
+                    description: Lifecycle states of an asynchronous LeadHunter search
+                      scan.
+                    enum:
+                    - QUEUED
+                    - SCANNING
+                    - COMPLETED
+                    - FAILED
+                    - CANCELLED
+                    title: ScanJobStatus
+                    type: string
+                description: Status response for an ongoing or completed discovery
+                  scan.
+                properties:
+                  discovery_id:
+                    description: Tracking UUID for the scan job.
+                    title: Discovery Id
+                    type: string
+                  status:
+                    $ref: '#/$defs/ScanJobStatus'
+                    description: Current scan lifecycle state.
+                  progress_percentage:
+                    default: 0
+                    description: Completion percentage (0-100).
+                    maximum: 100
+                    minimum: 0
+                    title: Progress Percentage
+                    type: integer
+                  total_found:
+                    default: 0
+                    description: Total business entities identified so far.
+                    minimum: 0
+                    title: Total Found
+                    type: integer
+                  created_at:
+                    description: Timestamp when discovery job was scheduled.
+                    format: date-time
+                    title: Created At
+                    type: string
+                  completed_at:
+                    anyOf:
+                    - format: date-time
+                      type: string
+                    - type: 'null'
+                    default: null
+                    description: Timestamp when job finished.
+                    title: Completed At
+                  error_message:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                    default: null
+                    description: Failure diagnostic message if FAILED.
+                    title: Error Message
+                required:
+                - discovery_id
+                - status
+                title: LeadDiscoveryStatus
+                type: object
+  /leads/discovery/{discovery_id}:
+    get:
+      summary: Get Discovery Scan Status and Results
+      parameters:
+      - name: discovery_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Scan results
+          content:
+            application/json:
+              schema:
+                $defs:
+                  LeadSummary:
+                    description: Normalized business lead candidate returned by LeadHunter.
+                    properties:
+                      lead_id:
+                        description: LeadHunter unique identifier for the lead record.
+                        title: Lead Id
+                        type: string
+                      business_name:
+                        description: Name of the business.
+                        title: Business Name
+                        type: string
+                      category:
+                        description: Business category.
+                        title: Category
+                        type: string
+                      city:
+                        description: Target city.
+                        title: City
+                        type: string
+                      website:
+                        anyOf:
+                        - type: string
+                        - type: 'null'
+                        default: null
+                        description: Discovered website URL, if any.
+                        title: Website
+                      is_broken_website:
+                        default: false
+                        description: True if website failed DNS, SSL, or HTTP status
+                          tests.
+                        title: Is Broken Website
+                        type: boolean
+                      phone:
+                        anyOf:
+                        - type: string
+                        - type: 'null'
+                        default: null
+                        description: Business phone number.
+                        title: Phone
+                      email:
+                        anyOf:
+                        - type: string
+                        - type: 'null'
+                        default: null
+                        description: Discovered contact email.
+                        title: Email
+                      rating:
+                        default: 0.0
+                        description: Google Maps star rating.
+                        maximum: 5.0
+                        minimum: 0.0
+                        title: Rating
+                        type: number
+                      reviews_count:
+                        default: 0
+                        description: Total review count on Google Maps.
+                        minimum: 0
+                        title: Reviews Count
+                        type: integer
+                      suggested_pitch:
+                        anyOf:
+                        - type: string
+                        - type: 'null'
+                        default: null
+                        description: AI-drafted outreach pitch.
+                        title: Suggested Pitch
+                    required:
+                    - lead_id
+                    - business_name
+                    - category
+                    - city
+                    title: LeadSummary
+                    type: object
+                description: Collection response containing leads discovered by a
+                  scan.
+                properties:
+                  discovery_id:
+                    description: Tracking UUID for the scan job.
+                    title: Discovery Id
+                    type: string
+                  leads:
+                    description: List of qualified business leads.
+                    items:
+                      $ref: '#/$defs/LeadSummary'
+                    title: Leads
+                    type: array
+                  total_leads:
+                    description: Total count of leads returned.
+                    minimum: 0
+                    title: Total Leads
+                    type: integer
+                required:
+                - discovery_id
+                - total_leads
+                title: LeadDiscoveryResult
+                type: object
+  /leads/{lead_id}:
+    get:
+      summary: Get Single Lead Detail & Technical Website Audit
+      parameters:
+      - name: lead_id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Lead and audit detail
+          content:
+            application/json:
+              schema:
+                $defs:
+                  LeadSummary:
+                    description: Normalized business lead candidate returned by LeadHunter.
+                    properties:
+                      lead_id:
+                        description: LeadHunter unique identifier for the lead record.
+                        title: Lead Id
+                        type: string
+                      business_name:
+                        description: Name of the business.
+                        title: Business Name
+                        type: string
+                      category:
+                        description: Business category.
+                        title: Category
+                        type: string
+                      city:
+                        description: Target city.
+                        title: City
+                        type: string
+                      website:
+                        anyOf:
+                        - type: string
+                        - type: 'null'
+                        default: null
+                        description: Discovered website URL, if any.
+                        title: Website
+                      is_broken_website:
+                        default: false
+                        description: True if website failed DNS, SSL, or HTTP status
+                          tests.
+                        title: Is Broken Website
+                        type: boolean
+                      phone:
+                        anyOf:
+                        - type: string
+                        - type: 'null'
+                        default: null
+                        description: Business phone number.
+                        title: Phone
+                      email:
+                        anyOf:
+                        - type: string
+                        - type: 'null'
+                        default: null
+                        description: Discovered contact email.
+                        title: Email
+                      rating:
+                        default: 0.0
+                        description: Google Maps star rating.
+                        maximum: 5.0
+                        minimum: 0.0
+                        title: Rating
+                        type: number
+                      reviews_count:
+                        default: 0
+                        description: Total review count on Google Maps.
+                        minimum: 0
+                        title: Reviews Count
+                        type: integer
+                      suggested_pitch:
+                        anyOf:
+                        - type: string
+                        - type: 'null'
+                        default: null
+                        description: AI-drafted outreach pitch.
+                        title: Suggested Pitch
+                    required:
+                    - lead_id
+                    - business_name
+                    - category
+                    - city
+                    title: LeadSummary
+                    type: object
+                  WebsiteAuditReport:
+                    description: Detailed technical health findings for a specific
+                      business website.
+                    properties:
+                      url:
+                        description: Audited website URL.
+                        title: Url
+                        type: string
+                      dns_resolves:
+                        description: Whether domain resolves to valid IP address.
+                        title: Dns Resolves
+                        type: boolean
+                      ssl_valid:
+                        description: Whether SSL/TLS certificate is active and valid.
+                        title: Ssl Valid
+                        type: boolean
+                      http_status:
+                        anyOf:
+                        - type: integer
+                        - type: 'null'
+                        default: null
+                        description: HTTP response status code (e.g. 200, 404, 502).
+                        title: Http Status
+                      load_time_seconds:
+                        anyOf:
+                        - type: number
+                        - type: 'null'
+                        default: null
+                        description: Page latency in seconds.
+                        title: Load Time Seconds
+                      mobile_friendly:
+                        default: false
+                        description: Whether responsive viewport tags are configured.
+                        title: Mobile Friendly
+                        type: boolean
+                      tech_stack:
+                        description: Detected CMS or frameworks (e.g., WordPress,
+                          React).
+                        items:
+                          type: string
+                        title: Tech Stack
+                        type: array
+                      issues:
+                        description: Human-readable technical deficiencies flagged.
+                        items:
+                          type: string
+                        title: Issues
+                        type: array
+                    required:
+                    - url
+                    - dns_resolves
+                    - ssl_valid
+                    title: WebsiteAuditReport
+                    type: object
+                description: Comprehensive detail for a single business lead.
+                properties:
+                  lead:
+                    $ref: '#/$defs/LeadSummary'
+                    description: Core business lead details.
+                  audit:
+                    anyOf:
+                    - $ref: '#/$defs/WebsiteAuditReport'
+                    - type: 'null'
+                    default: null
+                    description: Technical health audit details.
+                  instagram:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                    default: null
+                    description: Discovered Instagram profile URL.
+                    title: Instagram
+                  facebook:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                    default: null
+                    description: Discovered Facebook page URL.
+                    title: Facebook
+                required:
+                - lead
+                title: LeadDetailResponse
+                type: object

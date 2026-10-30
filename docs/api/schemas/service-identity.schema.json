@@ -1,0 +1,67 @@
+{
+  "$defs": {
+    "ServiceName": {
+      "description": "Recognized internal services.",
+      "enum": [
+        "core_engine",
+        "leadhunter",
+        "startup_intelligence",
+        "frontend_gateway"
+      ],
+      "title": "ServiceName",
+      "type": "string"
+    },
+    "ServiceScope": {
+      "description": "Permitted operation scopes for service credentials.",
+      "enum": [
+        "opportunities:read",
+        "discovery:trigger",
+        "discovery:read",
+        "outreach:trigger",
+        "audit:read",
+        "internal:all"
+      ],
+      "title": "ServiceScope",
+      "type": "string"
+    }
+  },
+  "description": "Authenticated caller identity derived from internal token/key validation.",
+  "properties": {
+    "service_name": {
+      "$ref": "#/$defs/ServiceName",
+      "description": "Identity of the calling service."
+    },
+    "is_authenticated": {
+      "default": false,
+      "description": "Whether credential verification succeeded.",
+      "title": "Is Authenticated",
+      "type": "boolean"
+    },
+    "scopes": {
+      "description": "Permitted operations for this caller.",
+      "items": {
+        "$ref": "#/$defs/ServiceScope"
+      },
+      "title": "Scopes",
+      "type": "array"
+    },
+    "client_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Reported version of the calling service.",
+      "title": "Client Version"
+    }
+  },
+  "required": [
+    "service_name"
+  ],
+  "title": "ServiceIdentity",
+  "type": "object"
+}

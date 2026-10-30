@@ -1,0 +1,550 @@
+{
+  "$defs": {
+    "EvidenceItem": {
+      "description": "Auditable excerpt or signal evidence.",
+      "properties": {
+        "source_url": {
+          "description": "Permalink to original evidence post or listing.",
+          "title": "Source Url",
+          "type": "string"
+        },
+        "excerpt": {
+          "description": "Relevant text excerpt showing need or requirement.",
+          "title": "Excerpt",
+          "type": "string"
+        },
+        "captured_at": {
+          "description": "Timestamp when evidence was recorded.",
+          "format": "date-time",
+          "title": "Captured At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_url",
+        "excerpt"
+      ],
+      "title": "EvidenceItem",
+      "type": "object"
+    },
+    "FreelanceOpportunityPayload": {
+      "description": "Typed details specific to local business and website audit opportunities (LeadHunter).",
+      "properties": {
+        "business_category": {
+          "description": "Business category (e.g. 'Dental Clinic', 'Restaurant').",
+          "title": "Business Category",
+          "type": "string"
+        },
+        "website_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Target business website if existing.",
+          "title": "Website Url"
+        },
+        "is_broken_website": {
+          "default": false,
+          "description": "Whether website failed DNS, SSL, or HTTP checks.",
+          "title": "Is Broken Website",
+          "type": "boolean"
+        },
+        "audit_status": {
+          "default": "COMPLETED",
+          "description": "Status of the automated technical audit.",
+          "title": "Audit Status",
+          "type": "string"
+        },
+        "detected_issues": {
+          "description": "Technical pain points (e.g. 'Missing SSL', '404 Bad Gateway').",
+          "items": {
+            "type": "string"
+          },
+          "title": "Detected Issues",
+          "type": "array"
+        },
+        "suggested_pitch": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "AI-generated pitch or proposal text.",
+          "title": "Suggested Pitch"
+        },
+        "contact_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Discovered contact email for decision maker.",
+          "title": "Contact Email"
+        },
+        "contact_phone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Discovered business phone number.",
+          "title": "Contact Phone"
+        }
+      },
+      "required": [
+        "business_category"
+      ],
+      "title": "FreelanceOpportunityPayload",
+      "type": "object"
+    },
+    "JobOpportunityPayload": {
+      "description": "Typed details specific to full-time/contract ATS employment opportunities.",
+      "properties": {
+        "salary_min": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Minimum compensation in specified currency.",
+          "title": "Salary Min"
+        },
+        "salary_max": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Maximum compensation in specified currency.",
+          "title": "Salary Max"
+        },
+        "salary_currency": {
+          "anyOf": [
+            {
+              "maxLength": 3,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "USD",
+          "description": "ISO 4217 currency code.",
+          "title": "Salary Currency"
+        },
+        "fit_score": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Deterministic match score [0.0 to 1.0].",
+          "title": "Fit Score"
+        },
+        "matched_skills": {
+          "description": "Candidate skills found in job requirements.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Matched Skills",
+          "type": "array"
+        },
+        "missing_skills": {
+          "description": "Required job skills missing from candidate profile.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing Skills",
+          "type": "array"
+        },
+        "ats_provider": {
+          "description": "Adapter name (e.g. 'greenhouse', 'lever', 'ashby').",
+          "title": "Ats Provider",
+          "type": "string"
+        },
+        "application_url": {
+          "description": "Direct URL to official application submission page.",
+          "title": "Application Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ats_provider",
+        "application_url"
+      ],
+      "title": "JobOpportunityPayload",
+      "type": "object"
+    },
+    "LocationInfo": {
+      "description": "Geographic and remote distribution details.",
+      "properties": {
+        "city": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "City name.",
+          "title": "City"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "State, province, or region.",
+          "title": "State"
+        },
+        "country": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Country name or ISO code.",
+          "title": "Country"
+        },
+        "remote_type": {
+          "$ref": "#/$defs/RemoteType",
+          "default": "UNKNOWN",
+          "description": "Work location arrangement."
+        }
+      },
+      "title": "LocationInfo",
+      "type": "object"
+    },
+    "OpportunityType": {
+      "description": "Supported broad opportunity classifications.",
+      "enum": [
+        "JOB",
+        "FREELANCE",
+        "STARTUP_PROBLEM"
+      ],
+      "title": "OpportunityType",
+      "type": "string"
+    },
+    "OrganizationInfo": {
+      "description": "Entity offering or associated with the opportunity.",
+      "properties": {
+        "name": {
+          "description": "Organization or business name.",
+          "title": "Name",
+          "type": "string"
+        },
+        "website": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Primary domain or website URL if known.",
+          "title": "Website"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "OrganizationInfo",
+      "type": "object"
+    },
+    "RemoteType": {
+      "description": "Workplace location mode.",
+      "enum": [
+        "REMOTE",
+        "HYBRID",
+        "ON_SITE",
+        "UNKNOWN"
+      ],
+      "title": "RemoteType",
+      "type": "string"
+    },
+    "SourceProvenance": {
+      "description": "Origin tracking and traceability metadata.",
+      "properties": {
+        "provider": {
+          "description": "Source name (e.g., 'greenhouse', 'ashby', 'google_maps', 'reddit').",
+          "title": "Provider",
+          "type": "string"
+        },
+        "original_url": {
+          "description": "Direct link or permalink to the original posting or post.",
+          "title": "Original Url",
+          "type": "string"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Source provider's native identifier.",
+          "title": "External Id"
+        },
+        "collected_at": {
+          "description": "ISO 8601 UTC timestamp when this signal was retrieved.",
+          "format": "date-time",
+          "title": "Collected At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "original_url"
+      ],
+      "title": "SourceProvenance",
+      "type": "object"
+    },
+    "StartupProblemPayload": {
+      "description": "Typed details specific to startup technical issues and founder needs (Startup Intelligence).",
+      "properties": {
+        "target_startup": {
+          "description": "Name of the startup or founder username.",
+          "title": "Target Startup",
+          "type": "string"
+        },
+        "pain_point_summary": {
+          "description": "Concise statement of the technical bottleneck.",
+          "title": "Pain Point Summary",
+          "type": "string"
+        },
+        "problem_category": {
+          "description": "Category (e.g. 'Performance', 'Database', 'SEO', 'Mobile', 'AI').",
+          "title": "Problem Category",
+          "type": "string"
+        },
+        "community_source": {
+          "description": "Source community (e.g. 'Reddit r/saas', 'GitHub Issues', 'Hacker News').",
+          "title": "Community Source",
+          "type": "string"
+        },
+        "author": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Author or founder username.",
+          "title": "Author"
+        },
+        "tech_stack_detected": {
+          "description": "Technologies detected (e.g. ['React', 'Next.js', 'PostgreSQL']).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Tech Stack Detected",
+          "type": "array"
+        },
+        "urgency_score": {
+          "default": 5,
+          "description": "Evaluated hiring or problem urgency (1-10).",
+          "maximum": 10,
+          "minimum": 1,
+          "title": "Urgency Score",
+          "type": "integer"
+        },
+        "recommended_solution": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Proposed technical approach for outreach.",
+          "title": "Recommended Solution"
+        }
+      },
+      "required": [
+        "target_startup",
+        "pain_point_summary",
+        "problem_category",
+        "community_source"
+      ],
+      "title": "StartupProblemPayload",
+      "type": "object"
+    },
+    "StatusInfo": {
+      "description": "Current opportunity validation lifecycle.",
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/VerificationStatus",
+          "default": "UNVERIFIED",
+          "description": "Status code."
+        },
+        "verified_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Timestamp of most recent verification.",
+          "title": "Verified At"
+        }
+      },
+      "title": "StatusInfo",
+      "type": "object"
+    },
+    "VerificationStatus": {
+      "description": "Legitimacy and availability verification status.",
+      "enum": [
+        "UNVERIFIED",
+        "VERIFIED",
+        "EXPIRED",
+        "DEPRECATED"
+      ],
+      "title": "VerificationStatus",
+      "type": "string"
+    }
+  },
+  "description": "Canonical versioned envelope wrapping all opportunity types.",
+  "properties": {
+    "schema_version": {
+      "default": "1.0",
+      "description": "Envelope schema version.",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "opportunity_id": {
+      "description": "Unique UUID identifying this normalized opportunity.",
+      "title": "Opportunity Id",
+      "type": "string"
+    },
+    "opportunity_type": {
+      "$ref": "#/$defs/OpportunityType",
+      "description": "Broad type of opportunity."
+    },
+    "title": {
+      "description": "Concise opportunity headline.",
+      "minLength": 2,
+      "title": "Title",
+      "type": "string"
+    },
+    "description": {
+      "description": "Full text description or excerpt of the opportunity.",
+      "title": "Description",
+      "type": "string"
+    },
+    "organization": {
+      "$ref": "#/$defs/OrganizationInfo",
+      "description": "Associated company or client details."
+    },
+    "location": {
+      "$ref": "#/$defs/LocationInfo",
+      "description": "Geographic location and remote eligibility."
+    },
+    "source": {
+      "$ref": "#/$defs/SourceProvenance",
+      "description": "Provenance and retrieval metadata."
+    },
+    "status": {
+      "$ref": "#/$defs/StatusInfo",
+      "description": "Verification and freshness status."
+    },
+    "evidence": {
+      "description": "Supporting proof and excerpts.",
+      "items": {
+        "$ref": "#/$defs/EvidenceItem"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "description": "Arbitrary extension attributes.",
+      "title": "Metadata",
+      "type": "object"
+    },
+    "payload": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JobOpportunityPayload"
+        },
+        {
+          "$ref": "#/$defs/FreelanceOpportunityPayload"
+        },
+        {
+          "$ref": "#/$defs/StartupProblemPayload"
+        }
+      ],
+      "description": "Type-specific details corresponding to opportunity_type.",
+      "title": "Payload"
+    }
+  },
+  "required": [
+    "opportunity_id",
+    "opportunity_type",
+    "title",
+    "description",
+    "organization",
+    "location",
+    "source",
+    "payload"
+  ],
+  "title": "OpportunityEnvelope",
+  "type": "object"
+}

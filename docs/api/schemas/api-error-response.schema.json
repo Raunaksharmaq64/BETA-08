@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "ErrorCode": {
+      "description": "Stable, machine-readable error codes.",
+      "enum": [
+        "BAD_REQUEST",
+        "VALIDATION_ERROR",
+        "UNAUTHENTICATED",
+        "UNAUTHORIZED",
+        "RESOURCE_NOT_FOUND",
+        "RESOURCE_CONFLICT",
+        "RATE_LIMIT_EXCEEDED",
+        "IDEMPOTENCY_VIOLATION",
+        "INTERNAL_SERVER_ERROR",
+        "UPSTREAM_SERVICE_ERROR",
+        "SERVICE_UNAVAILABLE",
+        "UPSTREAM_TIMEOUT"
+      ],
+      "title": "ErrorCode",
+      "type": "string"
+    },
+    "ErrorDetail": {
+      "description": "Field-level issue description.",
+      "properties": {
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Request field causing the error, if applicable.",
+          "title": "Field"
+        },
+        "issue": {
+          "description": "Human-readable explanation of the issue.",
+          "title": "Issue",
+          "type": "string"
+        },
+        "rejected_value": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The value that failed validation, if safe to expose.",
+          "title": "Rejected Value"
+        }
+      },
+      "required": [
+        "issue"
+      ],
+      "title": "ErrorDetail",
+      "type": "object"
+    },
+    "ErrorPayload": {
+      "description": "Inner error container.",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ErrorCode",
+          "description": "Stable, machine-readable error classification code."
+        },
+        "message": {
+          "description": "Human-readable explanation of the error.",
+          "title": "Message",
+          "type": "string"
+        },
+        "details": {
+          "description": "List of granular field-level issues.",
+          "items": {
+            "$ref": "#/$defs/ErrorDetail"
+          },
+          "title": "Details",
+          "type": "array"
+        },
+        "request_id": {
+          "description": "Unique correlation UUID identifying the request trace.",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "service": {
+          "description": "Identifier of the service where the error occurred (e.g. 'core', 'leadhunter', 'startup_intel').",
+          "title": "Service",
+          "type": "string"
+        },
+        "retryable": {
+          "default": false,
+          "description": "Whether the client may safely retry the operation with exponential backoff.",
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "request_id",
+        "service"
+      ],
+      "title": "ErrorPayload",
+      "type": "object"
+    }
+  },
+  "description": "Universal error response envelope.",
+  "properties": {
+    "success": {
+      "default": false,
+      "description": "Always false for error responses.",
+      "title": "Success",
+      "type": "boolean"
+    },
+    "error": {
+      "$ref": "#/$defs/ErrorPayload",
+      "description": "Standardized error details container."
+    }
+  },
+  "required": [
+    "error"
+  ],
+  "title": "APIErrorResponse",
+  "type": "object"
+}
