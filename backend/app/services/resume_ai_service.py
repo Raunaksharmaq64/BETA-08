@@ -139,7 +139,7 @@ class ResumeAIService:
     ) -> List[AISuggestionDTO]:
         """Calls Google Gemini with safe retries and timeout handling."""
         api_key = getattr(settings, "GEMINI_API_KEY", None)
-        model = getattr(settings, "GEMINI_MODEL", "gemini-1.5-flash")
+        model = getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash")
         endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
 
         # Prepare untrusted candidate text safely (only necessary content passed)
@@ -191,7 +191,7 @@ class ResumeAIService:
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
                 "temperature": 0.2,
-                "maxOutputTokens": 1000,
+                "maxOutputTokens": 4096,
                 "responseMimeType": "application/json"
             }
         }
@@ -199,7 +199,7 @@ class ResumeAIService:
         # Safe retries with exponential backoff
         for attempt in range(max_retries + 1):
             try:
-                async with httpx.AsyncClient(timeout=10.0) as client:
+                async with httpx.AsyncClient(timeout=25.0) as client:
                     resp = await client.post(endpoint, json=payload)
                     if resp.status_code == 200:
                         data = resp.json()

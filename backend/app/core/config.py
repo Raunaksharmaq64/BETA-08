@@ -66,6 +66,7 @@ class Settings(BaseSettings):
 
     # AI & LLM Engine Keys
     GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY", None)
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY", None)
 
     # Search & Discovery Extraction Providers
