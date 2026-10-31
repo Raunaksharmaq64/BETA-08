@@ -274,3 +274,4 @@ class LeadHunterAuthError(Exception):
 
 # Global singleton instance
 leadhunter_adapter = LeadHunterAdapter()
+

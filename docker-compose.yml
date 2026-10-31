@@ -69,7 +69,7 @@ services:
       - APP_ENV=development
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-rightfit_admin}:${POSTGRES_PASSWORD:-rightfit_dev_secret}@postgres:5432/${POSTGRES_DB:-rightfit_core}
       - REDIS_URL=redis://redis:6379/0
-      - LEADHUNTER_BASE_URL=http://service-leadhunter:8001
+      # LeadHunter is migrated: Freelance Intelligence runs natively in-process inside RIGHT FIT Core
       - STARTUP_INTELLIGENCE_BASE_URL=http://service-startup-intelligence:8002
       - MOCK_SATELLITE_SERVICES=true
     ports:
@@ -132,33 +132,10 @@ services:
       - rightfit-network
 
   # ----------------------------------------------------------------------------
-  # Independent Freelance Service (LeadHunter Context)
+  # Freelance Intelligence Module (Migrated)
+  # LeadHunter is fully migrated as an in-process native module in RIGHT FIT Core (app/modules/freelance).
+  # Standalone service-leadhunter container and port 8001 are retired.
   # ----------------------------------------------------------------------------
-  service-leadhunter:
-    build:
-      context: ./services/leadhunter
-      dockerfile: Dockerfile
-    container_name: rightfit-leadhunter-dev
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      - SERVICE_PORT=8001
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-rightfit_admin}:${POSTGRES_PASSWORD:-rightfit_dev_secret}@postgres:5432/rightfit_leadhunter
-      - REDIS_URL=redis://redis:6379/1
-    ports:
-      - "8001:8001"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8001/health/live || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    networks:
-      - rightfit-network
 
   # ----------------------------------------------------------------------------
   # Independent Startup Discovery Service (Startup Intelligence Context)

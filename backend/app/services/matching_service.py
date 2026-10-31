@@ -50,6 +50,63 @@ SKILL_ALIASES: Dict[str, str] = {
     "rest apis": "restful api",
 }
 
+# Structured Skill Relationships (Taxonomy, Synonyms, Parent-Child, and Transferable Skills)
+SKILL_RELATIONSHIPS: Dict[str, List[Dict[str, Any]]] = {
+    "javascript": [
+        {"skill": "typescript", "type": "TRANSFERABLE", "strength": 0.85},
+        {"skill": "react", "type": "PARENT_CHILD", "strength": 0.80},
+        {"skill": "node.js", "type": "RELATED", "strength": 0.85},
+    ],
+    "typescript": [
+        {"skill": "javascript", "type": "TRANSFERABLE", "strength": 0.95},
+        {"skill": "react", "type": "RELATED", "strength": 0.85},
+        {"skill": "next.js", "type": "RELATED", "strength": 0.80},
+    ],
+    "react": [
+        {"skill": "next.js", "type": "PARENT_CHILD", "strength": 0.90},
+        {"skill": "javascript", "type": "RELATED", "strength": 0.85},
+        {"skill": "vue", "type": "TRANSFERABLE", "strength": 0.75},
+    ],
+    "next.js": [
+        {"skill": "react", "type": "TRANSFERABLE", "strength": 0.95},
+        {"skill": "typescript", "type": "RELATED", "strength": 0.85},
+    ],
+    "python": [
+        {"skill": "fastapi", "type": "PARENT_CHILD", "strength": 0.85},
+        {"skill": "django", "type": "PARENT_CHILD", "strength": 0.85},
+        {"skill": "flask", "type": "PARENT_CHILD", "strength": 0.85},
+    ],
+    "fastapi": [
+        {"skill": "python", "type": "TRANSFERABLE", "strength": 0.95},
+        {"skill": "restful api", "type": "PARENT_CHILD", "strength": 0.90},
+    ],
+    "postgresql": [
+        {"skill": "sql", "type": "PARENT_CHILD", "strength": 0.95},
+        {"skill": "mysql", "type": "TRANSFERABLE", "strength": 0.85},
+    ],
+    "sql": [
+        {"skill": "postgresql", "type": "RELATED", "strength": 0.75},
+        {"skill": "mysql", "type": "RELATED", "strength": 0.75},
+    ],
+    "docker": [
+        {"skill": "kubernetes", "type": "RELATED", "strength": 0.80},
+        {"skill": "containerization", "type": "PARENT_CHILD", "strength": 0.95},
+    ],
+    "kubernetes": [
+        {"skill": "docker", "type": "RELATED", "strength": 0.85},
+        {"skill": "cloud computing", "type": "RELATED", "strength": 0.80},
+    ],
+    "aws": [
+        {"skill": "cloud computing", "type": "PARENT_CHILD", "strength": 0.90},
+        {"skill": "docker", "type": "RELATED", "strength": 0.75},
+        {"skill": "google cloud platform", "type": "TRANSFERABLE", "strength": 0.80},
+    ],
+    "cloud computing": [
+        {"skill": "aws", "type": "RELATED", "strength": 0.80},
+        {"skill": "google cloud platform", "type": "RELATED", "strength": 0.80},
+    ],
+}
+
 
 def normalize_skill(name: str) -> str:
     """Canonicalizes a skill name for robust matching."""
@@ -102,11 +159,17 @@ class MatchingService:
                         evidence_by_norm[normalize_skill(item)] = ev
 
         matched_required: List[str] = []
+        related_required: List[Dict[str, Any]] = []
         missing_required: List[str] = []
         matched_preferred: List[str] = []
         missing_preferred: List[str] = []
         unconfirmed_skills: List[str] = []
         evidence_list: List[MatchedSkillEvidence] = []
+        related_credit = 0.0
+
+        # Track which candidate skills are directly matched to avoid double counting for related skills
+        matched_candidate_norms: set[str] = set()
+        direct_pref_norms = {normalize_skill(p) for p in job_preferred_skills if normalize_skill(p)}
 
         # Process Required Skills
         for raw_req in job_required_skills:
@@ -116,6 +179,7 @@ class MatchingService:
 
             if norm_req in candidate_map:
                 matched_required.append(raw_req)
+                matched_candidate_norms.add(norm_req)
                 cand_info = candidate_map[norm_req]
                 is_conf = cand_info.get("is_confirmed", True)
                 if not is_conf:
@@ -127,6 +191,13 @@ class MatchingService:
                 if ev:
                     excerpt = ev.get("excerpt")
 
+                recency_yrs = cand_info.get("recency_years")
+                is_stale = False
+                rec_note = None
+                if recency_yrs is not None and recency_yrs > 3.0:
+                    is_stale = True
+                    rec_note = f"Last practiced ~{recency_yrs:.1f} years ago. Practice refreshing recommended."
+
                 evidence_list.append(
                     MatchedSkillEvidence(
                         skill=raw_req,
@@ -135,10 +206,38 @@ class MatchingService:
                         evidence_excerpt=excerpt,
                         years_experience=cand_info.get("years_experience"),
                         is_confirmed=is_conf,
+                        recency_years=recency_yrs,
+                        is_stale_warning=is_stale,
+                        recency_note=rec_note,
                     )
                 )
             else:
+                # Skill is missing from direct profile matches
                 missing_required.append(raw_req)
+
+                # Check taxonomy for related / transferable skills among candidate skills not already directly matched
+                for c_norm, c_info in candidate_map.items():
+                    if c_norm in matched_candidate_norms or c_norm in direct_pref_norms:
+                        continue
+                    rels_for_c = SKILL_RELATIONSHIPS.get(c_norm, [])
+                    rel_match = next((r for r in rels_for_c if r["skill"] == norm_req), None)
+                    if not rel_match:
+                        rels_for_req = SKILL_RELATIONSHIPS.get(norm_req, [])
+                        rel_match = next((r for r in rels_for_req if r["skill"] == c_norm), None)
+
+                    if rel_match:
+                        strength = rel_match.get("strength", 0.75)
+                        rel_type = rel_match.get("type", "RELATED")
+                        related_required.append({
+                            "required_skill": raw_req,
+                            "candidate_skill": c_info.get("skill_name", c_norm),
+                            "relationship_type": rel_type,
+                            "relationship_strength": strength,
+                            "explanation": f"Candidate possesses '{c_info.get('skill_name', c_norm)}' which transfers to required '{raw_req}' with {int(strength * 100)}% taxonomy alignment."
+                        })
+                        related_credit += strength
+                        matched_candidate_norms.add(c_norm)
+                        break
 
         # Process Preferred Skills
         for raw_pref in job_preferred_skills:
@@ -148,6 +247,7 @@ class MatchingService:
 
             if norm_pref in candidate_map:
                 matched_preferred.append(raw_pref)
+                matched_candidate_norms.add(norm_pref)
                 cand_info = candidate_map[norm_pref]
                 is_conf = cand_info.get("is_confirmed", True)
                 if not is_conf and raw_pref not in unconfirmed_skills:
@@ -158,6 +258,13 @@ class MatchingService:
                 if ev:
                     excerpt = ev.get("excerpt")
 
+                recency_yrs = cand_info.get("recency_years")
+                is_stale = False
+                rec_note = None
+                if recency_yrs is not None and recency_yrs > 3.0:
+                    is_stale = True
+                    rec_note = f"Last practiced ~{recency_yrs:.1f} years ago. Practice refreshing recommended."
+
                 evidence_list.append(
                     MatchedSkillEvidence(
                         skill=raw_pref,
@@ -166,6 +273,9 @@ class MatchingService:
                         evidence_excerpt=excerpt,
                         years_experience=cand_info.get("years_experience"),
                         is_confirmed=is_conf,
+                        recency_years=recency_yrs,
+                        is_stale_warning=is_stale,
+                        recency_note=rec_note,
                     )
                 )
             else:
@@ -174,15 +284,16 @@ class MatchingService:
         # Calculate Fit Score
         tot_req = len(job_required_skills)
         tot_pref = len(job_preferred_skills)
+        effective_req_count = len(matched_required) + (related_credit * 0.85)
 
         if tot_req == 0 and tot_pref == 0:
             score = 100.0
         elif tot_req > 0 and tot_pref > 0:
-            req_part = (len(matched_required) / tot_req) * 80.0
+            req_part = (min(tot_req, effective_req_count) / tot_req) * 80.0
             pref_part = (len(matched_preferred) / tot_pref) * 20.0
             score = round(req_part + pref_part, 1)
         elif tot_req > 0:
-            score = round((len(matched_required) / tot_req) * 100.0, 1)
+            score = round((min(tot_req, effective_req_count) / tot_req) * 100.0, 1)
         else:
             score = round((len(matched_preferred) / tot_pref) * 100.0, 1)
 
@@ -191,6 +302,7 @@ class MatchingService:
             total_required_skills=tot_req,
             matched_required_count=len(matched_required),
             matched_required_skills=matched_required,
+            related_required_skills=related_required,
             missing_required_skills=missing_required,
             total_preferred_skills=tot_pref,
             matched_preferred_count=len(matched_preferred),
@@ -423,40 +535,80 @@ class MatchingService:
         verification_status: str,
         freshness_state: str,
         preference_alignment_score: float = 100.0,
+        role_relevance_score: Optional[float] = None,
+        experience_fit_score: Optional[float] = None,
+        weights: Optional[Dict[str, float]] = None,
     ) -> float:
         """
         Calculates an explainable multi-dimensional sort score [0.0 - 100.0].
         
-        Weights:
-        - Skill Fit: 40%
-        - Eligibility: 25% (MEETS=25, UNKNOWN=15, NEEDS_REVIEW=10, DOES_NOT_MEET=0)
-        - Verification Trust: 15% (OPEN_CONFIRMED/VERIFIED=15, UNVERIFIED=8, others=0)
-        - Freshness: 10% (FRESH=10, RECENT=7, STALE=2, others=0)
-        - Preference Alignment: 10%
+        Supports both:
+        1. Configurable Multi-Component Formula (Section 6.3) when role/experience or custom weights are supplied.
+        2. Transparent Multi-Dimensional Ranking Formula (Phase 7) when evaluated across standard job search criteria.
         """
-        # Skill part
-        skill_part = (max(0.0, min(100.0, skill_fit_score))) * 0.40
+        if role_relevance_score is not None or experience_fit_score is not None or weights is not None:
+            w = weights or {
+                "skill": 0.40,
+                "role": 0.20,
+                "experience": 0.15,
+                "preference": 0.15,
+                "freshness": 0.10,
+            }
 
-        # Eligibility part
+            # Skill component
+            skill_part = (max(0.0, min(100.0, skill_fit_score))) * w.get("skill", 0.40)
+
+            # Role relevance component
+            eff_role = role_relevance_score if role_relevance_score is not None else 85.0
+            role_part = (max(0.0, min(100.0, eff_role))) * w.get("role", 0.20)
+
+            # Experience fit component
+            exp_score = experience_fit_score if experience_fit_score is not None else 80.0
+            if eligibility_status == EligibilityStatus.DOES_NOT_MEET_REQUIREMENTS:
+                exp_score = min(exp_score, 40.0)
+            elif eligibility_status == EligibilityStatus.UNKNOWN:
+                exp_score = min(exp_score, 70.0)
+            exp_part = exp_score * w.get("experience", 0.15)
+
+            # Candidate Preference alignment component
+            pref_part = (max(0.0, min(100.0, preference_alignment_score))) * w.get("preference", 0.15)
+
+            # Freshness component
+            fresh_upper = (freshness_state or "").upper()
+            if fresh_upper == "FRESH":
+                fresh_score = 100.0
+            elif fresh_upper == "RECENT":
+                fresh_score = 75.0
+            elif fresh_upper == "STALE":
+                fresh_score = 30.0
+            else:
+                fresh_score = 50.0
+            fresh_part = fresh_score * w.get("freshness", 0.10)
+
+            composite = skill_part + role_part + exp_part + pref_part + fresh_part
+            return round(max(0.0, min(100.0, composite)), 2)
+
+        # Classic Phase 7 Transparent Multi-Dimensional Ranking
+        # 100% skill fit (40 pts) + MEETS (25 pts) + OPEN_CONFIRMED (15 pts) + FRESH (10 pts) + 100% pref (10 pts)
+        skill_part = (max(0.0, min(100.0, skill_fit_score)) / 100.0) * 40.0
+
         if eligibility_status == EligibilityStatus.MEETS_REQUIREMENTS:
             elig_part = 25.0
         elif eligibility_status == EligibilityStatus.UNKNOWN:
             elig_part = 15.0
-        elif eligibility_status == EligibilityStatus.NEEDS_REVIEW:
-            elig_part = 10.0
         else:
             elig_part = 0.0
 
-        # Verification part
-        verif_upper = (verification_status or "").upper()
-        if verif_upper in ("OPEN_CONFIRMED", "VERIFIED"):
-            verif_part = 15.0
-        elif verif_upper == "UNVERIFIED":
-            verif_part = 8.0
+        ver_upper = (verification_status or "").upper()
+        if ver_upper == "OPEN_CONFIRMED":
+            ver_part = 15.0
+        elif ver_upper == "UNVERIFIED":
+            ver_part = 8.0
+        elif ver_upper == "CLOSED_CONFIRMED":
+            ver_part = 0.0
         else:
-            verif_part = 0.0
+            ver_part = 8.0
 
-        # Freshness part
         fresh_upper = (freshness_state or "").upper()
         if fresh_upper == "FRESH":
             fresh_part = 10.0
@@ -465,12 +617,11 @@ class MatchingService:
         elif fresh_upper == "STALE":
             fresh_part = 2.0
         else:
-            fresh_part = 0.0
+            fresh_part = 5.0
 
-        # Preference part
-        pref_part = (max(0.0, min(100.0, preference_alignment_score))) * 0.10
+        pref_part = (max(0.0, min(100.0, preference_alignment_score)) / 100.0) * 10.0
 
-        composite = skill_part + elig_part + verif_part + fresh_part + pref_part
+        composite = skill_part + elig_part + ver_part + fresh_part + pref_part
         return round(max(0.0, min(100.0, composite)), 2)
 
     @classmethod

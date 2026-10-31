@@ -115,8 +115,19 @@ class CandidateProfileResponse(BaseModel):
     updated_at: datetime
 
 
+class CompletenessSectionImpact(BaseModel):
+    """Explains why each profile section matters and what matching capabilities it unlocks."""
+    section_key: str
+    section_name: str
+    is_completed: bool
+    weight_percentage: int
+    why_it_matters: str
+    unlocks: str
+    is_required: bool = False
+
+
 class ProfileCompletenessResponse(BaseModel):
-    """Calculated profile completeness score and section metrics."""
+    """Calculated profile completeness score and explainable section impact metrics."""
     score_percentage: int = Field(..., ge=0, le=100)
     has_basic_info: bool = Field(...)
     has_education: bool = Field(...)
@@ -124,6 +135,7 @@ class ProfileCompletenessResponse(BaseModel):
     has_skills: bool = Field(...)
     has_preferences: bool = Field(...)
     missing_sections: List[str] = Field(default_factory=list)
+    section_breakdown: List[CompletenessSectionImpact] = Field(default_factory=list)
 
 
 # ------------------------------------------------------------------------------

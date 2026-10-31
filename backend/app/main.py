@@ -6,6 +6,17 @@ Phase: 3 — Identity, Candidate Profile & Privacy Foundation
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Ensure project root (containing 'contracts' and 'backend') is in sys.path
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+_BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(_BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(_BACKEND_DIR))
+
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -45,6 +56,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:[0-9]+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

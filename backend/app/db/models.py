@@ -88,7 +88,16 @@ class User(Base):
     notifications: Mapped[List["NotificationRecord"]] = relationship("NotificationRecord", back_populates="user", cascade="all, delete-orphan")
     notification_preferences: Mapped[Optional["NotificationPreferencesRecord"]] = relationship("NotificationPreferencesRecord", back_populates="user", uselist=False, cascade="all, delete-orphan")
     saved_freelance_opportunities: Mapped[List["SavedFreelanceOpportunityRecord"]] = relationship("SavedFreelanceOpportunityRecord", back_populates="user", cascade="all, delete-orphan")
+    freelance_search_history: Mapped[List["FreelanceSearchHistoryRecord"]] = relationship("FreelanceSearchHistoryRecord", back_populates="user", cascade="all, delete-orphan")
+    freelance_settings: Mapped[Optional["FreelanceCandidateSettingsRecord"]] = relationship("FreelanceCandidateSettingsRecord", back_populates="user", uselist=False, cascade="all, delete-orphan")
     outreach_drafts: Mapped[List["OutreachDraftRecord"]] = relationship("OutreachDraftRecord", back_populates="user", cascade="all, delete-orphan")
+    saved_startup_opportunities: Mapped[List["SavedStartupOpportunityRecord"]] = relationship("SavedStartupOpportunityRecord", back_populates="user", cascade="all, delete-orphan")
+    startup_pitch_drafts: Mapped[List["StartupPitchDraftRecord"]] = relationship("StartupPitchDraftRecord", back_populates="user", cascade="all, delete-orphan")
+    startup_workspaces: Mapped[List["StartupOpportunityWorkspaceRecord"]] = relationship("StartupOpportunityWorkspaceRecord", back_populates="user", cascade="all, delete-orphan")
+    opportunity_feedbacks: Mapped[List["CandidateOpportunityFeedbackRecord"]] = relationship("CandidateOpportunityFeedbackRecord", back_populates="user", cascade="all, delete-orphan")
+    skill_gap_recommendations: Mapped[List["CandidateSkillGapRecommendationRecord"]] = relationship("CandidateSkillGapRecommendationRecord", back_populates="user", cascade="all, delete-orphan")
+    beta_feedbacks: Mapped[List["BetaFeedbackRecord"]] = relationship("BetaFeedbackRecord", back_populates="user")
+    beta_consents: Mapped[List["BetaConsentRecord"]] = relationship("BetaConsentRecord", back_populates="user", cascade="all, delete-orphan")
 
 
 class RefreshTokenRecord(Base):
@@ -204,6 +213,12 @@ class CandidateSkillRecord(Base):
     proficiency: Mapped[str] = mapped_column(String(30), default="Intermediate", nullable=False)
     years_experience: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     provenance: Mapped[str] = mapped_column(String(30), default="USER_PROVIDED", nullable=False)
+    canonical_skill_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    source_of_evidence: Mapped[str] = mapped_column(String(64), default="USER_ENTERED", nullable=False)
+    resume_section: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    extraction_confidence: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    confirmation_status: Mapped[str] = mapped_column(String(32), default="CONFIRMED", index=True, nullable=False)
+    last_updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 
     profile: Mapped["CandidateProfile"] = relationship("CandidateProfile", back_populates="skills")
 
@@ -366,6 +381,16 @@ class ResumeVersionRecord(Base):
         back_populates="resume_version",
         cascade="all, delete-orphan"
     )
+    job_matches: Mapped[List["ResumeJobMatchRecord"]] = relationship(
+        "ResumeJobMatchRecord",
+        back_populates="resume_version",
+        cascade="all, delete-orphan"
+    )
+    suggestion_actions: Mapped[List["ResumeAISuggestionActionRecord"]] = relationship(
+        "ResumeAISuggestionActionRecord",
+        back_populates="resume_version",
+        cascade="all, delete-orphan"
+    )
 
 
 class ResumeExtractionRecord(Base):
@@ -384,6 +409,12 @@ class ResumeExtractionRecord(Base):
     skills_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
     projects_json: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list, nullable=False)
     certifications_json: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list, nullable=False)
+    languages_json: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(JSON, default=list, nullable=True)
+    publications_json: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(JSON, default=list, nullable=True)
+    awards_json: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(JSON, default=list, nullable=True)
+    internships_json: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(JSON, default=list, nullable=True)
+    inferred_skills_json: Mapped[Optional[List[Dict[str, Any]]]] = mapped_column(JSON, default=list, nullable=True)
+    quality_score_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, default=dict, nullable=True)
     evidence_items_json: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
@@ -426,6 +457,46 @@ class ATSAnalysisRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     resume_version: Mapped["ResumeVersionRecord"] = relationship("ResumeVersionRecord", back_populates="ats_analyses")
+
+
+class ResumeJobMatchRecord(Base):
+    """Evidence-backed job-specific resume match result."""
+    __tablename__ = "resume_job_matches"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    resume_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("resume_versions.id", ondelete="CASCADE"), index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    target_job_title: Mapped[str] = mapped_column(String(150), nullable=False)
+    target_job_description: Mapped[str] = mapped_column(Text, nullable=False)
+    overall_match_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    keyword_coverage_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    required_skills_match_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    preferred_skills_match_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    experience_level_match_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    project_theme_alignments_json: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list, nullable=False)
+    unverified_matches_json: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
+    job_specific_suggestions_json: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    resume_version: Mapped["ResumeVersionRecord"] = relationship("ResumeVersionRecord", back_populates="job_matches")
+
+
+class ResumeAISuggestionActionRecord(Base):
+    """Candidate approval action on an AI suggestion."""
+    __tablename__ = "resume_ai_suggestion_actions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    resume_version_id: Mapped[str] = mapped_column(String(36), ForeignKey("resume_versions.id", ondelete="CASCADE"), index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    suggestion_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    action: Mapped[str] = mapped_column(String(32), nullable=False)  # ACCEPT, REJECT, EDIT, REGENERATE
+    original_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    suggested_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    edited_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="APPLIED", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    resume_version: Mapped["ResumeVersionRecord"] = relationship("ResumeVersionRecord", back_populates="suggestion_actions")
 
 
 # ==============================================================================
@@ -1040,6 +1111,13 @@ class NotificationPreferencesRecord(Base):
     application_follow_ups: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     assessment_deadlines: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     prep_milestones: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    frequency: Mapped[str] = mapped_column(String(30), default="DAILY_DIGEST", nullable=False)
+    quiet_hours_start: Mapped[Optional[str]] = mapped_column(String(10), default="22:00", nullable=True)
+    quiet_hours_end: Mapped[Optional[str]] = mapped_column(String(10), default="08:00", nullable=True)
+    timezone: Mapped[str] = mapped_column(String(50), default="UTC", nullable=False)
+    job_alerts_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    digest_email_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    market_intelligence_alerts: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
 
@@ -1077,6 +1155,7 @@ class FreelanceOpportunityRecord(Base):
         String(50), default="POTENTIAL_FREELANCE_OPPORTUNITY", index=True, nullable=False
     )
     classification_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    priority: Mapped[str] = mapped_column(String(20), default="MEDIUM", index=True, nullable=False)
     relevance_score: Mapped[float] = mapped_column(Float, default=85.0, nullable=False)
     source: Mapped[str] = mapped_column(String(60), default="leadhunter_google_maps", nullable=False)
     original_source_url: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
@@ -1209,6 +1288,582 @@ class OutreachSuppressionRecord(Base):
     reason: Mapped[str] = mapped_column(String(50), default="UNSUBSCRIBED", nullable=False)
     created_by_user_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class FreelanceSearchHistoryRecord(Base):
+    """Candidate historical freelance discovery search queries."""
+    __tablename__ = "freelance_search_history"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    query: Mapped[str] = mapped_column(String(255), nullable=False)
+    city: Mapped[str] = mapped_column(String(150), nullable=False)
+    results_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    leads_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    deep_scan: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    zones: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    include_with_website: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    searched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="freelance_search_history")
+
+
+class FreelanceCandidateSettingsRecord(Base):
+    """Candidate BYOK API credentials and custom email inbox configurations."""
+    __tablename__ = "freelance_candidate_settings"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True, nullable=False
+    )
+    encrypted_serpapi_key: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    encrypted_apify_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    encrypted_gemini_key: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    maps_provider: Mapped[str] = mapped_column(String(50), default="serpapi", nullable=False)
+    sender_name: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    sender_brand: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    smtp_host: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    smtp_port: Mapped[int] = mapped_column(Integer, default=465, nullable=False)
+    smtp_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    encrypted_smtp_password: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    smtp_use_ssl: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="freelance_settings")
+
+
+# ==============================================================================
+# PHASE 10: STARTUP INTELLIGENCE & OPPORTUNITY AGENT MODELS
+# ==============================================================================
+
+class StartupOpportunityRecord(Base):
+    """Canonical startup problem / pain point opportunity owned by Core Career Engine."""
+    __tablename__ = "startup_opportunities"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    service_record_id: Mapped[Optional[str]] = mapped_column(String(64), index=True, nullable=True)
+    startup_name: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
+    domain: Mapped[Optional[str]] = mapped_column(String(150), index=True, nullable=True)
+    website_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    category: Mapped[str] = mapped_column(String(50), index=True, default="Development", nullable=False)
+    detected_signal: Mapped[str] = mapped_column(Text, nullable=False)
+    pain_point_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    urgency_score: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
+    score_explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    primary_source: Mapped[str] = mapped_column(String(100), default="Direct Search", nullable=False)
+    source_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="DISCOVERED", index=True, nullable=False)
+    
+    # Separated AI Outputs
+    ai_insight: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ai_opportunity: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ai_pitch_idea: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ai_model: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    ai_generated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    problem_explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    how_to_solve_strategy: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    # Corroboration & Conflict Metrics
+    corroboration_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    has_conflicting_evidence: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    validation_state: Mapped[str] = mapped_column(String(50), default="OBSERVED_PROBLEM", index=True, nullable=False)
+    
+    # Timestamps (Independent UTC)
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    retrieved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    last_checked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    evidence_records: Mapped[List["StartupEvidenceRecord"]] = relationship(
+        "StartupEvidenceRecord", back_populates="opportunity", cascade="all, delete-orphan"
+    )
+    tech_findings: Mapped[List["StartupTechFindingRecord"]] = relationship(
+        "StartupTechFindingRecord", back_populates="opportunity", cascade="all, delete-orphan"
+    )
+    corroboration_records: Mapped[List["StartupCorroborationRecord"]] = relationship(
+        "StartupCorroborationRecord", back_populates="opportunity", cascade="all, delete-orphan"
+    )
+    pitch_drafts: Mapped[List["StartupPitchDraftRecord"]] = relationship(
+        "StartupPitchDraftRecord", back_populates="opportunity", cascade="all, delete-orphan"
+    )
+    saved_by: Mapped[List["SavedStartupOpportunityRecord"]] = relationship(
+        "SavedStartupOpportunityRecord", back_populates="opportunity", cascade="all, delete-orphan"
+    )
+    workspaces: Mapped[List["StartupOpportunityWorkspaceRecord"]] = relationship(
+        "StartupOpportunityWorkspaceRecord", back_populates="opportunity", cascade="all, delete-orphan"
+    )
+
+
+class StartupEvidenceRecord(Base):
+    """Immutable evidence audit record preserving original observations and provenance."""
+    __tablename__ = "startup_evidence"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    opportunity_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("startup_opportunities.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    source_title: Mapped[str] = mapped_column(String(300), nullable=False)
+    source_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    publisher: Mapped[str] = mapped_column(String(100), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(50), default="PERMITTED_PUBLIC_SOURCE", nullable=False)
+    observation_excerpt: Mapped[str] = mapped_column(Text, nullable=False)
+    collection_method: Mapped[str] = mapped_column(String(50), default="RSS_FEED", nullable=False)
+    source_limitations: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    retrieved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    last_checked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    is_corroborating: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    opportunity: Mapped["StartupOpportunityRecord"] = relationship(
+        "StartupOpportunityRecord", back_populates="evidence_records"
+    )
+
+
+class StartupTechFindingRecord(Base):
+    """Observed technographic stack findings with exact traceability to evidence."""
+    __tablename__ = "startup_tech_findings"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    opportunity_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("startup_opportunities.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    evidence_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("startup_evidence.id", ondelete="SET NULL"), nullable=True
+    )
+    technology_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    category: Mapped[str] = mapped_column(String(50), default="Framework", nullable=False)
+    finding_type: Mapped[str] = mapped_column(String(50), default="AUDIT_DETECTED", nullable=False)
+    confidence_score: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    traceable_evidence: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    opportunity: Mapped["StartupOpportunityRecord"] = relationship(
+        "StartupOpportunityRecord", back_populates="tech_findings"
+    )
+
+
+class StartupCorroborationRecord(Base):
+    """Independent source corroboration or contradictory signal record."""
+    __tablename__ = "startup_corroborations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    opportunity_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("startup_opportunities.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    source_identifier: Mapped[str] = mapped_column(String(200), nullable=False)
+    source_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    is_independent: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    conflicts_with_primary: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    opportunity: Mapped["StartupOpportunityRecord"] = relationship(
+        "StartupOpportunityRecord", back_populates="corroboration_records"
+    )
+
+
+class StartupPitchDraftRecord(Base):
+    """Candidate-tailored pitch drafts with explicit assumptions checklist (Draft only, no send)."""
+    __tablename__ = "startup_pitch_drafts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    opportunity_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("startup_opportunities.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    candidate_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    tone: Mapped[str] = mapped_column(String(30), default="casual", nullable=False)
+    candidate_grounded_skills: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    explicit_assumptions: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    candidate_edits_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="startup_pitch_drafts")
+    opportunity: Mapped["StartupOpportunityRecord"] = relationship(
+        "StartupOpportunityRecord", back_populates="pitch_drafts"
+    )
+
+
+class SavedStartupOpportunityRecord(Base):
+    """Bookmarks for candidate startup opportunities."""
+    __tablename__ = "saved_startup_opportunities"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    opportunity_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("startup_opportunities.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="saved_startup_opportunities")
+    opportunity: Mapped["StartupOpportunityRecord"] = relationship(
+        "StartupOpportunityRecord", back_populates="saved_by"
+    )
+
+
+class StartupOpportunityWorkspaceRecord(Base):
+    """Candidate's working canvas for turning an observed startup problem into an actionable venture / solution."""
+    __tablename__ = "startup_opportunity_workspaces"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    opportunity_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("startup_opportunities.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    target_persona: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    hypotheses_json: Mapped[Optional[list]] = mapped_column(JSON, default=list, nullable=True)
+    competitor_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    interview_questions_json: Mapped[Optional[list]] = mapped_column(JSON, default=list, nullable=True)
+    validation_checklist_json: Mapped[Optional[list]] = mapped_column(JSON, default=list, nullable=True)
+    solution_architecture: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    candidate_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    opportunity: Mapped["StartupOpportunityRecord"] = relationship(
+        "StartupOpportunityRecord", back_populates="workspaces"
+    )
+    user: Mapped["User"] = relationship("User", back_populates="startup_workspaces")
+
+
+# ==============================================================================
+# PHASE 11: UNIFIED OPPORTUNITY ENGINE & CANDIDATE FEEDBACK
+# ==============================================================================
+
+class CandidateOpportunityFeedbackRecord(Base):
+    """Candidate relevance feedback on unified opportunities (isolated per candidate)."""
+    __tablename__ = "candidate_opportunity_feedback"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    opportunity_type: Mapped[str] = mapped_column(String(30), index=True, nullable=False)
+    opportunity_id: Mapped[str] = mapped_column(String(36), index=True, nullable=False)
+    feedback_category: Mapped[str] = mapped_column(String(50), nullable=False)
+    explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="opportunity_feedbacks")
+
+
+# ==============================================================================
+# PHASE 12: MARKET & COMPENSATION INTELLIGENCE
+# ==============================================================================
+
+class MarketDataSourceRecord(Base):
+    """Documented registry of market data sources, permissions, licenses and limitations."""
+    __tablename__ = "market_data_sources"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    source_code: Mapped[str] = mapped_column(String(60), unique=True, index=True, nullable=False)
+    source_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    provider: Mapped[str] = mapped_column(String(150), nullable=False)
+    source_category: Mapped[str] = mapped_column(String(60), default="OBSERVED_POSTINGS", nullable=False)
+    documentation_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    access_method: Mapped[str] = mapped_column(String(60), default="LOCAL_CANONICAL_INDEX", nullable=False)
+    license_type: Mapped[str] = mapped_column(String(100), default="PROPRIETARY_OBSERVATION", nullable=False)
+    commercial_use_permitted: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    attribution_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    attribution_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    permitted_storage_days: Mapped[int] = mapped_column(Integer, default=365, nullable=False)
+    geographic_coverage: Mapped[str] = mapped_column(String(100), default="GLOBAL", nullable=False)
+    update_frequency: Mapped[str] = mapped_column(String(50), default="DAILY", nullable=False)
+    known_limitations: Mapped[str] = mapped_column(Text, nullable=False)
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+
+class SkillTaxonomyRecord(Base):
+    """Canonical technology and professional skills in the RIGHT FIT taxonomy."""
+    __tablename__ = "market_skills"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    slug: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    canonical_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    category: Mapped[str] = mapped_column(String(80), index=True, default="General", nullable=False)
+    parent_category: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    technology_family: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    taxonomy_version: Mapped[str] = mapped_column(String(20), default="1.0.0", nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    aliases: Mapped[List["SkillAliasRecord"]] = relationship(
+        "SkillAliasRecord", back_populates="skill", cascade="all, delete-orphan", lazy="selectin"
+    )
+    demand_snapshots: Mapped[List["SkillDemandSnapshotRecord"]] = relationship(
+        "SkillDemandSnapshotRecord", back_populates="skill", cascade="all, delete-orphan"
+    )
+
+
+class SkillAliasRecord(Base):
+    """Curated and reviewed aliases mapping raw skill strings to canonical skills."""
+    __tablename__ = "market_skill_aliases"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    skill_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("market_skills.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    alias_normalized: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    alias_display: Mapped[str] = mapped_column(String(100), nullable=False)
+    source: Mapped[str] = mapped_column(String(50), default="CANONICAL_CURATED", nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    skill: Mapped["SkillTaxonomyRecord"] = relationship("SkillTaxonomyRecord", back_populates="aliases")
+
+
+class SkillRelationshipRecord(Base):
+    """Structured relationships between canonical skills (Parent-Child, Synonyms, Related, Transferable)."""
+    __tablename__ = "market_skill_relationships"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    source_skill_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("market_skills.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    target_skill_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("market_skills.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    relationship_type: Mapped[str] = mapped_column(
+        String(32), default="RELATED", index=True, nullable=False
+    )  # PARENT_CHILD, SYNONYM, RELATED, TRANSFERABLE
+    strength: Mapped[float] = mapped_column(Float, default=0.7, nullable=False)  # 0.0 to 1.0
+    notes: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    source_skill: Mapped["SkillTaxonomyRecord"] = relationship(
+        "SkillTaxonomyRecord", foreign_keys=[source_skill_id], lazy="selectin"
+    )
+    target_skill: Mapped["SkillTaxonomyRecord"] = relationship(
+        "SkillTaxonomyRecord", foreign_keys=[target_skill_id], lazy="selectin"
+    )
+
+
+class SkillDemandSnapshotRecord(Base):
+    """Historical or scheduled demand snapshots across time windows and roles."""
+    __tablename__ = "market_skill_demand_snapshots"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    skill_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("market_skills.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    role_category: Mapped[str] = mapped_column(String(100), default="ALL", index=True, nullable=False)
+    geography: Mapped[str] = mapped_column(String(100), default="GLOBAL", index=True, nullable=False)
+    time_window: Mapped[str] = mapped_column(String(20), default="30d", index=True, nullable=False)
+    distinct_opportunity_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    distinct_employer_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    distinct_source_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    first_observed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_observed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    trend_direction: Mapped[str] = mapped_column(String(40), default="STABLE_IN_SAMPLE", nullable=False)
+    period_over_period_pct: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    confidence_level: Mapped[str] = mapped_column(
+        String(50), default="MODERATE_CONFIDENCE_LIMITED_SOURCES", nullable=False
+    )
+    limitations_disclosure: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    snapshot_timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True, nullable=False
+    )
+
+    skill: Mapped["SkillTaxonomyRecord"] = relationship("SkillTaxonomyRecord", back_populates="demand_snapshots")
+
+
+class CompensationObservationRecord(Base):
+    """Granular, audited compensation observations strictly separating base, total, and currency."""
+    __tablename__ = "market_compensation_observations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    opportunity_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("canonical_opportunities.id", ondelete="CASCADE"), index=True, nullable=True
+    )
+    role_title: Mapped[str] = mapped_column(String(150), index=True, nullable=False)
+    skill_slug: Mapped[Optional[str]] = mapped_column(String(100), index=True, nullable=True)
+    geography: Mapped[str] = mapped_column(String(100), default="Remote", index=True, nullable=False)
+    country: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    compensation_type: Mapped[str] = mapped_column(
+        String(30), default="BASE_SALARY", index=True, nullable=False
+    )
+    period: Mapped[str] = mapped_column(String(20), default="ANNUAL", nullable=False)
+    currency: Mapped[str] = mapped_column(String(10), default="USD", nullable=False)
+    min_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    max_amount: Mapped[float] = mapped_column(Float, nullable=False)
+    median_amount: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    is_estimated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    source_provider: Mapped[str] = mapped_column(String(100), default="CORE_ATS_CONNECTOR", nullable=False)
+    sample_size: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    methodology_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+
+class CandidateSkillGapRecommendationRecord(Base):
+    """Evidence-based skill gap recommendations comparing candidate profile with market demand."""
+    __tablename__ = "candidate_skill_gap_recommendations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    target_role: Mapped[str] = mapped_column(String(120), index=True, nullable=False)
+    canonical_skill_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    skill_slug: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    category: Mapped[str] = mapped_column(String(80), default="Technical", nullable=False)
+    importance_level: Mapped[str] = mapped_column(String(40), default="HIGH_FREQUENCY", nullable=False)
+    frequency_in_role_sample_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    candidate_evidence_status: Mapped[str] = mapped_column(String(40), default="MISSING", nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="UNREVIEWED", index=True, nullable=False)
+    reason_narrative: Mapped[str] = mapped_column(Text, nullable=False)
+    supporting_job_sample: Mapped[List[Any]] = mapped_column(JSON, default=list, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    user: Mapped["User"] = relationship("User", back_populates="skill_gap_recommendations")
+
+
+# ==============================================================================
+# PHASE 14: BETA TESTING, PRODUCT VALIDATION & DATA QUALITY MODELS
+# ==============================================================================
+
+class BetaFeedbackRecord(Base):
+    """Structured user feedback covering search relevance, job details, broken links, usability, and data quality."""
+    __tablename__ = "beta_feedback"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="SET NULL"), index=True, nullable=True
+    )
+    category: Mapped[str] = mapped_column(String(60), index=True, nullable=False)
+    related_feature: Mapped[str] = mapped_column(String(60), default="GENERAL", nullable=False)
+    related_record_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    severity: Mapped[str] = mapped_column(String(20), default="MEDIUM", nullable=False)
+    review_status: Mapped[str] = mapped_column(String(30), default="NEW", index=True, nullable=False)
+    resolution_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    responsible_owner: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    user: Mapped[Optional["User"]] = relationship("User", back_populates="beta_feedbacks")
+
+
+class BetaConsentRecord(Base):
+    """Explicit, auditable user consent records for beta participation with data retention controls."""
+    __tablename__ = "beta_consent_records"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    consent_version: Mapped[str] = mapped_column(String(30), default="v1.0-beta", nullable=False)
+    has_consented_data_collection: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    has_consented_ai_processing: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    has_consented_anonymized_analytics: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    consented_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    withdrawn_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    data_retention_expiry: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="beta_consents")
+
+
+class ConnectorHealthSnapshotRecord(Base):
+    """Granular execution log and reliability metrics for every job source connector."""
+    __tablename__ = "connector_health_snapshots"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    source_key: Mapped[str] = mapped_column(String(80), index=True, nullable=False)
+    run_timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True, nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(30), default="SUCCESS", nullable=False)
+    duration_ms: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    records_discovered: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    records_updated: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    records_rejected_dedup: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    records_rejected_quality: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+
+class DataQualityAuditRecord(Base):
+    """Aggregate metrics tracking deduplication rates, broken application links, and stale postings."""
+    __tablename__ = "data_quality_audits"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    audit_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True, nullable=False
+    )
+    total_active_listings: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    duplicate_detection_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    false_positive_merge_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    broken_link_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    broken_link_rate_pct: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    closed_listing_detection_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
+class DiscoveryTaskExecutionRecord(Base):
+    """Tracks continuous background discovery runs, schedules, and incremental checkpoints."""
+    __tablename__ = "discovery_task_executions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    task_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
+    task_type: Mapped[str] = mapped_column(String(50), index=True, nullable=False)  # JOB_DISCOVERY, JOB_VERIFICATION, STARTUP_DISCOVERY, RE_RANKING, HEALTH_CHECK
+    source_id: Mapped[Optional[str]] = mapped_column(String(50), index=True, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="PENDING", index=True, nullable=False)  # PENDING, RUNNING, SUCCESS, FAILED, RETRIED, PAUSED
+    records_fetched: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    records_inserted: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    records_updated: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    records_rejected: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    checkpoint_token: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    execution_duration_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class DiscoveryScheduleConfigRecord(Base):
+    """Configurable refresh intervals, rate limits, and pause states per source."""
+    __tablename__ = "discovery_schedule_configs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    source_id: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    source_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    interval_seconds: Mapped[int] = mapped_column(Integer, default=1800, nullable=False)  # e.g., 30 mins
+    is_paused: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    max_records_per_run: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
+    rate_limit_per_minute: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
+    last_run_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_run_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+
+
+
+
 
 
 

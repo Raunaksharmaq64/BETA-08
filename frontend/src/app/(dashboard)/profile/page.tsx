@@ -53,6 +53,16 @@ interface Profile {
   skills: Skill[];
 }
 
+interface CompletenessSectionImpact {
+  section_key: string;
+  section_name: string;
+  is_completed: boolean;
+  weight_percentage: number;
+  why_it_matters: string;
+  unlocks: string;
+  is_required: boolean;
+}
+
 interface Completeness {
   score_percentage: number;
   has_basic_info: boolean;
@@ -61,6 +71,7 @@ interface Completeness {
   has_skills: boolean;
   has_preferences: boolean;
   missing_sections: string[];
+  section_breakdown?: CompletenessSectionImpact[];
 }
 
 export default function ProfilePage() {
@@ -197,26 +208,67 @@ export default function ProfilePage() {
       <Navbar />
 
       <main className="max-w-5xl mx-auto py-8 px-4 sm:px-6 space-y-8">
-        {/* Completeness Banner */}
+        {/* Completeness Banner & Section Impact Unlocks */}
         {completeness && (
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-sm font-semibold tracking-wide text-indigo-400 uppercase">
-                Profile Completeness
-              </span>
-              <span className="text-lg font-bold text-white">{completeness.score_percentage}%</span>
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <span className="text-sm font-semibold tracking-wide text-indigo-400 uppercase">
+                  Profile Completeness & Matching Power
+                </span>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Complete each section to activate high-precision semantic matching and compensation calibration.
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-bold text-white">{completeness.score_percentage}%</span>
+              </div>
             </div>
             <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
               <div
-                className="bg-indigo-500 h-2.5 rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-indigo-500 to-emerald-400 h-2.5 rounded-full transition-all duration-500"
                 style={{ width: `${completeness.score_percentage}%` }}
               />
             </div>
+
+            {completeness.section_breakdown && completeness.section_breakdown.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+                {completeness.section_breakdown.map((sec) => (
+                  <div
+                    key={sec.section_key}
+                    className={`p-3 rounded-xl border text-xs transition-all ${
+                      sec.is_completed
+                        ? "bg-slate-950/60 border-emerald-500/30 text-slate-300"
+                        : "bg-slate-950/40 border-amber-500/30 text-slate-400"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-semibold text-white flex items-center gap-1.5">
+                        {sec.is_completed ? (
+                          <span className="text-emerald-400 font-bold">✓</span>
+                        ) : (
+                          <span className="text-amber-400 font-bold">○</span>
+                        )}
+                        {sec.section_name}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                        {sec.weight_percentage}% wt
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-slate-300">
+                      <span className="text-indigo-400 font-medium">Unlocks: </span>
+                      {sec.unlocks}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {completeness.missing_sections.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2 items-center text-xs text-slate-400">
-                <span>Recommendations to complete:</span>
+              <div className="mt-2 flex flex-wrap gap-2 items-center text-xs text-slate-400">
+                <span>Next steps to unlock:</span>
                 {completeness.missing_sections.map((sec) => (
-                  <span key={sec} className="px-2.5 py-1 bg-slate-800 text-indigo-300 rounded border border-slate-700">
+                  <span key={sec} className="px-2.5 py-1 bg-amber-500/10 text-amber-300 rounded border border-amber-500/20">
                     + {sec}
                   </span>
                 ))}

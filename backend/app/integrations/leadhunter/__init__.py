@@ -19,3 +19,4 @@ __all__ = [
     "LeadHunterUnavailableError",
     "leadhunter_adapter",
 ]
+

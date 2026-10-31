@@ -52,6 +52,13 @@ class NotificationService:
                 application_follow_ups=True,
                 assessment_deadlines=True,
                 prep_milestones=True,
+                frequency="DAILY_DIGEST",
+                quiet_hours_start="22:00",
+                quiet_hours_end="08:00",
+                timezone="UTC",
+                job_alerts_enabled=True,
+                digest_email_enabled=False,
+                market_intelligence_alerts=True,
             )
             session.add(pref)
             session.commit()
@@ -65,6 +72,13 @@ class NotificationService:
             application_follow_ups=pref.application_follow_ups,
             assessment_deadlines=pref.assessment_deadlines,
             prep_milestones=pref.prep_milestones,
+            frequency=getattr(pref, "frequency", "DAILY_DIGEST") or "DAILY_DIGEST",
+            quiet_hours_start=getattr(pref, "quiet_hours_start", "22:00"),
+            quiet_hours_end=getattr(pref, "quiet_hours_end", "08:00"),
+            timezone=getattr(pref, "timezone", "UTC") or "UTC",
+            job_alerts_enabled=getattr(pref, "job_alerts_enabled", True),
+            digest_email_enabled=getattr(pref, "digest_email_enabled", False),
+            market_intelligence_alerts=getattr(pref, "market_intelligence_alerts", True),
             updated_at=ensure_utc(pref.updated_at),
         )
 
@@ -96,6 +110,20 @@ class NotificationService:
             pref.assessment_deadlines = req.assessment_deadlines
         if req.prep_milestones is not None:
             pref.prep_milestones = req.prep_milestones
+        if req.frequency is not None:
+            pref.frequency = req.frequency
+        if req.quiet_hours_start is not None:
+            pref.quiet_hours_start = req.quiet_hours_start
+        if req.quiet_hours_end is not None:
+            pref.quiet_hours_end = req.quiet_hours_end
+        if req.timezone is not None:
+            pref.timezone = req.timezone
+        if req.job_alerts_enabled is not None:
+            pref.job_alerts_enabled = req.job_alerts_enabled
+        if req.digest_email_enabled is not None:
+            pref.digest_email_enabled = req.digest_email_enabled
+        if req.market_intelligence_alerts is not None:
+            pref.market_intelligence_alerts = req.market_intelligence_alerts
 
         session.commit()
         session.refresh(pref)
@@ -108,6 +136,13 @@ class NotificationService:
             application_follow_ups=pref.application_follow_ups,
             assessment_deadlines=pref.assessment_deadlines,
             prep_milestones=pref.prep_milestones,
+            frequency=getattr(pref, "frequency", "DAILY_DIGEST") or "DAILY_DIGEST",
+            quiet_hours_start=getattr(pref, "quiet_hours_start", "22:00"),
+            quiet_hours_end=getattr(pref, "quiet_hours_end", "08:00"),
+            timezone=getattr(pref, "timezone", "UTC") or "UTC",
+            job_alerts_enabled=getattr(pref, "job_alerts_enabled", True),
+            digest_email_enabled=getattr(pref, "digest_email_enabled", False),
+            market_intelligence_alerts=getattr(pref, "market_intelligence_alerts", True),
             updated_at=ensure_utc(pref.updated_at),
         )
 

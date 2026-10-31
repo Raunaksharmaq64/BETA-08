@@ -70,3 +70,4 @@ async def test_degraded_service_mode_when_leadhunter_is_offline():
         finally:
             leadhunter_adapter.base_url = original_base
             leadhunter_adapter.circuit_breaker.record_success()
+

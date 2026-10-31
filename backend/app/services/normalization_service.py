@@ -162,6 +162,7 @@ class NormalizationService:
         description_raw = ""
         location_raw: Optional[str] = None
         department: Optional[str] = None
+        company_name: Optional[str] = None
         is_remote_flag: Optional[bool] = None
         min_salary: Optional[float] = None
         max_salary: Optional[float] = None
@@ -209,6 +210,44 @@ class NormalizationService:
                 currency = salary_data.get("currency")
                 salary_period = salary_data.get("period")
 
+        elif provider == "adzuna":
+            title = raw.get("title", "Untitled Position")
+            description_raw = raw.get("description", "")
+            loc_data = raw.get("location")
+            if isinstance(loc_data, dict):
+                location_raw = loc_data.get("display_name")
+            elif isinstance(loc_data, str):
+                location_raw = loc_data
+
+            comp_data = raw.get("company")
+            if isinstance(comp_data, dict) and comp_data.get("display_name"):
+                company_name = comp_data.get("display_name")
+
+            min_salary = raw.get("salary_min")
+            max_salary = raw.get("salary_max")
+            currency = "INR" if ("in" in source.base_url.lower()) else "USD"
+            salary_period = "YEAR"
+
+        elif provider == "jooble":
+            title = raw.get("title", "Untitled Position")
+            description_raw = raw.get("snippet", "")
+            location_raw = raw.get("location")
+            if raw.get("company"):
+                company_name = str(raw.get("company"))
+
+            sal_raw = str(raw.get("salary") or "")
+            if sal_raw:
+                nums = re.findall(r"[\d,]+", sal_raw)
+                if nums:
+                    parsed_nums = [float(n.replace(",", "")) for n in nums if len(n.replace(",", "")) >= 3]
+                    if len(parsed_nums) == 1:
+                        min_salary = parsed_nums[0]
+                    elif len(parsed_nums) >= 2:
+                        min_salary = min(parsed_nums[0], parsed_nums[1])
+                        max_salary = max(parsed_nums[0], parsed_nums[1])
+                    currency = "USD"
+                    salary_period = "YEAR"
+
         else:
             # Generic fallback
             title = raw.get("title") or raw.get("job_title") or "Untitled Position"
@@ -218,11 +257,12 @@ class NormalizationService:
             is_remote_flag = raw.get("is_remote")
 
         # Company derivation
-        company_name = source.display_name
-        if " - " in company_name:
-            company_name = company_name.split(" - ")[0].strip()
-        elif " Board" in company_name:
-            company_name = company_name.replace(" Board", "").strip()
+        if not company_name:
+            company_name = source.display_name
+            if " - " in company_name:
+                company_name = company_name.split(" - ")[0].strip()
+            elif " Board" in company_name:
+                company_name = company_name.replace(" Board", "").strip()
 
         # Clean description
         description_clean = cls.clean_html(description_raw)

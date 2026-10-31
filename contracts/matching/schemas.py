@@ -60,6 +60,9 @@ class MatchedSkillEvidence(BaseModel):
     evidence_excerpt: Optional[str] = Field(default=None, description="Direct text snippet from resume or experience")
     years_experience: Optional[float] = None
     is_confirmed: bool = Field(default=True, description="True if confirmed by candidate review")
+    recency_years: Optional[float] = Field(default=None, description="Years since skill was last verified or practiced")
+    is_stale_warning: bool = Field(default=False, description="Flagged if skill has not been verified/demonstrated in > 3 years")
+    recency_note: Optional[str] = Field(default=None, description="Recency guidance for interview preparation")
 
 
 class SkillFitBreakdown(BaseModel):
@@ -68,6 +71,10 @@ class SkillFitBreakdown(BaseModel):
     total_required_skills: int
     matched_required_count: int
     matched_required_skills: List[str] = Field(default_factory=list)
+    related_required_skills: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Skills satisfied via relationship taxonomy (e.g. parent-child, transferable) with relationship strength"
+    )
     missing_required_skills: List[str] = Field(default_factory=list)
     total_preferred_skills: int = 0
     matched_preferred_count: int = 0
@@ -166,6 +173,8 @@ class JobSearchFilters(BaseModel):
     state: Optional[str] = None
     country: Optional[str] = None
     is_remote: Optional[bool] = None
+    is_internship: Optional[bool] = None
+    is_fresher_friendly: Optional[bool] = None
     workplace_types: Optional[List[str]] = None  # REMOTE, HYBRID, ON_SITE
     employment_types: Optional[List[str]] = None  # FULL_TIME, CONTRACT, etc.
     skills: Optional[List[str]] = None
@@ -204,6 +213,9 @@ class JobSearchResultItem(BaseModel):
     saved_job_id: Optional[str] = None
     skill_fit_score: Optional[float] = None
     eligibility_status: Optional[EligibilityStatus] = None
+    is_cold_start: bool = Field(default=False, description="True if recommended under cold-start criteria from education/goals without verified resume skills")
+    cold_start_explanation: Optional[str] = None
+    candidate_feedback_status: Optional[str] = Field(default=None, description="Previous candidate feedback on this opportunity: RELEVANT, NOT_RELEVANT, WRONG_SKILLS, etc.")
     matched_skills_preview: List[str] = Field(default_factory=list)
     missing_skills_preview: List[str] = Field(default_factory=list)
 

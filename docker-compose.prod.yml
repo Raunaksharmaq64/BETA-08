@@ -1,13 +1,15 @@
 # ==============================================================================
 # RIGHT FIT — Production Docker Compose Specification
-# STATUS: TEMPLATE / ARCHITECTURE SETUP PHASE (NOT CONFIGURED FOR PRODUCTION RUNTIME)
+# Version: 1.0.0
+# Phase: 13 — Production Infrastructure & Deployment
+# Network Topology: Dual-tier isolated private network (No DB or Redis public ingress)
 # ==============================================================================
 
 version: '3.8'
 
 services:
   # ----------------------------------------------------------------------------
-  # Production Ingress & Reverse Proxy (Nginx with SSL termination)
+  # 1. Edge Reverse Proxy & TLS Ingress (Nginx)
   # ----------------------------------------------------------------------------
   nginx:
     image: nginx:1.25-alpine
@@ -18,33 +20,64 @@ services:
       - "443:443"
     volumes:
       - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/conf.d:/etc/nginx/conf.d:ro
       - ./infrastructure/nginx/certs:/etc/nginx/certs:ro
+      - ./infrastructure/nginx/certbot/www:/var/www/certbot:ro
+      - ./infrastructure/nginx/certbot/conf:/etc/letsencrypt:ro
     depends_on:
-      - frontend
-      - backend
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
     networks:
-      - rightfit-prod-network
+      - rightfit-ingress-net
+      - rightfit-internal-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:80/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # ----------------------------------------------------------------------------
-  # Unified Frontend (Production Next.js Node Runner)
+  # 2. Unified Web Client (Next.js 16 Production Runner)
   # ----------------------------------------------------------------------------
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: runner
     container_name: rightfit-frontend-prod
     restart: always
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://api.rightfit.internal/api/v1
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api/v1}
+      - PORT=3000
     expose:
       - "3000"
     networks:
-      - rightfit-prod-network
+      - rightfit-ingress-net
+      - rightfit-internal-net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1536M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   # ----------------------------------------------------------------------------
-  # Core Career Engine Backend (Gunicorn/Uvicorn Multi-Worker)
+  # 3. Core Career Engine Backend (FastAPI / Gunicorn Multi-Worker)
   # ----------------------------------------------------------------------------
   backend:
     build:
@@ -55,29 +88,114 @@ services:
     environment:
       - APP_ENV=production
       - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
+      - REDIS_URL=${REDIS_URL:-redis://:rightfit_redis_secret@redis:6379/0}
       - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://rightfit.careers,https://www.rightfit.careers}
+      # LeadHunter is migrated: Freelance Intelligence runs natively in-process inside RIGHT FIT Core
+      - STARTUP_INTELLIGENCE_BASE_URL=http://service-startup-intelligence:8002
+      - S3_BUCKET_RESUMES=${S3_BUCKET_RESUMES:-rightfit-resumes-prod}
+      - S3_BUCKET_REPORTS=${S3_BUCKET_REPORTS:-rightfit-reports-prod}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
     expose:
       - "8000"
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
-      - rightfit-prod-network
+      - rightfit-internal-net
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   # ----------------------------------------------------------------------------
-  # Independent LeadHunter Service (Internal Only)
+  # 4. Asynchronous Task Worker (Celery Background Processor)
   # ----------------------------------------------------------------------------
-  service-leadhunter:
+  worker:
     build:
-      context: ./services/leadhunter
-      dockerfile: Dockerfile
-    container_name: rightfit-leadhunter-prod
+      context: ./backend
+      dockerfile: Dockerfile.celery
+    container_name: rightfit-worker-prod
     restart: always
-    expose:
-      - "8001"
+    environment:
+      - APP_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL:-redis://:rightfit_redis_secret@redis:6379/0}
+      - S3_BUCKET_RESUMES=${S3_BUCKET_RESUMES:-rightfit-resumes-prod}
+      - S3_BUCKET_REPORTS=${S3_BUCKET_REPORTS:-rightfit-reports-prod}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+    depends_on:
+      backend:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
-      - rightfit-prod-network
+      - rightfit-internal-net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   # ----------------------------------------------------------------------------
-  # Independent Startup Discovery Service (Internal Only)
+  # 5. Private Message Broker & In-Memory Cache (Redis 7)
+  # NOTE: In AWS Option B/C, this is replaced or mirrored with Amazon ElastiCache / Private Redis
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: rightfit-redis-prod
+    restart: always
+    command: >
+      redis-server 
+      --requirepass "${REDIS_PASSWORD:-rightfit_redis_secret}" 
+      --maxmemory 512mb 
+      --maxmemory-policy noeviction 
+      --appendonly yes 
+      --appendfsync everysec
+    volumes:
+      - redis_prod_data:/data
+    expose:
+      - "6379"
+    # Port 6379 is NOT published to the host/internet — available strictly on internal network
+    networks:
+      - rightfit-internal-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-rightfit_redis_secret}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # Freelance Intelligence Module (Migrated)
+  # LeadHunter is fully migrated as an in-process native module in RIGHT FIT Core (app/modules/freelance).
+  # Standalone service-leadhunter container and port 8001 are retired.
+  # ----------------------------------------------------------------------------
+
+  # ----------------------------------------------------------------------------
+  # 7. Autonomous Startup Discovery Service (Private Satellite)
   # ----------------------------------------------------------------------------
   service-startup-intelligence:
     build:
@@ -88,9 +206,20 @@ services:
     expose:
       - "8002"
     networks:
-      - rightfit-prod-network
+      - rightfit-internal-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  redis_prod_data:
 
 networks:
-  rightfit-prod-network:
+  rightfit-ingress-net:
     driver: bridge
-
+    internal: false
+  rightfit-internal-net:
+    driver: bridge
+    internal: true

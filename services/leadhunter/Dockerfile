@@ -1,16 +1,45 @@
 # ==============================================================================
-# RIGHT FIT — LeadHunter Service Dockerfile
-# STATUS: TEMPLATE / ARCHITECTURE SETUP PHASE (NOT FINALIZED FOR PRODUCTION RUN)
+# RIGHT FIT — LeadHunter Freelance Satellite Service Production Dockerfile
+# Multi-stage, minimal, non-root user
 # ==============================================================================
 
-FROM python:3.11-slim
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+FROM python:3.11-slim AS runtime
 
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/home/appuser/.local/bin:${PATH}"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN addgroup --system --gid 1001 appgroup && \
+    adduser --system --uid 1001 --ingroup appgroup --home /home/appuser appuser
+
+COPY --from=builder /root/.local /home/appuser/.local
+COPY . /app
+
+RUN chown -R appuser:appgroup /app /home/appuser
+
+USER appuser
 
 EXPOSE 8001
 
-CMD ["echo", "[TEMPLATE] LeadHunter service runner placeholder"]
+STOPSIGNAL SIGTERM
 
+HEALTHCHECK --interval=20s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8001/health/live || exit 1
+
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001"]

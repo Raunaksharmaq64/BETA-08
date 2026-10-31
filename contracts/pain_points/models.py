@@ -90,3 +90,38 @@ class StartupProblemDetailResponse(BaseModel):
     raw_excerpt: str = Field(..., description="Verbatim text of the original community post or GitHub issue.")
     founder_contact_info: Dict[str, Any] = Field(default_factory=dict, description="Enriched founder contacts (Twitter/X, LinkedIn, email).")
 
+
+class ValidationState(StrEnum):
+    """Evidence corroboration and validation state for startup problem signals."""
+    OBSERVED_PROBLEM = "OBSERVED_PROBLEM"
+    REPEATED_OBSERVATIONS = "REPEATED_OBSERVATIONS"
+    INDEPENDENTLY_CORROBORATED = "INDEPENDENTLY_CORROBORATED"
+    CUSTOMER_VALIDATION_REQUIRED = "CUSTOMER_VALIDATION_REQUIRED"
+
+
+class StartupOpportunityWorkspaceUpdate(BaseModel):
+    target_persona: Optional[str] = None
+    hypotheses: Optional[List[str]] = None
+    competitor_notes: Optional[str] = None
+    interview_questions: Optional[List[str]] = None
+    validation_checklist: Optional[List[Dict[str, Any]]] = None
+    solution_architecture: Optional[str] = None
+    candidate_notes: Optional[str] = None
+
+
+class StartupOpportunityWorkspaceResponse(BaseModel):
+    id: str
+    opportunity_id: str
+    user_id: str
+    target_persona: Optional[str] = None
+    hypotheses: List[str] = Field(default_factory=list)
+    competitor_notes: Optional[str] = None
+    interview_questions: List[str] = Field(default_factory=list)
+    validation_checklist: List[Dict[str, Any]] = Field(default_factory=list)
+    solution_architecture: Optional[str] = None
+    candidate_notes: Optional[str] = None
+    validation_state: ValidationState = ValidationState.OBSERVED_PROBLEM
+    created_at: datetime
+    updated_at: datetime
+
+

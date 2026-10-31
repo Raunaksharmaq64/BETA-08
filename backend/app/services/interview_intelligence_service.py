@@ -392,13 +392,29 @@ class InterviewIntelligenceService:
         session.add(session_rec)
         session.flush()
 
-        # Seed realistic practice questions based on role & session type
-        base_questions = [
-            ("Can you walk us through a challenging technical problem you recently solved and how you arrived at the solution?", "TECHNICAL_CHALLENGE"),
-            ("Describe a situation where a project deadline was at risk. How did you prioritize tasks and communicate with stakeholders?", "DELIVERY_UNDER_PRESSURE"),
-            ("Tell me about a disagreement you had with a teammate or lead regarding technical design. How did you resolve it?", "CONFLICT_RESOLUTION"),
-            ("How do you ensure code maintainability and testing rigor in a fast-paced development environment?", "ENGINEERING_STANDARDS"),
-        ]
+        # Seed realistic practice questions based on role & session type (Module K)
+        s_type = (req.session_type.value if hasattr(req.session_type, "value") else str(req.session_type)).upper()
+        if "SYSTEM_DESIGN" in s_type or "ARCHITECTURE" in s_type:
+            base_questions = [
+                ("Design a distributed, highly available URL shortener or rate limiter handling 100k requests/sec.", "SYSTEM_DESIGN_SCALING"),
+                ("How would you architect a real-time notification service with guaranteed delivery and quiet-hours handling?", "EVENT_DRIVEN_ARCHITECTURE"),
+                ("Explain how you approach database selection (SQL vs NoSQL), schema migration, and read-replica replication lag.", "DATA_STORAGE_STRATEGY"),
+                ("How do you manage cross-service authentication, idempotency, and distributed transactions in microservices?", "DISTRIBUTED_CONSISTENCY"),
+            ]
+        elif "CODING" in s_type or "TECHNICAL" in s_type or "ALGORITHM" in s_type:
+            base_questions = [
+                (f"Walk us through how you would optimize an endpoint for {req.role_title or 'this role'} experiencing high memory overhead or latency.", "PERFORMANCE_OPTIMIZATION"),
+                ("Explain how you handle concurrency, race conditions, and connection pool exhaustion in backend applications.", "CONCURRENCY_AND_LOCKING"),
+                ("Describe an end-to-end automated testing strategy (unit, integration, contract tests) for critical customer APIs.", "TESTING_AND_VERIFICATION"),
+                ("Can you walk us through a challenging production debugging incident you resolved and your root-cause analysis?", "INCIDENT_TRIAGE"),
+            ]
+        else:
+            base_questions = [
+                ("Can you walk us through a challenging technical problem you recently solved and how you arrived at the solution?", "TECHNICAL_CHALLENGE"),
+                ("Describe a situation where a project deadline was at risk. How did you prioritize tasks and communicate with stakeholders?", "DELIVERY_UNDER_PRESSURE"),
+                ("Tell me about a disagreement you had with a teammate or lead regarding technical design. How did you resolve it?", "CONFLICT_RESOLUTION"),
+                ("How do you ensure code maintainability and engineering standards in a fast-paced release environment?", "ENGINEERING_STANDARDS"),
+            ]
 
         count = min(len(base_questions), req.question_count)
         for i in range(count):

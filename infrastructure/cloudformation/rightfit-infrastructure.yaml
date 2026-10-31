@@ -1,0 +1,216 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'RIGHT FIT — Production AWS Multi-Tier Infrastructure Stack (VPC, Subnets, SGs, RDS PostgreSQL 16, S3 Buckets, IAM Profile)'
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: production
+    AllowedValues: [production, staging, dev]
+    Description: Deployment environment tier
+
+  VpcCIDR:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: CIDR block for the dedicated VPC
+
+  DBMasterUsername:
+    Type: String
+    Default: rightfit_admin
+    Description: Master username for RDS PostgreSQL
+
+  DBMasterPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    MaxLength: 64
+    Description: Master password for RDS PostgreSQL (min 16 chars)
+
+  AppInstanceType:
+    Type: String
+    Default: t4g.xlarge
+    Description: EC2 compute instance type (ARM64 Graviton)
+
+Resources:
+  # ----------------------------------------------------------------------------
+  # 1. VPC & Gateways
+  # ----------------------------------------------------------------------------
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'rightfit-${EnvironmentName}-vpc'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub 'rightfit-${EnvironmentName}-igw'
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # ----------------------------------------------------------------------------
+  # 2. Multi-AZ Subnets (Public, Private App, Isolated DB)
+  # ----------------------------------------------------------------------------
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'rightfit-${EnvironmentName}-public-1'
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'rightfit-${EnvironmentName}-public-2'
+
+  PrivateAppSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.10.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub 'rightfit-${EnvironmentName}-private-app-1'
+
+  IsolatedDBSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.20.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub 'rightfit-${EnvironmentName}-isolated-db-1'
+
+  IsolatedDBSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.21.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: !Sub 'rightfit-${EnvironmentName}-isolated-db-2'
+
+  # ----------------------------------------------------------------------------
+  # 3. Security Groups
+  # ----------------------------------------------------------------------------
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Public Ingress ALB Security Group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Private Application Workload Security Group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Isolated RDS PostgreSQL Security Group
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  # ----------------------------------------------------------------------------
+  # 4. Amazon RDS PostgreSQL 16
+  # ----------------------------------------------------------------------------
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Isolated subnets for RIGHT FIT RDS PostgreSQL
+      SubnetIds:
+        - !Ref IsolatedDBSubnet1
+        - !Ref IsolatedDBSubnet2
+
+  PostgresDBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Sub 'rightfit-${EnvironmentName}-db'
+      Engine: postgres
+      EngineVersion: '16.3'
+      DBInstanceClass: db.t4g.medium
+      AllocatedStorage: '50'
+      StorageType: gp3
+      StorageEncrypted: true
+      PubliclyAccessible: false
+      DBName: rightfit_core
+      MasterUsername: !Ref DBMasterUsername
+      MasterUserPassword: !Ref DBMasterPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref RDSSecurityGroup
+      BackupRetentionPeriod: 30
+
+  # ----------------------------------------------------------------------------
+  # 5. S3 Buckets (Block Public Access + Encryption)
+  # ----------------------------------------------------------------------------
+  ResumesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'rightfit-resumes-${EnvironmentName}-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+Outputs:
+  VPCId:
+    Description: VPC ID
+    Value: !Ref VPC
+  RDSEndpoint:
+    Description: RDS PostgreSQL Endpoint (Private)
+    Value: !GetAtt PostgresDBInstance.Endpoint.Address
+  ResumesBucketName:
+    Description: Private S3 Bucket for Resumes
+    Value: !Ref ResumesBucket
+

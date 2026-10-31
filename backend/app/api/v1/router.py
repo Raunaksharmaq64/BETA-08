@@ -19,6 +19,11 @@ from app.api.v1.endpoints.reminders import router as reminders_router
 from app.api.v1.endpoints.interview_intelligence import router as interview_intelligence_router
 from app.api.v1.endpoints.notifications import router as notifications_router
 from app.api.v1.endpoints.freelance import router as freelance_router
+from app.api.v1.endpoints.startups import router as startups_router
+from app.api.v1.endpoints.unified_opportunities import router as unified_opportunities_router
+from app.api.v1.endpoints.market import router as market_router
+from app.api.v1.endpoints.beta import router as beta_router
+from app.api.v1.endpoints.discovery import router as discovery_router
 
 api_v1_router = APIRouter()
 
@@ -28,6 +33,9 @@ api_v1_router.include_router(auth_router)
 api_v1_router.include_router(candidate_router)
 api_v1_router.include_router(privacy_router)
 api_v1_router.include_router(resume_router)
+api_v1_router.include_router(unified_opportunities_router)
+api_v1_router.include_router(market_router)
+api_v1_router.include_router(beta_router)
 api_v1_router.include_router(sources_router)
 api_v1_router.include_router(verification_router)
 api_v1_router.include_router(matching_router)
@@ -36,3 +44,5 @@ api_v1_router.include_router(reminders_router)
 api_v1_router.include_router(interview_intelligence_router)
 api_v1_router.include_router(notifications_router)
 api_v1_router.include_router(freelance_router)
+api_v1_router.include_router(startups_router)
+api_v1_router.include_router(discovery_router)

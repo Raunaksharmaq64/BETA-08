@@ -23,13 +23,6 @@ python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --
 
 ## 3. Start Frontend (Next.js — Port 3000)
 
-### Option A: Ready-to-run Next.js Frontend
-```cmd
-cd "c:\Users\Sahil\Desktop\manit\ai agents\frontend"
-npm run dev
-```
-
-### Option B: Core Project Frontend
 ```cmd
 cd "c:\Users\Sahil\Desktop\manit\rightFIT\frontend"
 npm install

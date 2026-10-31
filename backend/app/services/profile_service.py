@@ -23,6 +23,7 @@ from app.db.models import (
 from contracts.profile.schemas import (
     CandidateProfileResponse,
     CandidateProfileUpdate,
+    CompletenessSectionImpact,
     EducationCreate,
     EducationResponse,
     ExperienceCreate,
@@ -295,6 +296,82 @@ class ProfileService:
         await db.commit()
 
     @staticmethod
+    async def confirm_skill(db: AsyncSession, user_id: str, skill_id: str) -> Dict[str, Any]:
+        """Confirms an AI-extracted or suggested skill into candidate-confirmed status."""
+        profile = await ProfileService.get_or_create_profile(db, user_id)
+        query = select(CandidateSkillRecord).where(
+            CandidateSkillRecord.id == skill_id,
+            CandidateSkillRecord.profile_id == profile.id,
+        )
+        res = await db.execute(query)
+        record = res.scalar_one_or_none()
+        if not record:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Skill record not found or not owned by user.",
+            )
+        record.confirmation_status = "CONFIRMED"
+        record.last_updated_at = utc_now()
+        profile.updated_at = utc_now()
+        await db.commit()
+        await db.refresh(record)
+        return {
+            "id": record.id,
+            "skill_name": record.skill_name,
+            "confirmation_status": record.confirmation_status,
+            "provenance": record.provenance,
+            "message": f"Skill '{record.skill_name}' successfully confirmed by candidate.",
+        }
+
+    @staticmethod
+    async def reject_skill(db: AsyncSession, user_id: str, skill_id: str) -> Dict[str, Any]:
+        """Rejects a suggested or extracted skill without affecting confirmed skills."""
+        profile = await ProfileService.get_or_create_profile(db, user_id)
+        query = select(CandidateSkillRecord).where(
+            CandidateSkillRecord.id == skill_id,
+            CandidateSkillRecord.profile_id == profile.id,
+        )
+        res = await db.execute(query)
+        record = res.scalar_one_or_none()
+        if not record:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Skill record not found or not owned by user.",
+            )
+        record.confirmation_status = "REJECTED"
+        record.last_updated_at = utc_now()
+        profile.updated_at = utc_now()
+        await db.commit()
+        return {
+            "id": record.id,
+            "skill_name": record.skill_name,
+            "confirmation_status": record.confirmation_status,
+            "message": f"Skill '{record.skill_name}' marked as rejected and excluded from active matching.",
+        }
+
+    @staticmethod
+    async def recompute_skills(db: AsyncSession, user_id: str) -> Dict[str, Any]:
+        """Recomputes candidate structured skill profile and bumps profile version."""
+        profile = await ProfileService.get_or_create_profile(db, user_id)
+        query = select(CandidateSkillRecord).where(
+            CandidateSkillRecord.profile_id == profile.id,
+            CandidateSkillRecord.confirmation_status != "REJECTED",
+        )
+        res = await db.execute(query)
+        active_skills = res.scalars().all()
+        
+        profile.updated_at = utc_now()
+        await db.commit()
+        return {
+            "profile_id": profile.id,
+            "active_skills_count": len(active_skills),
+            "confirmed_skills_count": len([s for s in active_skills if s.confirmation_status == "CONFIRMED"]),
+            "unconfirmed_skills_count": len([s for s in active_skills if s.confirmation_status != "CONFIRMED"]),
+            "recomputed_at": utc_now().isoformat(),
+            "message": "Candidate structured skill profile recomputed and queued for re-ranking.",
+        }
+
+    @staticmethod
     async def calculate_completeness(db: AsyncSession, user_id: str) -> ProfileCompletenessResponse:
         """Calculates transparent completeness percentage and identifies missing sections."""
         profile = await ProfileService.get_or_create_profile(db, user_id)
@@ -335,6 +412,54 @@ class ProfileService:
         else:
             missing.append("Career Preferences")
 
+        section_breakdown = [
+            CompletenessSectionImpact(
+                section_key="basic_info",
+                section_name="Headline & Summary",
+                is_completed=has_basic,
+                weight_percentage=20,
+                why_it_matters="Helps recruiters and algorithms understand your primary discipline and career level.",
+                unlocks="Personalized search relevance and elevator pitch previews.",
+                is_required=True,
+            ),
+            CompletenessSectionImpact(
+                section_key="education",
+                section_name="Education Credentials",
+                is_completed=has_edu,
+                weight_percentage=20,
+                why_it_matters="Verifies graduation timeline, academic discipline, and eligibility for campus/entry roles.",
+                unlocks="Fresher/internship filter matching and degree eligibility gates.",
+                is_required=False,
+            ),
+            CompletenessSectionImpact(
+                section_key="experience",
+                section_name="Work Experience & Projects",
+                is_completed=has_exp,
+                weight_percentage=20,
+                why_it_matters="Demonstrates applied hands-on engineering, leadership, and production impact.",
+                unlocks="Seniority level matching and interview readiness evaluation.",
+                is_required=False,
+            ),
+            CompletenessSectionImpact(
+                section_key="skills",
+                section_name="Core Technical Skills (At least 3)",
+                is_completed=has_skills,
+                weight_percentage=20,
+                why_it_matters="The foundation of our 40% skill-fit engine and taxonomy transfer calculations.",
+                unlocks="Evidence-based match percentage and missing skill gap analysis.",
+                is_required=True,
+            ),
+            CompletenessSectionImpact(
+                section_key="preferences",
+                section_name="Career Preferences",
+                is_completed=has_prefs,
+                weight_percentage=20,
+                why_it_matters="Prevents noise by filtering for your preferred work arrangement, location, and roles.",
+                unlocks="Tailored daily digest notifications and auto-refresh alerts.",
+                is_required=True,
+            ),
+        ]
+
         return ProfileCompletenessResponse(
             score_percentage=score,
             has_basic_info=has_basic,
@@ -343,5 +468,6 @@ class ProfileService:
             has_skills=has_skills,
             has_preferences=has_prefs,
             missing_sections=missing,
+            section_breakdown=section_breakdown,
         )
 

@@ -61,3 +61,4 @@ def test_unknown_fields_remain_null_not_fabricated():
     assert mapped["phone"] is None
     assert mapped["email"] is None
     assert mapped["website"] is None
+

@@ -205,7 +205,14 @@ export default function ResumeDashboardPage() {
                     href={`/resumes/${resume.id}/ats`}
                     className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition-colors"
                   >
-                    ATS Keyword Analysis
+                    Job Match & Quality
+                  </Link>
+
+                  <Link
+                    href={`/resumes/${resume.id}/suggestions`}
+                    className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition-colors"
+                  >
+                    AI Rewrites & Polish
                   </Link>
 
                   <Link
@@ -214,6 +221,15 @@ export default function ResumeDashboardPage() {
                   >
                     Manage Versions ({resume.version_count})
                   </Link>
+
+                  {resume.version_count > 1 && (
+                    <Link
+                      href={`/resumes/${resume.id}/versions`}
+                      className="px-3.5 py-1.5 rounded-lg bg-indigo-950/60 hover:bg-indigo-900/60 text-xs font-semibold text-indigo-300 border border-indigo-700/70 transition-colors"
+                    >
+                      Compare Diff ⮂
+                    </Link>
+                  )}
 
                   <a
                     href={`/api/v1/resumes/${resume.id}/download`}

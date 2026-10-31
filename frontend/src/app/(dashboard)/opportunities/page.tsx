@@ -4,432 +4,802 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiClient } from "@/services/apiClient";
 
-interface CanonicalOpportunity {
-  id: string;
-  source_id: string;
-  external_job_id: string;
+interface OpportunityEnvelope {
+  schema_version: string;
+  opportunity_id: string;
+  opportunity_type: "JOB" | "FREELANCE" | "STARTUP_PAIN_POINT";
   title: string;
-  company_name: string;
-  description_clean: string;
-  employment_type: string;
-  workplace_type: string;
-  department: string | null;
-  city: string | null;
-  state: string | null;
-  country: string | null;
-  is_remote: boolean;
-  min_salary: number | null;
-  max_salary: number | null;
-  currency: string | null;
-  salary_period: string | null;
-  is_salary_estimated: boolean;
-  required_skills: string[];
-  application_url: string;
-  verification_status: string;
-  freshness_state: string;
-  is_suppressed: boolean;
-  provenance: {
-    provider?: string;
-    source_key?: string;
-    normalized_at?: string;
-  };
-  last_seen_at: string;
+  short_description: string;
+  organization_name: string;
+  source_service: string;
+  source_name: string;
+  source_url?: string;
+  location?: string;
+  is_remote?: boolean;
+  published_at?: string;
+  freshness_state?: string;
+  classification_state?: string;
+  evidence_count?: number;
+  is_saved?: boolean;
+  type_specific_payload: any;
 }
 
-export default function OpportunitiesPage() {
-  const [opportunities, setOpportunities] = useState<CanonicalOpportunity[]>([]);
+interface CountsByType {
+  jobs: number;
+  freelance: number;
+  startup_pain_points: number;
+  total: number;
+}
+
+interface ServiceAvailability {
+  aggregation_state: string;
+  core: string;
+  leadhunter: string;
+  startup_intelligence: string;
+  is_partial_results: boolean;
+}
+
+export default function UnifiedOpportunitiesPage() {
+  const [opportunities, setOpportunities] = useState<OpportunityEnvelope[]>([]);
+  const [counts, setCounts] = useState<CountsByType | null>(null);
+  const [availability, setAvailability] = useState<ServiceAvailability | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Filters
-  const [search, setSearch] = useState("");
-  const [remoteOnly, setRemoteOnly] = useState(false);
-  const [employmentType, setEmploymentType] = useState("");
+  const [activeType, setActiveType] = useState<string>("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [minScore, setMinScore] = useState<number>(0);
 
-  // Feedback Modal State
-  const [selectedOppForFeedback, setSelectedOppForFeedback] = useState<CanonicalOpportunity | null>(null);
-  const [feedbackType, setFeedbackType] = useState("BROKEN_LINK");
-  const [feedbackNotes, setFeedbackNotes] = useState("");
-  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
-  const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
-  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  // Candidate Relevance Feedback Modal
+  const [feedbackItem, setFeedbackItem] = useState<OpportunityEnvelope | null>(null);
+  const [feedbackCategory, setFeedbackCategory] = useState("WRONG_SKILLS");
+  const [feedbackExplanation, setFeedbackExplanation] = useState("");
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [feedbackStatusMsg, setFeedbackStatusMsg] = useState<string | null>(null);
 
-  const fetchOpportunities = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  // Trust & Moderation Report Modal (Module G)
+  const [reportItem, setReportItem] = useState<OpportunityEnvelope | null>(null);
+  const [reportType, setReportType] = useState("SUSPICIOUS_JOB");
+  const [reportNotes, setReportNotes] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
+  const [reportStatusMsg, setReportStatusMsg] = useState<string | null>(null);
 
-      const params = new URLSearchParams();
-      if (search.trim()) params.append("search", search.trim());
-      if (remoteOnly) params.append("remote_only", "true");
-      if (employmentType) params.append("employment_type", employmentType);
+  // Quick feedback toast indicator
+  const [quickFeedbackId, setQuickFeedbackId] = useState<string | null>(null);
 
-      const queryStr = params.toString() ? `?${params.toString()}` : "";
-      const res = await apiClient<CanonicalOpportunity[]>(`/opportunities${queryStr}`);
-      setOpportunities(res.data);
-    } catch (err: any) {
-      setError(err?.message || "Failed to load opportunities.");
-    } finally {
-      setLoading(false);
+  // Saving state
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  // Auto-refresh and live polling states
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string>("Just now");
+  const [pendingNewItems, setPendingNewItems] = useState<OpportunityEnvelope[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("rightfit_auto_refresh");
+      if (saved !== null) {
+        setAutoRefresh(saved === "true");
+      }
+    }
+  }, []);
+
+  const toggleAutoRefresh = () => {
+    const nextVal = !autoRefresh;
+    setAutoRefresh(nextVal);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("rightfit_auto_refresh", String(nextVal));
     }
   };
 
+  const fetchOpportunities = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
+    else setIsRefreshing(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (activeType !== "ALL") params.append("type", activeType);
+      if (searchTerm.trim()) params.append("search", searchTerm.trim());
+      if (selectedCategory !== "All") params.append("category", selectedCategory);
+      if (minScore > 0) params.append("min_score", minScore.toString());
+      params.append("per_page", "50");
+
+      const res: any = await apiClient.get(`/opportunities/all?${params.toString()}`);
+      const fetched: OpportunityEnvelope[] = res.data || [];
+
+      if (isBackground && opportunities.length > 0) {
+        const currentIds = new Set(opportunities.map(o => o.opportunity_id));
+        const newOnes = fetched.filter(o => !currentIds.has(o.opportunity_id));
+        if (newOnes.length > 0) {
+          setPendingNewItems(newOnes);
+        }
+      } else {
+        setOpportunities(fetched);
+        setPendingNewItems([]);
+      }
+
+      setCounts(res.counts_by_type || null);
+      setAvailability(res.service_availability || null);
+      setLastRefreshedAt(new Date().toLocaleTimeString());
+    } catch (err: any) {
+      if (!isBackground) setError(err?.message || "Failed to load opportunities.");
+    } finally {
+      if (!isBackground) setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  const applyPendingNewItems = () => {
+    setOpportunities(prev => [...pendingNewItems, ...prev]);
+    setPendingNewItems([]);
+  };
+
   useEffect(() => {
-    fetchOpportunities();
-  }, [remoteOnly, employmentType]);
+    fetchOpportunities(false);
+  }, [activeType, selectedCategory, minScore]);
+
+  // Background Auto-Refresh Poller (every 25 seconds when autoRefresh is enabled)
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      fetchOpportunities(true);
+    }, 25000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, activeType, selectedCategory, minScore, opportunities]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchOpportunities();
   };
 
-  const handleOpenFeedback = (opp: CanonicalOpportunity) => {
-    setSelectedOppForFeedback(opp);
-    setFeedbackType("BROKEN_LINK");
-    setFeedbackNotes("");
-    setFeedbackSuccess(null);
-    setFeedbackError(null);
+  const handleToggleSave = async (item: OpportunityEnvelope) => {
+    setSavingId(item.opportunity_id);
+    try {
+      if (item.is_saved) {
+        await apiClient.delete(`/opportunities/${item.opportunity_type}/${item.opportunity_id}/save`);
+        item.is_saved = false;
+      } else {
+        await apiClient.post(`/opportunities/${item.opportunity_type}/${item.opportunity_id}/save`, {
+          notes: "Saved from Unified Opportunities feed",
+        });
+        item.is_saved = true;
+      }
+      setOpportunities([...opportunities]);
+    } catch (err: any) {
+      alert(err?.message || "Failed to update bookmark.");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const handleQuickFeedback = async (item: OpportunityEnvelope, category: string) => {
+    setQuickFeedbackId(item.opportunity_id);
+    try {
+      await apiClient.post(
+        `/opportunities/${item.opportunity_type}/${item.opportunity_id}/feedback`,
+        {
+          feedback_category: category,
+          explanation: `Quick in-feed rating: ${category}`,
+        }
+      );
+      if (item.type_specific_payload) {
+        item.type_specific_payload.candidate_feedback_status = category;
+      }
+      setOpportunities([...opportunities]);
+    } catch (err: any) {
+      console.warn("Feedback save:", err);
+    } finally {
+      setTimeout(() => setQuickFeedbackId(null), 1200);
+    }
   };
 
   const handleSubmitFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOppForFeedback) return;
+    if (!feedbackItem) return;
+    setSubmittingFeedback(true);
+    setFeedbackStatusMsg(null);
     try {
-      setFeedbackSubmitting(true);
-      setFeedbackError(null);
-      await apiClient(`/opportunities/${selectedOppForFeedback.id}/feedback`, {
-        method: "POST",
-        body: JSON.stringify({
-          feedback_type: feedbackType,
-          notes: feedbackNotes.trim() || undefined,
-        }),
-      });
-      setFeedbackSuccess("Thank you! Your feedback was received and verification was initiated.");
+      await apiClient.post(
+        `/opportunities/${feedbackItem.opportunity_type}/${feedbackItem.opportunity_id}/feedback`,
+        {
+          feedback_category: feedbackCategory,
+          explanation: feedbackExplanation.trim() || undefined,
+        }
+      );
+      if (feedbackItem.type_specific_payload) {
+        feedbackItem.type_specific_payload.candidate_feedback_status = feedbackCategory;
+      }
+      setFeedbackStatusMsg("Feedback recorded. Ranking engine calibrated for you!");
       setTimeout(() => {
-        setSelectedOppForFeedback(null);
-        setFeedbackSuccess(null);
-      }, 1800);
+        setFeedbackItem(null);
+        setFeedbackStatusMsg(null);
+      }, 1400);
     } catch (err: any) {
-      setFeedbackError(err?.message || "Failed to submit feedback.");
+      alert(err?.message || "Failed to record feedback.");
     } finally {
-      setFeedbackSubmitting(false);
+      setSubmittingFeedback(false);
     }
   };
 
-  const getFreshnessBadge = (opp: CanonicalOpportunity) => {
-    if (opp.verification_status === "OPEN_CONFIRMED") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-950 text-emerald-400 border border-emerald-800">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-          Status confirmed open
-        </span>
-      );
+  const handleSubmitReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportItem) return;
+    setSubmittingReport(true);
+    setReportStatusMsg(null);
+    try {
+      await apiClient.post(`/opportunities/${reportItem.opportunity_id}/feedback`, {
+        feedback_type: reportType,
+        notes: reportNotes.trim() || "Reported via user interface",
+      });
+      setReportStatusMsg("Report received. Our moderation and verification system will review this listing.");
+      setTimeout(() => {
+        setReportItem(null);
+        setReportStatusMsg(null);
+        setReportNotes("");
+      }, 1500);
+    } catch (err: any) {
+      alert(err?.message || "Failed to submit report.");
+    } finally {
+      setSubmittingReport(false);
     }
-    if (opp.verification_status === "CLOSED_CONFIRMED" || opp.verification_status === "EXPIRED_CONFIRMED") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-950 text-rose-400 border border-rose-800">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-          Closed / Expired
-        </span>
-      );
-    }
-    if (opp.verification_status === "UNAVAILABLE") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-950 text-rose-400 border border-rose-800">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-          Link Unavailable
-        </span>
-      );
-    }
-    if (opp.freshness_state === "FRESH" || opp.freshness_state === "AGING") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-950 text-blue-400 border border-blue-800">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-          Recently observed
-        </span>
-      );
-    }
-    if (opp.freshness_state === "STALE" || opp.freshness_state === "CHECK_OVERDUE") {
-      return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-950 text-amber-400 border border-amber-800">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-          Listing may be outdated
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">
-        Unverified
-      </span>
-    );
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-800 gap-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Canonical Opportunities</h1>
-          <p className="mt-2 text-sm text-slate-400 max-w-3xl">
-            Verified, deduplicated career opportunities with independent freshness checks, source provenance,
-            and evidentiary status auditing.
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+              Unified Opportunities Pipeline
+            </h1>
+            <span className="text-xs bg-indigo-950 text-indigo-400 font-mono px-2 py-0.5 rounded border border-indigo-800">
+              Envelope v1.0
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-slate-400">
+            Multi-source aggregation across Canonical Full-Time Jobs, LeadHunter Freelance Leads, and Startup Pain Points.
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-3">
           <Link
-            href="/quality"
-            className="inline-flex items-center px-4 py-2 rounded-lg border border-slate-700 bg-slate-850 text-sm font-semibold text-indigo-400 hover:bg-slate-800 transition-colors"
+            href="/dashboard"
+            className="inline-flex items-center px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-semibold text-slate-200 border border-slate-700 transition-colors"
           >
-            Data Quality Dashboard &rarr;
+            ← Back to Dashboard
           </Link>
           <Link
-            href="/sources"
-            className="inline-flex items-center px-4 py-2 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-200 hover:bg-slate-700 transition-colors"
+            href="/saved-opportunities"
+            className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white shadow-sm transition-colors"
           >
-            Manage Sources &rarr;
+            Saved Bookmarks ★
           </Link>
         </div>
       </div>
 
-      {/* Search and Filters Bar */}
-      <form onSubmit={handleSearchSubmit} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row items-center gap-4">
-        <div className="flex-1 w-full">
+      {/* Live Auto-Refresh & Controls Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={toggleAutoRefresh}
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold transition-colors border ${autoRefresh
+              ? "bg-emerald-950/60 border-emerald-800 text-emerald-400"
+              : "bg-slate-800 border-slate-700 text-slate-400"
+              }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${autoRefresh ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`} />
+            Auto-Refresh: {autoRefresh ? "ON (25s)" : "PAUSED"}
+          </button>
+
+          <span className="text-slate-400">
+            Last checked: <span className="text-slate-200 font-mono">{lastRefreshedAt}</span>
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fetchOpportunities(false)}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border border-slate-700 transition-colors disabled:opacity-50"
+          >
+            <span className={isRefreshing ? "animate-spin" : ""}>⟳</span>
+            {isRefreshing ? "Refreshing..." : "Refresh Feed"}
+          </button>
+        </div>
+      </div>
+
+      {/* Floating / Inline Banner when new background items are discovered */}
+      {pendingNewItems.length > 0 && (
+        <div className="p-4 rounded-xl bg-indigo-950/80 border border-indigo-700/80 text-white flex items-center justify-between shadow-lg">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <span>✨</span>
+            <span>{pendingNewItems.length} new opportunities discovered in background!</span>
+          </div>
+          <button
+            onClick={applyPendingNewItems}
+            className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold transition-colors shadow"
+          >
+            Load New Opportunities
+          </button>
+        </div>
+      )}
+
+      {/* Partial Outage Notice */}
+      {availability && availability.is_partial_results && (
+        <div className="rounded-xl border border-amber-800/60 bg-amber-950/40 p-4 text-sm text-amber-300 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+            <span>
+              <strong>Partial Results Active:</strong> One or more ingestion satellites are temporarily degraded. Showing available records from operational systems.
+            </span>
+          </div>
+          <div className="text-xs font-mono">
+            Core: {availability.core} | LeadHunter: {availability.leadhunter} | Startup Intel: {availability.startup_intelligence}
+          </div>
+        </div>
+      )}
+
+      {/* Type Switcher Tabs */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
+        {[
+          { id: "ALL", label: "All Opportunities", count: counts?.total },
+          { id: "JOB", label: "Full-Time Jobs", count: counts?.jobs },
+          { id: "FREELANCE", label: "Freelance Leads", count: counts?.freelance },
+          { id: "STARTUP_PAIN_POINT", label: "Startup Pain Points", count: counts?.startup_pain_points },
+        ].map((tab) => {
+          const isActive = activeType === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveType(tab.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${isActive
+                ? "bg-indigo-600 text-white shadow"
+                : "bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800"
+                }`}
+            >
+              <span>{tab.label}</span>
+              {tab.count !== undefined && (
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full ${isActive ? "bg-indigo-800 text-indigo-200" : "bg-slate-800 text-slate-400"
+                    }`}
+                >
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Filters Form */}
+      <form
+        onSubmit={handleSearchSubmit}
+        className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-900 border border-slate-800"
+      >
+        <div className="md:col-span-2">
           <input
             type="text"
-            placeholder="Search by job title, company, or skills (e.g. Python, Engineer)..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            placeholder="Search keywords, job role, company, or lead name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>
 
-        <div className="flex items-center space-x-4 w-full md:w-auto justify-between md:justify-start">
+        <div>
           <select
-            value={employmentType}
-            onChange={(e) => setEmploymentType(e.target.value)}
-            className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
           >
-            <option value="">All Employment Types</option>
-            <option value="FULL_TIME">Full-Time</option>
-            <option value="CONTRACT">Contract</option>
-            <option value="INTERNSHIP">Internship</option>
-            <option value="PART_TIME">Part-Time</option>
+            <option value="All">All Categories</option>
+            <option value="Engineering">Engineering / Development</option>
+            <option value="Web Performance">Web Performance & SEO</option>
+            <option value="Database">Database & Scalability</option>
+            <option value="AI">AI & Machine Learning</option>
+            <option value="Security">Security & Compliance</option>
           </select>
+        </div>
 
-          <label className="flex items-center space-x-2 text-xs text-slate-300 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={remoteOnly}
-              onChange={(e) => setRemoteOnly(e.target.checked)}
-              className="rounded bg-slate-950 border-slate-800 text-indigo-600"
-            />
-            <span>Remote Only</span>
-          </label>
-
+        <div className="flex gap-2">
           <button
             type="submit"
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition-colors"
+            className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
           >
-            Search
+            Search Pipeline
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchTerm("");
+              setSelectedCategory("All");
+              setMinScore(0);
+              fetchOpportunities();
+            }}
+            className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-medium text-slate-300 border border-slate-700 transition-colors"
+          >
+            Reset
           </button>
         </div>
       </form>
 
       {error && (
-        <div className="p-4 rounded-lg bg-rose-950 border border-rose-800 text-rose-300 text-sm">
+        <div className="p-4 rounded-xl border border-rose-800/60 bg-rose-950/40 text-sm text-rose-300">
           {error}
         </div>
       )}
 
-      {/* Opportunities List */}
+      {/* Pipeline Grid */}
       {loading ? (
-        <div className="p-12 text-center text-slate-400">Loading opportunities...</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+          {[...Array(9)].map((_, i) => (
+            <div key={i} className="h-60 rounded-xl bg-slate-900 border border-slate-800" />
+          ))}
+        </div>
       ) : opportunities.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center text-slate-400 space-y-4">
-          <p className="text-base text-slate-300">No career opportunities found matching your criteria.</p>
-          <p className="text-xs">
-            Try adjusting your search filters or{" "}
-            <Link href="/sources" className="text-indigo-400 underline">trigger an ingestion run</Link> on an active source.
-          </p>
+        <div className="text-center py-16 rounded-xl bg-slate-900 border border-slate-800 text-slate-400">
+          <p className="text-base font-medium text-slate-300">No opportunities match the selected criteria.</p>
+          <p className="text-xs text-slate-500 mt-1">Try broadening your search term or switching the category tab.</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {opportunities.map((opp) => (
-            <div
-              key={opp.id}
-              className="bg-slate-900 border border-slate-800 rounded-xl p-6 hover:border-slate-700 transition-all shadow-md space-y-4"
-            >
-              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Link
-                      href={`/opportunities/${opp.id}`}
-                      className="text-lg font-bold text-white hover:text-indigo-400 transition-colors"
-                    >
-                      {opp.title}
-                    </Link>
-                    {opp.is_remote && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-950 text-indigo-300 border border-indigo-800">
-                        REMOTE
-                      </span>
-                    )}
-                    {getFreshnessBadge(opp)}
-                  </div>
-                  <div className="text-sm font-semibold text-indigo-400">
-                    {opp.company_name}
-                    {opp.department && <span className="text-slate-400 font-normal"> &bull; {opp.department}</span>}
-                    {(opp.city || opp.state || opp.country) && (
-                      <span className="text-slate-400 font-normal">
-                        {" "}
-                        &bull; {[opp.city, opp.state, opp.country].filter(Boolean).join(", ")}
-                      </span>
-                    )}
-                  </div>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {opportunities.map((item) => {
+            const isJob = item.opportunity_type === "JOB";
+            const isFreelance = item.opportunity_type === "FREELANCE";
+            const isStartup = item.opportunity_type === "STARTUP_PAIN_POINT";
 
-                <div className="text-right">
-                  {opp.min_salary != null ? (
-                    <div className="text-sm font-semibold text-white">
-                      {opp.currency || "$"}
-                      {opp.min_salary.toLocaleString()}
-                      {opp.max_salary != null && ` - ${opp.max_salary.toLocaleString()}`}
-                      <span className="text-xs text-slate-400 font-normal">
-                        {opp.salary_period ? ` / ${opp.salary_period.toLowerCase()}` : " (explicit)"}
+            const badgeColor = isJob
+              ? "bg-blue-950 text-blue-300 border-blue-800"
+              : isFreelance
+                ? "bg-emerald-950 text-emerald-300 border-emerald-800"
+                : "bg-purple-950 text-purple-300 border-purple-800";
+
+            const badgeText = isJob ? "Full-Time Job" : isFreelance ? "Freelance Lead" : "Startup Signal";
+
+            return (
+              <div
+                key={`${item.opportunity_type}-${item.opportunity_id}`}
+                className="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 flex flex-col justify-between transition-all"
+              >
+                <div className="space-y-3">
+                  {/* Top Badges */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${badgeColor}`}>
+                        {badgeText}
                       </span>
+                      {item.type_specific_payload?.is_cold_start && (
+                        <span
+                          className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-amber-950/80 text-amber-300 border-amber-800 flex items-center gap-1"
+                          title={item.type_specific_payload?.cold_start_explanation || "Cold-start recommendation calibrated from profile targets"}
+                        >
+                          ⚡ Cold-Start
+                        </span>
+                      )}
+                      {item.type_specific_payload?.candidate_feedback_status && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
+                          Rated: {item.type_specific_payload.candidate_feedback_status}
+                        </span>
+                      )}
                     </div>
-                  ) : (
-                    <div className="text-xs text-slate-500 italic">Compensation not disclosed</div>
-                  )}
-                  <span className="text-[11px] text-slate-500 block mt-1">
-                    Verified ATS listing &bull; {opp.employment_type}
-                  </span>
+                    <span className="text-xs text-slate-400 truncate max-w-[140px]">
+                      {item.source_name}
+                    </span>
+                  </div>
+
+                  {/* Title & Organization */}
+                  <div>
+                    <h3 className="text-base font-bold text-white line-clamp-2 hover:text-indigo-300 transition-colors">
+                      {item.title}
+                    </h3>
+                    <div className="text-xs font-medium text-indigo-400 mt-1">
+                      {item.organization_name}
+                      {item.location && <span className="text-slate-400"> • {item.location}</span>}
+                    </div>
+                  </div>
+
+                  {/* Description preview */}
+                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                    {item.short_description}
+                  </p>
+
+                  {/* Type-Specific Discriminator Payload */}
+                  <div className="pt-2 border-t border-slate-800/80 text-xs text-slate-300 space-y-1">
+                    {isJob && (
+                      <div className="flex flex-wrap items-center gap-2 font-mono">
+                        {item.type_specific_payload.salary_min && (
+                          <span className="bg-slate-800 px-2 py-0.5 rounded text-blue-300">
+                            ${item.type_specific_payload.salary_min.toLocaleString()} - ${item.type_specific_payload.salary_max?.toLocaleString()}
+                          </span>
+                        )}
+                        <span className="bg-slate-800 px-2 py-0.5 rounded text-slate-400">
+                          {item.type_specific_payload.employment_type}
+                        </span>
+                        {item.type_specific_payload.required_skills?.slice(0, 2).map((s: string) => (
+                          <span key={s} className="bg-indigo-950 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-800">
+                            {s}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {isFreelance && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-emerald-400 font-medium">
+                            Category: {item.type_specific_payload.service_category}
+                          </span>
+                          <span className="text-slate-400">
+                            ★ {item.type_specific_payload.rating} ({item.type_specific_payload.reviews_count} reviews)
+                          </span>
+                        </div>
+                        {item.type_specific_payload.is_broken_website && (
+                          <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800">
+                            Broken Site Detected
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {isStartup && (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-xs font-mono">
+                          <span className="text-purple-300 font-semibold">
+                            Urgency: {item.type_specific_payload.urgency_score}/10
+                          </span>
+                          <span className="text-slate-400">
+                            Corroborations: {item.type_specific_payload.corroboration_count}
+                          </span>
+                        </div>
+                        {item.type_specific_payload.has_conflicting_evidence && (
+                          <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">
+                            Conflicting Signals
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Description Excerpt */}
-              <p className="text-xs text-slate-300 line-clamp-3 leading-relaxed">
-                {opp.description_clean}
-              </p>
-
-              {/* Skills Tags & Footer */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-4 border-t border-slate-800/80 gap-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {opp.required_skills.length > 0 ? (
-                    opp.required_skills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="px-2 py-0.5 rounded text-[11px] bg-slate-800 text-slate-300 border border-slate-700/60"
+                {/* Quick Rating & Footer Controls */}
+                <div className="mt-4 pt-3 border-t border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between gap-1 text-[11px] text-slate-400">
+                    <span>Quick rate fit:</span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleQuickFeedback(item, "RELEVANT")}
+                        title="Mark as Great Fit (Boosts ranking)"
+                        className="px-2 py-0.5 rounded bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/60 text-emerald-300 transition-colors"
                       >
-                        {skill}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-xs text-slate-500">No skill tags detected</span>
-                  )}
-                </div>
+                        👍 Fit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickFeedback(item, "WRONG_SKILLS")}
+                        title="Wrong Skills (-50% score penalty)"
+                        className="px-2 py-0.5 rounded bg-amber-950/60 hover:bg-amber-900 border border-amber-800/60 text-amber-300 transition-colors"
+                      >
+                        👎 Skills
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickFeedback(item, "LOCATION_UNSUITABLE")}
+                        title="Location Unsuitable (-40% penalty)"
+                        className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                      >
+                        📍 Loc
+                      </button>
+                    </div>
+                  </div>
 
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => handleOpenFeedback(opp)}
-                    className="px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-300 hover:text-white transition-colors"
-                  >
-                    Report Issue
-                  </button>
-                  <Link
-                    href={`/opportunities/${opp.id}`}
-                    className="px-3 py-1.5 rounded-lg border border-indigo-700/60 bg-indigo-950/60 hover:bg-indigo-900/80 text-indigo-300 text-xs font-semibold transition-colors"
-                  >
-                    Verification Trail &rarr;
-                  </Link>
-                  <a
-                    href={opp.application_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors"
-                  >
-                    Apply on Official Board &rarr;
-                  </a>
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/50">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleToggleSave(item)}
+                        disabled={savingId === item.opportunity_id}
+                        className={`text-xs font-semibold px-2.5 py-1 rounded transition-colors ${item.is_saved
+                          ? "bg-amber-900/60 text-amber-300 border border-amber-700/60"
+                          : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
+                          }`}
+                      >
+                        {item.is_saved ? "★ Saved" : "☆ Save"}
+                      </button>
+
+                      <button
+                        onClick={() => setFeedbackItem(item)}
+                        className="text-xs font-medium text-slate-400 hover:text-slate-200 px-2 py-1 rounded bg-slate-800/40 hover:bg-slate-800 transition-colors"
+                        title="Provide detailed candidate feedback"
+                      >
+                        Feedback
+                      </button>
+
+                      <button
+                        onClick={() => setReportItem(item)}
+                        className="text-xs font-medium text-rose-400/80 hover:text-rose-300 px-2 py-1 rounded bg-rose-950/30 hover:bg-rose-950/60 border border-rose-900/40 transition-colors"
+                        title="Report job posting or suspicious content"
+                      >
+                        🚩 Report
+                      </button>
+                    </div>
+
+                    {item.source_url ? (
+                      <a
+                        href={item.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
+                      >
+                        Apply / Visit →
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* User Listing Feedback Modal */}
-      {selectedOppForFeedback && (
+      {/* Candidate Relevance Feedback Modal */}
+      {feedbackItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+          <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white">Report Listing Inaccuracy</h3>
+              <h3 className="text-lg font-bold text-white">Relevance & Match Calibration</h3>
               <button
-                onClick={() => setSelectedOppForFeedback(null)}
-                className="text-slate-400 hover:text-white text-lg"
+                onClick={() => setFeedbackItem(null)}
+                className="text-slate-400 hover:text-white text-sm"
               >
-                &times;
+                ✕
               </button>
             </div>
 
             <p className="text-xs text-slate-400">
-              Reporting: <strong className="text-white">{selectedOppForFeedback.title}</strong> at{" "}
-              <strong className="text-white">{selectedOppForFeedback.company_name}</strong>.
-              Your report initiates an automated evidentiary verification check.
+              Personalize recommendations for: <strong className="text-white">{feedbackItem.title}</strong>
             </p>
 
             <form onSubmit={handleSubmitFeedback} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Issue Category</label>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                  How does this opportunity fit you?
+                </label>
                 <select
-                  value={feedbackType}
-                  onChange={(e) => setFeedbackType(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white focus:outline-none focus:border-indigo-500"
+                  value={feedbackCategory}
+                  onChange={(e) => setFeedbackCategory(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="BROKEN_LINK">Broken or 404 Application Link</option>
-                  <option value="ALREADY_CLOSED">Role Already Filled / Closed</option>
-                  <option value="INCORRECT_DETAILS">Inaccurate Title, Salary, or Location</option>
-                  <option value="DUPLICATE_LISTING">Duplicate of another listing</option>
-                  <option value="OTHER">Other Issue</option>
+                  <option value="RELEVANT">Great Fit (Boost this type in feed)</option>
+                  <option value="WRONG_SKILLS">Wrong Skills / Tech Stack mismatch (-50% penalty)</option>
+                  <option value="LOCATION_UNSUITABLE">Unsuitable Location / Incompatible Timezone (-40% penalty)</option>
+                  <option value="EXPERIENCE_TOO_HIGH">Experience requirement too high (Seniority mismatch)</option>
+                  <option value="EXPERIENCE_TOO_LOW">Experience requirement too low (Below my seniority)</option>
+                  <option value="WORK_MODE_UNSUITABLE">Work Mode Unsuitable (e.g. requires on-site)</option>
+                  <option value="ALREADY_APPLIED">Already applied or interviewed</option>
+                  <option value="DUPLICATE">Duplicate of another listing</option>
+                  <option value="JOB_CLOSED">Position closed or expired</option>
+                  <option value="NOT_RELEVANT">Not relevant to my career goals (Suppress)</option>
+                  <option value="OTHER">Other Reason</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Additional Context (Optional)</label>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                  Optional Details
+                </label>
                 <textarea
-                  value={feedbackNotes}
-                  onChange={(e) => setFeedbackNotes(e.target.value)}
-                  placeholder="Provide any details about what you observed..."
+                  value={feedbackExplanation}
+                  onChange={(e) => setFeedbackExplanation(e.target.value)}
+                  placeholder="e.g. I prefer Python backend roles over frontend..."
                   rows={3}
-                  maxLength={500}
-                  className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
-              {feedbackError && (
-                <div className="p-2.5 rounded bg-rose-950 border border-rose-800 text-rose-300 text-xs">
-                  {feedbackError}
+              {feedbackStatusMsg && (
+                <div className="p-3 rounded-lg bg-emerald-950 text-emerald-300 text-xs border border-emerald-800">
+                  {feedbackStatusMsg}
                 </div>
               )}
 
-              {feedbackSuccess && (
-                <div className="p-2.5 rounded bg-emerald-950 border border-emerald-800 text-emerald-300 text-xs">
-                  {feedbackSuccess}
-                </div>
-              )}
-
-              <div className="flex justify-end space-x-3 pt-2">
+              <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setSelectedOppForFeedback(null)}
-                  className="px-4 py-2 rounded-lg border border-slate-700 bg-slate-800 text-xs text-slate-300 hover:bg-slate-700"
+                  onClick={() => setFeedbackItem(null)}
+                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={feedbackSubmitting}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-50"
+                  disabled={submittingFeedback}
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm"
                 >
-                  {feedbackSubmitting ? "Submitting..." : "Submit Report"}
+                  {submittingFeedback ? "Recording..." : "Save Calibration"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Trust & Moderation Report Modal (Module G) */}
+      {reportItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <span>🚩</span> Report Listing Issue
+              </h3>
+              <button
+                onClick={() => setReportItem(null)}
+                className="text-slate-400 hover:text-white text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Report quality or trust concerns for: <strong className="text-white">{reportItem.title}</strong>
+            </p>
+
+            <form onSubmit={handleSubmitReport} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                  Report Category *
+                </label>
+                <select
+                  value={reportType}
+                  onChange={(e) => setReportType(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
+                >
+                  <option value="SUSPICIOUS_JOB">Suspicious or Fraudulent Listing</option>
+                  <option value="PAYMENT_REQUEST">Requires Payment or Sensitive Financial Info</option>
+                  <option value="MISLEADING_DESCRIPTION">Misleading Job Title, Role, or Compensation</option>
+                  <option value="BROKEN_LINK">Broken or Expired Application Link</option>
+                  <option value="COMPANY_IMPERSONATION">Impersonating Known Brand / Fake Recruiter</option>
+                  <option value="INCORRECT_LOCATION">Inaccurate Location / False Remote Claim</option>
+                  <option value="INCORRECT_STATUS">Position Is Already Filled / Inactive</option>
+                  <option value="OTHER">Other Quality or Security Issue</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                  Notes / Observed Evidence
+                </label>
+                <textarea
+                  value={reportNotes}
+                  onChange={(e) => setReportNotes(e.target.value)}
+                  placeholder="Describe why this listing should be reviewed or moderated..."
+                  rows={3}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                />
+              </div>
+
+              {reportStatusMsg && (
+                <div className="p-3 rounded-lg bg-emerald-950 text-emerald-300 text-xs border border-emerald-800">
+                  {reportStatusMsg}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setReportItem(null)}
+                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReport}
+                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-semibold text-white shadow-sm"
+                >
+                  {submittingReport ? "Submitting..." : "Submit Report"}
                 </button>
               </div>
             </form>

@@ -82,3 +82,4 @@ async def test_save_and_retrieve_freelance_opportunity():
         assert saved_list_res.status_code == 200
         saved_items = saved_list_res.json()["data"]
         assert any(item["opportunity_id"] == opp.id for item in saved_items)
+

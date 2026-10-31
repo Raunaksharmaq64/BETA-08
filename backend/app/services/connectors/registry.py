@@ -8,14 +8,22 @@ from __future__ import annotations
 
 from typing import Dict, Type
 
+from app.services.connectors.adzuna import AdzunaConnector
 from app.services.connectors.ashby import AshbyConnector
 from app.services.connectors.base import BaseJobConnector
 from app.services.connectors.greenhouse import GreenhouseConnector
+from app.services.connectors.jooble import JoobleConnector
+from app.services.connectors.lever import LeverConnector
+from app.services.connectors.remoteok import RemoteOKConnector
 from app.services.connectors.synthetic import SyntheticJobConnector
 
 _REGISTRY: Dict[str, BaseJobConnector] = {
     "greenhouse": GreenhouseConnector(),
+    "lever": LeverConnector(),
     "ashby": AshbyConnector(),
+    "remoteok": RemoteOKConnector(),
+    "adzuna": AdzunaConnector(),
+    "jooble": JoobleConnector(),
     "synthetic": SyntheticJobConnector(),
 }
 

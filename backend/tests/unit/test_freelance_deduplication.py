@@ -68,3 +68,4 @@ async def test_idempotent_import_by_name_and_city():
             select(ContactEvidenceRecord).where(ContactEvidenceRecord.opportunity_id == opp1.id)
         )).scalars().all()
         assert len(evs) >= 2  # EMAIL and WEBSITE
+

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "../../../../../services/apiClient";
+import { ResumeSubNav } from "../../../../../features/resume/ResumeSubNav";
 
 interface ResumeVersion {
   id: string;
@@ -20,6 +21,27 @@ interface ResumeVersion {
   parsed_at?: string;
 }
 
+interface VersionDiff {
+  resume_id: string;
+  version_id_1: string;
+  version_id_2: string;
+  version_label_1: string;
+  version_label_2: string;
+  character_count_diff: number;
+  word_count_diff: number;
+  added_skills: string[];
+  removed_skills: string[];
+  shared_skills: string[];
+  section_changes: Record<string, string>;
+  quality_score_diff?: {
+    v1_score: number;
+    v2_score: number;
+    score_delta: number;
+    v1_band: string;
+    v2_band: string;
+  };
+}
+
 export default function ResumeVersionsPage() {
   const params = useParams();
   const resumeId = params?.resumeId as string;
@@ -32,6 +54,13 @@ export default function ResumeVersionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Version Diff State
+  const [diffV1, setDiffV1] = useState<string>("");
+  const [diffV2, setDiffV2] = useState<string>("");
+  const [diffData, setDiffData] = useState<VersionDiff | null>(null);
+  const [diffLoading, setDiffLoading] = useState(false);
+  const [diffError, setDiffError] = useState<string | null>(null);
+
   const fetchVersions = async () => {
     try {
       setLoading(true);
@@ -39,6 +68,10 @@ export default function ResumeVersionsPage() {
       const res = await apiClient.get<ResumeVersion[]>(`/api/v1/resumes/${resumeId}/versions`);
       if (res.success && res.data) {
         setVersions(res.data);
+        if (res.data.length >= 2) {
+          setDiffV1(res.data[1].id);
+          setDiffV2(res.data[0].id);
+        }
       }
     } catch (err: any) {
       setError(err.message || "Failed to load resume versions.");
@@ -96,6 +129,32 @@ export default function ResumeVersionsPage() {
     }
   };
 
+  const handleCompareVersions = async () => {
+    if (!diffV1 || !diffV2) {
+      setDiffError("Please select two versions to compare.");
+      return;
+    }
+    if (diffV1 === diffV2) {
+      setDiffError("Please select two distinct versions to compare.");
+      return;
+    }
+
+    try {
+      setDiffLoading(true);
+      setDiffError(null);
+      const res = await apiClient.get<VersionDiff>(
+        `/api/v1/resumes/${resumeId}/diff?v1=${diffV1}&v2=${diffV2}`
+      );
+      if (res.success && res.data) {
+        setDiffData(res.data);
+      }
+    } catch (err: any) {
+      setDiffError(err.message || "Failed to compare versions.");
+    } finally {
+      setDiffLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
       {/* Header */}
@@ -103,11 +162,13 @@ export default function ResumeVersionsPage() {
         <Link href="/resumes" className="text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center mb-1">
           ← Back to Resumes
         </Link>
-        <h1 className="text-2xl font-bold text-slate-100">Resume Version History</h1>
+        <h1 className="text-2xl font-bold text-slate-100">Resume Version History & Diff</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Maintain multiple versions of your resume tailored for different career tracks without overwriting your original documents.
+          Maintain multiple tailored resume versions and run side-by-side semantic diffs to track improvements across revisions.
         </p>
       </div>
+
+      <ResumeSubNav resumeId={resumeId} />
 
       {error && (
         <div className="mb-6 p-4 rounded-lg bg-rose-900/40 border border-rose-700 text-rose-300 text-sm">
@@ -160,6 +221,150 @@ export default function ResumeVersionsPage() {
           </div>
         </form>
       </div>
+
+      {/* Version-to-Version Diff Section */}
+      {versions.length >= 2 && (
+        <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-6 mb-8 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 mb-4 border-b border-slate-800 gap-2">
+            <div>
+              <h2 className="text-base font-semibold text-slate-200">Semantic Version Diff & Evolution</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Compare two versions to inspect added skills, removed content, and quality index progression.
+              </p>
+            </div>
+            <button
+              onClick={handleCompareVersions}
+              disabled={diffLoading || !diffV1 || !diffV2 || diffV1 === diffV2}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white rounded-lg text-xs font-semibold transition-colors"
+            >
+              {diffLoading ? "Comparing..." : "Run Version Diff"}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Baseline Version (Older)</label>
+              <select
+                value={diffV1}
+                onChange={(e) => setDiffV1(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                {versions.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.version_label} (Uploaded {new Date(v.uploaded_at).toLocaleDateString()})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Comparison Version (Newer)</label>
+              <select
+                value={diffV2}
+                onChange={(e) => setDiffV2(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                {versions.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.version_label} (Uploaded {new Date(v.uploaded_at).toLocaleDateString()})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {diffError && (
+            <div className="p-3 mb-4 rounded-lg bg-rose-950/40 border border-rose-800 text-rose-300 text-xs">
+              {diffError}
+            </div>
+          )}
+
+          {/* Render Diff Results */}
+          {diffData && (
+            <div className="mt-6 pt-6 border-t border-slate-800/80 space-y-6">
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+                  <p className="text-[10px] uppercase font-bold text-slate-400">Word Count Delta</p>
+                  <p className={`text-base font-bold mt-1 ${diffData.word_count_diff >= 0 ? "text-emerald-400" : "text-amber-400"}`}>
+                    {diffData.word_count_diff >= 0 ? `+${diffData.word_count_diff}` : diffData.word_count_diff} words
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+                  <p className="text-[10px] uppercase font-bold text-slate-400">Newly Added Skills</p>
+                  <p className="text-base font-bold text-emerald-400 mt-1">+{diffData.added_skills.length}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+                  <p className="text-[10px] uppercase font-bold text-slate-400">Removed Skills</p>
+                  <p className="text-base font-bold text-rose-400 mt-1">-{diffData.removed_skills.length}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+                  <p className="text-[10px] uppercase font-bold text-slate-400">Quality Score Delta</p>
+                  <p className={`text-base font-bold mt-1 ${
+                    (diffData.quality_score_diff?.score_delta ?? 0) >= 0 ? "text-emerald-400" : "text-rose-400"
+                  }`}>
+                    {(diffData.quality_score_diff?.score_delta ?? 0) >= 0 ? "+" : ""}
+                    {diffData.quality_score_diff?.score_delta ?? "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Skills Diff */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-lg bg-slate-950/40 border border-slate-800">
+                  <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">
+                    ✓ Skills Added in {diffData.version_label_2} ({diffData.added_skills.length})
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {diffData.added_skills.length === 0 ? (
+                      <span className="text-xs text-slate-500 italic">No new skills added</span>
+                    ) : (
+                      diffData.added_skills.map((s, idx) => (
+                        <span key={idx} className="px-2 py-0.5 rounded bg-emerald-950/40 text-emerald-300 border border-emerald-800/80 text-xs">
+                          +{s}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-lg bg-slate-950/40 border border-slate-800">
+                  <h4 className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-2">
+                    ✕ Skills Removed from {diffData.version_label_1} ({diffData.removed_skills.length})
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {diffData.removed_skills.length === 0 ? (
+                      <span className="text-xs text-slate-500 italic">No skills removed</span>
+                    ) : (
+                      diffData.removed_skills.map((s, idx) => (
+                        <span key={idx} className="px-2 py-0.5 rounded bg-rose-950/30 text-rose-300 border border-rose-900/60 text-xs">
+                          -{s}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Shared Retained Skills */}
+              {diffData.shared_skills.length > 0 && (
+                <div className="p-4 rounded-lg bg-slate-950/40 border border-slate-800">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                    Shared Retained Skills ({diffData.shared_skills.length})
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {diffData.shared_skills.map((s, idx) => (
+                      <span key={idx} className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 text-xs">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Version History Table */}
       <div className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
@@ -229,4 +434,3 @@ export default function ResumeVersionsPage() {
     </div>
   );
 }
-

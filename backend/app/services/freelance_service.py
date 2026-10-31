@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 import uuid
 
-from sqlalchemy import and_, desc, func, or_, select
+from sqlalchemy import and_, case, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import (
@@ -97,6 +97,26 @@ class FreelanceService:
             suggested_service = "Digital Optimization & Marketing Audit"
             skills = ["Digital Strategy", "Website Audit", "Technical Consulting"]
 
+        # Priority assignment strictly following LeadHunter logic
+        explicit_priority = lead_dict.get("priority")
+        if explicit_priority and explicit_priority.upper() in ("HIGH", "MEDIUM", "LOW", "IGNORE"):
+            priority = explicit_priority.upper()
+        elif website and not is_broken:
+            priority = "LOW"
+        elif is_broken:
+            if phone and reviews < 50:
+                priority = "HIGH"
+            elif phone and reviews <= 200:
+                priority = "MEDIUM"
+            else:
+                priority = "HIGH"
+        elif phone and reviews < 50:
+            priority = "HIGH"
+        elif phone and reviews <= 200:
+            priority = "MEDIUM"
+        else:
+            priority = "LOW"
+
         return {
             "business_name": business_name,
             "opportunity_title": opportunity_title,
@@ -116,7 +136,8 @@ class FreelanceService:
             "suggested_pitch": lead_dict.get("suggested_pitch") or lead_dict.get("custom_pitch"),
             "classification_state": classification_state,
             "classification_reason": classification_reason,
-            "relevance_score": 92.0 if is_broken or not website else 80.0,
+            "priority": priority,
+            "relevance_score": 95.0 if priority == "HIGH" else (85.0 if priority == "MEDIUM" else 75.0),
             "source": "leadhunter_google_maps",
             "original_source_url": f"https://www.google.com/maps/search/?api=1&query={business_name}+{city}",
             "discovered_at": utc_now(),
@@ -171,6 +192,7 @@ class FreelanceService:
             existing.is_broken_website = mapped["is_broken_website"]
             existing.rating = mapped["rating"]
             existing.reviews_count = mapped["reviews_count"]
+            existing.priority = mapped["priority"]
             if mapped["email"] and not existing.email:
                 existing.email = mapped["email"]
             if mapped["phone"] and not existing.phone:
@@ -198,6 +220,7 @@ class FreelanceService:
                 suggested_pitch=mapped["suggested_pitch"],
                 classification_state=mapped["classification_state"],
                 classification_reason=mapped["classification_reason"],
+                priority=mapped["priority"],
                 relevance_score=mapped["relevance_score"],
                 source=mapped["source"],
                 original_source_url=mapped["original_source_url"],
@@ -266,6 +289,7 @@ class FreelanceService:
         city: Optional[str] = None,
         category: Optional[str] = None,
         classification_state: Optional[str] = None,
+        priority: Optional[str] = None,
         query: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
@@ -279,6 +303,8 @@ class FreelanceService:
             conditions.append(func.lower(FreelanceOpportunityRecord.service_category).contains(category.lower()))
         if classification_state:
             conditions.append(FreelanceOpportunityRecord.classification_state == classification_state)
+        if priority:
+            conditions.append(FreelanceOpportunityRecord.priority == priority.upper())
         if query:
             conditions.append(
                 or_(
@@ -290,7 +316,13 @@ class FreelanceService:
         if conditions:
             stmt = stmt.where(and_(*conditions))
 
-        stmt = stmt.order_by(desc(FreelanceOpportunityRecord.discovered_at)).limit(limit).offset(offset)
+        priority_order = case(
+            (FreelanceOpportunityRecord.priority == "HIGH", 1),
+            (FreelanceOpportunityRecord.priority == "MEDIUM", 2),
+            (FreelanceOpportunityRecord.priority == "LOW", 3),
+            else_=4,
+        )
+        stmt = stmt.order_by(priority_order, desc(FreelanceOpportunityRecord.discovered_at)).limit(limit).offset(offset)
         result = await session.execute(stmt)
         return list(result.scalars().all())
 
@@ -373,9 +405,28 @@ class FreelanceService:
         candidate_name = user_obj.full_name if user_obj else "Professional Consultant"
 
         recipient = opp.email or (f"contact@{opp.website.replace('https://', '').replace('http://', '').strip('/')}" if opp.website else "owner@business.com")
-        subject = f"Improving {opp.business_name}'s web presence & customer inquiries"
         
-        if opp.is_broken_website:
+        channel_upper = (channel or "EMAIL").upper()
+        if channel_upper == "LINKEDIN":
+            subject = f"Connecting re: {opp.business_name} web presence"
+            if opp.is_broken_website:
+                body = (
+                    f"Hi {opp.business_name} Team — I noticed your site ({opp.website}) is experiencing accessibility issues. "
+                    f"I build scalable web apps with {', '.join(opp.required_skills[:2])} and would love to share a quick 2-minute fix. Open to connecting?"
+                )
+            else:
+                body = (
+                    f"Hi {opp.business_name} Team — Impressed by your work in {opp.city}. "
+                    f"I help teams modernize customer intake using {', '.join(opp.required_skills[:2])}. Would love to share a few ideas if helpful!"
+                )
+        elif channel_upper in ["DM", "TWITTER_DM", "DIRECT_MESSAGE"]:
+            subject = f"{opp.business_name} Quick Inquiry"
+            body = (
+                f"Hey {opp.business_name} team, noticed a quick optimization opportunity on {opp.website or 'your digital platform'}. "
+                f"Happy to send over a brief video walkthrough if useful — let me know!"
+            )
+        elif opp.is_broken_website:
+            subject = f"Improving {opp.business_name}'s web presence & customer inquiries"
             body = (
                 f"Hi {opp.business_name} Team,\n\n"
                 f"I came across {opp.business_name} while searching for reputable businesses in {opp.city}. "
@@ -386,6 +437,7 @@ class FreelanceService:
                 f"Best regards,\n{candidate_name}"
             )
         else:
+            subject = f"Improving {opp.business_name}'s web presence & customer inquiries"
             body = (
                 f"Hi {opp.business_name} Team,\n\n"
                 f"I noticed {opp.business_name} is one of the premier businesses in {opp.city}. "

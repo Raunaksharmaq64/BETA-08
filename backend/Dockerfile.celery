@@ -1,0 +1,38 @@
+# ==============================================================================
+# RIGHT FIT — Celery Background Worker Production Dockerfile
+# Inherits from base backend image and executes Celery worker with graceful signal handling
+# ==============================================================================
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH="/app:${PYTHONPATH}"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN addgroup --system --gid 1001 appgroup && \
+    adduser --system --uid 1001 --ingroup appgroup --home /home/appuser appuser
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app ./app
+COPY contracts ./contracts
+
+RUN chown -R appuser:appgroup /app /home/appuser
+
+USER appuser
+
+STOPSIGNAL SIGTERM
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD python -c "import redis; r = redis.from_url('${REDIS_URL:-redis://redis:6379/0}'); r.ping()" || exit 1
+
+CMD ["celery", "-A", "app.workers.celery_app", "worker", "--loglevel=INFO", "--concurrency=2", "-n", "worker1@%h"]
+

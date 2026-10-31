@@ -12,6 +12,13 @@ interface MatchBreakdown {
     total_required_skills: number;
     matched_required_count: number;
     matched_required_skills: string[];
+    related_required_skills?: Array<{
+      required_skill: string;
+      candidate_skill: string;
+      relationship_type: string;
+      relationship_strength: number;
+      explanation: string;
+    }>;
     missing_required_skills: string[];
     matched_preferred_skills: string[];
     missing_preferred_skills: string[];
@@ -92,6 +99,17 @@ export default function JobDetailPage() {
   const [isSavingNote, setIsSavingNote] = useState(false);
   const [noteSavedMsg, setNoteSavedMsg] = useState<string | null>(null);
 
+  // Candidate relevance feedback state (Module E)
+  const [candidateRating, setCandidateRating] = useState<string | null>(null);
+  const [feedbackSavedMsg, setFeedbackSavedMsg] = useState<string | null>(null);
+
+  // Trust & Moderation Report Modal (Module G)
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportType, setReportType] = useState("SUSPICIOUS_JOB");
+  const [reportNotes, setReportNotes] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportMsg, setReportMsg] = useState<string | null>(null);
+
   useEffect(() => {
     if (!jobId) return;
 
@@ -157,6 +175,50 @@ export default function JobDetailPage() {
       alert("Failed to save note: " + err.message);
     } finally {
       setIsSavingNote(false);
+    }
+  };
+
+  const handleRateJob = async (category: string) => {
+    if (!job) return;
+    setCandidateRating(category);
+    try {
+      await apiClient(`/opportunities/JOB/${job.id}/feedback`, {
+        method: "POST",
+        body: JSON.stringify({
+          feedback_category: category,
+          explanation: `Rated directly on job detail page: ${category}`,
+        }),
+      });
+      setFeedbackSavedMsg(`Saved! Recommendation algorithm calibrated (${category.replace(/_/g, " ")}).`);
+      setTimeout(() => setFeedbackSavedMsg(null), 3000);
+    } catch (err: any) {
+      console.warn("Feedback save error:", err);
+    }
+  };
+
+  const handleReportJob = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!job) return;
+    setReportSubmitting(true);
+    setReportMsg(null);
+    try {
+      await apiClient(`/opportunities/${job.id}/feedback`, {
+        method: "POST",
+        body: JSON.stringify({
+          feedback_type: reportType,
+          notes: reportNotes.trim() || "Reported via job detail view",
+        }),
+      });
+      setReportMsg("Report submitted to moderation queue.");
+      setTimeout(() => {
+        setShowReportModal(false);
+        setReportMsg(null);
+        setReportNotes("");
+      }, 1500);
+    } catch (err: any) {
+      alert("Failed to submit report: " + err.message);
+    } finally {
+      setReportSubmitting(false);
     }
   };
 
@@ -230,8 +292,8 @@ export default function JobDetailPage() {
             </div>
           </div>
 
-          {/* Action Buttons: Apply & Save */}
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Action Buttons: Apply, Save & Report */}
+          <div className="flex items-center gap-3 shrink-0 flex-wrap">
             <button
               onClick={handleToggleSave}
               className={`px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors flex items-center gap-2 ${
@@ -244,6 +306,14 @@ export default function JobDetailPage() {
                 <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
               </svg>
               {job.is_saved ? "Saved" : "Save Job"}
+            </button>
+
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="px-3.5 py-2.5 rounded-xl text-sm font-semibold border border-rose-900/50 bg-rose-950/30 hover:bg-rose-950/70 text-rose-300 transition-colors"
+              title="Report quality, fraud or trust issues"
+            >
+              🚩 Report Issue
             </button>
 
             <a
@@ -288,6 +358,85 @@ export default function JobDetailPage() {
           <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
             <div className="text-xs uppercase tracking-wider text-slate-500 font-medium">Source Origin</div>
             <div className="text-sm font-bold text-slate-300 mt-1 truncate">{job.source_name}</div>
+          </div>
+        </div>
+
+        {/* Cold-Start Explanation Banner if applicable */}
+        {job.provenance_metadata?.is_cold_start && (
+          <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-800/60 text-xs text-amber-200 flex items-center justify-between gap-3">
+            <div>
+              <strong className="text-amber-100 font-semibold">⚡ Cold-Start Calibrated Match:</strong>{" "}
+              {job.provenance_metadata?.cold_start_explanation ||
+                "Surfaced based on your declared target roles and education background. Add at least 2 confirmed skills to unlock precision evidence matching."}
+            </div>
+            <Link
+              href="/onboarding"
+              className="shrink-0 px-3 py-1 bg-amber-900/60 hover:bg-amber-800 text-amber-100 rounded-lg text-xs font-semibold"
+            >
+              Update Skills →
+            </Link>
+          </div>
+        )}
+
+        {/* Candidate Relevance Rating Bar (Module E) */}
+        <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="text-xs text-slate-400">
+            <span className="font-semibold text-slate-300">Calibrate Recommendations:</span> Is this opportunity relevant to you?
+            {feedbackSavedMsg && (
+              <span className="ml-2 text-emerald-400 font-semibold">{feedbackSavedMsg}</span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => handleRateJob("RELEVANT")}
+              className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                candidateRating === "RELEVANT"
+                  ? "bg-emerald-600 border-emerald-500 text-white font-bold"
+                  : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-emerald-300"
+              }`}
+            >
+              👍 Great Fit (+10%)
+            </button>
+            <button
+              onClick={() => handleRateJob("WRONG_SKILLS")}
+              className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                candidateRating === "WRONG_SKILLS"
+                  ? "bg-amber-600 border-amber-500 text-white font-bold"
+                  : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-amber-300"
+              }`}
+            >
+              👎 Wrong Skills (-50%)
+            </button>
+            <button
+              onClick={() => handleRateJob("LOCATION_UNSUITABLE")}
+              className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                candidateRating === "LOCATION_UNSUITABLE"
+                  ? "bg-indigo-600 border-indigo-500 text-white font-bold"
+                  : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300"
+              }`}
+            >
+              📍 Location (-40%)
+            </button>
+            <button
+              onClick={() => handleRateJob("EXPERIENCE_TOO_HIGH")}
+              className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                candidateRating === "EXPERIENCE_TOO_HIGH"
+                  ? "bg-indigo-600 border-indigo-500 text-white font-bold"
+                  : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300"
+              }`}
+            >
+              💼 Too Senior
+            </button>
+            <button
+              onClick={() => handleRateJob("NOT_RELEVANT")}
+              className={`px-3 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                candidateRating === "NOT_RELEVANT"
+                  ? "bg-rose-600 border-rose-500 text-white font-bold"
+                  : "bg-slate-800 hover:bg-slate-700 border-slate-700 text-rose-300"
+              }`}
+            >
+              ✕ Hide
+            </button>
           </div>
         </div>
       </div>
@@ -378,6 +527,28 @@ export default function JobDetailPage() {
                   <p className="text-xs text-slate-500 italic">No required skills matched yet.</p>
                 )}
               </div>
+
+              {/* Related / Transferable Skills from Taxonomy */}
+              {match.skill_fit.related_required_skills && match.skill_fit.related_required_skills.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-slate-800">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-sky-400">
+                    Related & Transferable Skills ({match.skill_fit.related_required_skills.length})
+                  </div>
+                  <div className="space-y-2">
+                    {match.skill_fit.related_required_skills.map((rel: any, idx: number) => (
+                      <div key={idx} className="bg-slate-950 p-2.5 rounded-xl border border-sky-900/60 text-xs space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-sky-300">⇄ {rel.required_skill}</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] bg-sky-950 text-sky-300 border border-sky-800">
+                            {rel.relationship_type} ({Math.round(rel.relationship_strength * 100)}%)
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400">{rel.explanation}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Missing Skills */}
               {match.skill_fit.missing_required_skills.length > 0 && (
@@ -515,6 +686,88 @@ export default function JobDetailPage() {
           <div>Ingested via {job.source_name} adapter</div>
         </div>
       </div>
+
+      {/* Trust & Moderation Report Modal (Module G) */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <span>🚩</span> Report Posting Issue
+              </h3>
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="text-slate-400 hover:text-white text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Report quality, compliance or trust issues for: <strong className="text-white">{job.title}</strong> at{" "}
+              <strong className="text-white">{job.company_name}</strong>
+            </p>
+
+            <form onSubmit={handleReportJob} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                  Issue Category *
+                </label>
+                <select
+                  value={reportType}
+                  onChange={(e) => setReportType(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
+                >
+                  <option value="SUSPICIOUS_JOB">Suspicious or Fraudulent Listing</option>
+                  <option value="PAYMENT_REQUEST">Requires Payment or Sensitive Financial Info</option>
+                  <option value="MISLEADING_DESCRIPTION">Misleading Job Title, Role, or Compensation</option>
+                  <option value="BROKEN_LINK">Broken or Expired Application Link</option>
+                  <option value="COMPANY_IMPERSONATION">Impersonating Known Brand / Fake Recruiter</option>
+                  <option value="INCORRECT_LOCATION">Inaccurate Location / False Remote Claim</option>
+                  <option value="INCORRECT_STATUS">Position Is Already Filled / Inactive</option>
+                  <option value="OTHER">Other Quality or Security Issue</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                  Observed Evidence / Details
+                </label>
+                <textarea
+                  value={reportNotes}
+                  onChange={(e) => setReportNotes(e.target.value)}
+                  placeholder="Provide context or links demonstrating the issue..."
+                  rows={3}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                />
+              </div>
+
+              {reportMsg && (
+                <div className="p-3 rounded-lg bg-emerald-950 text-emerald-300 text-xs border border-emerald-800">
+                  {reportMsg}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowReportModal(false)}
+                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={reportSubmitting}
+                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-semibold text-white shadow-sm"
+                >
+                  {reportSubmitting ? "Submitting..." : "Submit Report"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

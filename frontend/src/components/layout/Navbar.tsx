@@ -16,7 +16,14 @@ export default function Navbar() {
   };
 
   const navLinks = [
+    { name: "Dashboard", href: "/dashboard" },
+    { name: "Opportunities", href: "/opportunities" },
     { name: "Find Jobs", href: "/search" },
+    { name: "Freelance", href: "/freelance" },
+    { name: "Startups", href: "/startups" },
+    { name: "Market Intel", href: "/market-intelligence" },
+    { name: "Compensation", href: "/compensation" },
+    { name: "Saved All", href: "/saved-opportunities" },
     { name: "Applications", href: "/applications" },
     { name: "Calendar", href: "/calendar" },
     { name: "Interview Prep", href: "/interview-prep" },
@@ -24,9 +31,12 @@ export default function Navbar() {
     { name: "Saved Jobs", href: "/saved-jobs" },
     { name: "Alerts", href: "/saved-searches" },
     { name: "Resumes", href: "/resumes" },
-    { name: "Candidate Profile", href: "/profile" },
-    { name: "Job Sources", href: "/sources" },
+    { name: "Profile", href: "/profile" },
+    { name: "Sources", href: "/sources" },
+    { name: "Connectors", href: "/quality/connectors" },
+    { name: "Discovery Ops", href: "/discovery/operations" },
     { name: "Data Quality", href: "/quality" },
+    { name: "Beta Feedback", href: "/beta/feedback" },
     { name: "Privacy", href: "/settings/privacy" },
   ];
 

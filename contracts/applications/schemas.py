@@ -438,6 +438,13 @@ class NotificationPreferencesUpdate(BaseModel):
     application_follow_ups: Optional[bool] = None
     assessment_deadlines: Optional[bool] = None
     prep_milestones: Optional[bool] = None
+    frequency: Optional[str] = None  # INSTANT, DAILY_DIGEST, WEEKLY_DIGEST
+    quiet_hours_start: Optional[str] = None  # e.g. "22:00"
+    quiet_hours_end: Optional[str] = None    # e.g. "08:00"
+    timezone: Optional[str] = None
+    job_alerts_enabled: Optional[bool] = None
+    digest_email_enabled: Optional[bool] = None
+    market_intelligence_alerts: Optional[bool] = None
 
 
 class NotificationPreferencesResponse(BaseModel):
@@ -448,5 +455,12 @@ class NotificationPreferencesResponse(BaseModel):
     application_follow_ups: bool = True
     assessment_deadlines: bool = True
     prep_milestones: bool = True
+    frequency: str = "DAILY_DIGEST"
+    quiet_hours_start: Optional[str] = "22:00"
+    quiet_hours_end: Optional[str] = "08:00"
+    timezone: str = "UTC"
+    job_alerts_enabled: bool = True
+    digest_email_enabled: bool = False
+    market_intelligence_alerts: bool = True
     updated_at: datetime
 

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "../../../../../services/apiClient";
+import { ResumeSubNav } from "../../../../../features/resume/ResumeSubNav";
 
 export default function ResumeAnalysisPage() {
   const params = useParams();
@@ -56,7 +57,7 @@ export default function ResumeAnalysisPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-10 sm:px-6 lg:px-8">
       {/* Navigation & Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-6 mb-8 border-b border-slate-800 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-6 mb-6 border-b border-slate-800 gap-4">
         <div>
           <Link href="/resumes" className="text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center mb-1">
             ← Back to Resumes
@@ -82,6 +83,34 @@ export default function ResumeAnalysisPage() {
           </Link>
         </div>
       </div>
+
+      <ResumeSubNav resumeId={resumeId} />
+
+      {/* Scanned PDF Warning Banner */}
+      {extraction?.is_scanned_pdf && (
+        <div className="mb-6 p-4 rounded-xl bg-amber-950/40 border border-amber-800 text-amber-200 text-xs leading-relaxed flex items-start space-x-3">
+          <span className="text-base font-bold">⚠️</span>
+          <div>
+            <p className="font-semibold text-amber-100">Scanned Document or Low Embedded Text Detected</p>
+            <p className="mt-0.5">
+              This document contains very few parseable character glyphs and may be an image scan or flattened PDF.
+              Text extraction accuracy may be reduced. Please verify all sections in the Review Workbench or upload a clean, text-searchable PDF.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Extraction Warnings/Notes */}
+      {extraction?.extraction_notes && extraction.extraction_notes.length > 0 && (
+        <div className="mb-6 p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400">
+          <p className="font-semibold text-slate-300 mb-1">Extraction Notes:</p>
+          <ul className="list-disc list-inside space-y-1">
+            {extraction.extraction_notes.map((note: string, idx: number) => (
+              <li key={idx}>{note}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 p-4 rounded-lg bg-rose-900/40 border border-rose-700 text-rose-300 text-sm">
@@ -210,7 +239,30 @@ export default function ResumeAnalysisPage() {
             )}
           </section>
 
-          {/* 4. Education */}
+          {/* 4. Internships (if present) */}
+          {extraction.internships && extraction.internships.length > 0 && (
+            <section className="bg-slate-900/60 border border-slate-800 rounded-xl p-6">
+              <h2 className="text-base font-semibold text-slate-200 mb-4 pb-2 border-b border-slate-800">
+                Internships & Apprenticeships ({extraction.internships.length})
+              </h2>
+              <div className="space-y-4">
+                {extraction.internships.map((intern: any, idx: number) => (
+                  <div key={idx} className="pb-4 border-b border-slate-800/60 last:border-0 last:pb-0">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-sm font-bold text-slate-100">{intern.title || "Intern"}</h3>
+                      <span className="text-xs text-slate-400">{intern.duration || ""}</span>
+                    </div>
+                    <p className="text-xs font-semibold text-indigo-400">{intern.company || ""}</p>
+                    {intern.responsibilities && (
+                      <p className="text-xs text-slate-300 mt-1">{intern.responsibilities}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 5. Education */}
           <section className="bg-slate-900/60 border border-slate-800 rounded-xl p-6">
             <h2 className="text-base font-semibold text-slate-200 mb-4 pb-2 border-b border-slate-800">
               Education ({extraction.education?.length || 0})
@@ -252,10 +304,10 @@ export default function ResumeAnalysisPage() {
             )}
           </section>
 
-          {/* 5. Categorized Skills */}
+          {/* 6. Skills: Explicit vs. Inferred */}
           <section className="bg-slate-900/60 border border-slate-800 rounded-xl p-6">
             <h2 className="text-base font-semibold text-slate-200 mb-4 pb-2 border-b border-slate-800">
-              Categorized Technical Skills
+              Categorized Technical Skills (Explicitly Stated)
             </h2>
 
             <div className="space-y-4">
@@ -280,9 +332,91 @@ export default function ResumeAnalysisPage() {
                 );
               })}
             </div>
+
+            {/* Inferred Skills Subsection */}
+            {extraction.inferred_skills && extraction.inferred_skills.length > 0 && (
+              <div className="mt-6 pt-5 border-t border-slate-800">
+                <div className="flex items-center space-x-2 mb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Inferred Technical Skills</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800 text-amber-300 font-medium">
+                    Unverified • Inferred from Context
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mb-3">
+                  These technologies were detected inside experience descriptions or project context, but not in an explicit Skills section. Confirm them in the Review Workbench.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {extraction.inferred_skills.map((s: any, sIdx: number) => (
+                    <span
+                      key={sIdx}
+                      className="px-2.5 py-1 rounded-md bg-amber-950/20 border border-amber-800/60 text-xs font-medium text-amber-200"
+                    >
+                      {s.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
 
-          {/* 6. Projects & Certifications */}
+          {/* 7. Supplementary Entities: Publications, Awards, Languages */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Publications */}
+            <section className="bg-slate-900/60 border border-slate-800 rounded-xl p-6">
+              <h2 className="text-base font-semibold text-slate-200 mb-3 pb-2 border-b border-slate-800">
+                Publications ({extraction.publications?.length || 0})
+              </h2>
+              {(!extraction.publications || extraction.publications.length === 0) ? (
+                <p className="text-xs text-slate-400 italic">No publications detected.</p>
+              ) : (
+                <ul className="space-y-2 text-xs text-slate-300">
+                  {extraction.publications.map((pub: any, idx: number) => (
+                    <li key={idx} className="pb-2 border-b border-slate-800/50 last:border-0 font-medium">
+                      {pub.title || JSON.stringify(pub)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {/* Awards */}
+            <section className="bg-slate-900/60 border border-slate-800 rounded-xl p-6">
+              <h2 className="text-base font-semibold text-slate-200 mb-3 pb-2 border-b border-slate-800">
+                Awards & Honors ({extraction.awards?.length || 0})
+              </h2>
+              {(!extraction.awards || extraction.awards.length === 0) ? (
+                <p className="text-xs text-slate-400 italic">No awards detected.</p>
+              ) : (
+                <ul className="space-y-2 text-xs text-slate-300">
+                  {extraction.awards.map((aw: any, idx: number) => (
+                    <li key={idx} className="pb-2 border-b border-slate-800/50 last:border-0 font-medium">
+                      {aw.title || JSON.stringify(aw)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {/* Languages */}
+            <section className="bg-slate-900/60 border border-slate-800 rounded-xl p-6">
+              <h2 className="text-base font-semibold text-slate-200 mb-3 pb-2 border-b border-slate-800">
+                Languages ({extraction.languages?.length || 0})
+              </h2>
+              {(!extraction.languages || extraction.languages.length === 0) ? (
+                <p className="text-xs text-slate-400 italic">No languages detected.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {extraction.languages.map((lang: any, idx: number) => (
+                    <span key={idx} className="px-2.5 py-1 rounded bg-slate-800 text-xs text-slate-200 border border-slate-700">
+                      {lang.language || JSON.stringify(lang)}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* 8. Projects & Certifications */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <section className="bg-slate-900/60 border border-slate-800 rounded-xl p-6">
               <h2 className="text-base font-semibold text-slate-200 mb-4 pb-2 border-b border-slate-800">
@@ -324,4 +458,3 @@ export default function ResumeAnalysisPage() {
     </div>
   );
 }
-

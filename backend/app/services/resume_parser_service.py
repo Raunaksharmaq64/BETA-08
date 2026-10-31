@@ -43,6 +43,10 @@ _SECTION_PATTERNS: Dict[str, re.Pattern] = {
         r"^(?:technical\s+skills|skills\s*&?\s*competencies|core\s+competencies|skills|technologies|tools\s*&?\s*technologies)\b",
         re.IGNORECASE
     ),
+    "INTERNSHIPS": re.compile(
+        r"^(?:internships?|internship\s+experience|summer\s+internships?)\b",
+        re.IGNORECASE
+    ),
     "PROJECTS": re.compile(
         r"^(?:projects|key\s+projects|personal\s+projects|academic\s+projects|featured\s+projects)\b",
         re.IGNORECASE
@@ -60,7 +64,7 @@ _SECTION_PATTERNS: Dict[str, re.Pattern] = {
         re.IGNORECASE
     ),
     "LANGUAGES": re.compile(
-        r"^(?:languages|language\s+proficiency)\b",
+        r"^(?:spoken\s+languages|languages\s+spoken|language\s+proficiency)\b|^(?:languages)\s*[:\-]?\s*$",
         re.IGNORECASE
     ),
 }
@@ -213,6 +217,7 @@ class ResumeParserService:
             "HEADER": [],
             "SUMMARY": [],
             "EXPERIENCE": [],
+            "INTERNSHIPS": [],
             "EDUCATION": [],
             "SKILLS": [],
             "PROJECTS": [],
@@ -237,11 +242,21 @@ class ResumeParserService:
                 is_header = False
                 if len(trimmed) < 55:
                     cleaned_header = re.sub(r"^[#*•\-\s]+", "", trimmed).strip()
-                    for sec_name, pattern in _SECTION_PATTERNS.items():
-                        if pattern.match(cleaned_header):
-                            current_section = sec_name
-                            is_header = True
-                            break
+                    
+                    # If currently inside SKILLS, subcategory markers like "Languages: ...", "Languages | ..."
+                    # should not break into a new section.
+                    if current_section == "SKILLS" and re.match(
+                        r"^(?:languages?|programming\s+languages?|frameworks?|databases?|cloud|tools|technologies)\b(?:\s*[:|])",
+                        cleaned_header,
+                        re.IGNORECASE
+                    ):
+                        is_header = False
+                    else:
+                        for sec_name, pattern in _SECTION_PATTERNS.items():
+                            if pattern.match(cleaned_header):
+                                current_section = sec_name
+                                is_header = True
+                                break
 
                 if not is_header:
                     sections[current_section].append({
@@ -573,10 +588,10 @@ class ResumeParserService:
         full_text: str,
         sections: Dict[str, List[Dict[str, Any]]],
         evidence_list: List[EvidenceDTO]
-    ) -> Dict[str, List[Dict[str, Any]]]:
+    ) -> Tuple[Dict[str, List[Dict[str, Any]]], List[Dict[str, Any]]]:
         """
         Extracts categorized skills with boundary matching.
-        Gives higher confidence to skills found inside the dedicated SKILLS section.
+        Distinguishes between explicit skills (in SKILLS section) and inferred skills (in project/experience text).
         """
         categorized_skills: Dict[str, List[Dict[str, Any]]] = {
             "languages": [],
@@ -586,6 +601,7 @@ class ResumeParserService:
             "tools": [],
             "soft_skills": []
         }
+        inferred_skills: List[Dict[str, Any]] = []
 
         skills_section_text = " ".join(item["line"] for item in sections.get("SKILLS", [])).lower()
         skills_section_page = sections["SKILLS"][0]["page"] if sections.get("SKILLS") else 1
@@ -613,24 +629,219 @@ class ResumeParserService:
                         "name": skill.title() if len(skill) > 3 else skill.upper(),
                         "category": category,
                         "source_section": source_sec,
-                        "confidence_score": confidence
+                        "confidence_score": confidence,
+                        "is_inferred": not in_skills_section
                     }
-                    categorized_skills[category].append(skill_item)
 
+                    if in_skills_section:
+                        categorized_skills[category].append(skill_item)
+                        evidence_list.append(EvidenceDTO(
+                            field_id=str(uuid.uuid4()),
+                            field_name=f"skills.{category}.{skill}",
+                            extracted_value=skill_item["name"],
+                            source_section=source_sec,
+                            excerpt=excerpt_snippet or skill,
+                            page_number=skills_section_page,
+                            extraction_method="KEYWORD_MATCHER",
+                            confidence_score=confidence,
+                            confidence_level=confidence_lvl,
+                            review_status=ReviewStatus.PENDING
+                        ))
+                    else:
+                        inferred_skills.append({
+                            "name": skill_item["name"],
+                            "category": category,
+                            "source_section": source_sec,
+                            "excerpt": excerpt_snippet or skill,
+                            "confidence_score": confidence
+                        })
+                        evidence_list.append(EvidenceDTO(
+                            field_id=str(uuid.uuid4()),
+                            field_name=f"inferred_skills.{category}.{skill}",
+                            extracted_value=skill_item["name"],
+                            source_section=source_sec,
+                            excerpt=excerpt_snippet or skill,
+                            page_number=skills_section_page,
+                            extraction_method="CONTEXT_INFERENCE",
+                            confidence_score=confidence,
+                            confidence_level=confidence_lvl,
+                            review_status=ReviewStatus.PENDING
+                        ))
+
+        return categorized_skills, inferred_skills
+
+    def extract_internships(
+        self,
+        sections: Dict[str, List[Dict[str, Any]]],
+        evidence_list: List[EvidenceDTO]
+    ) -> List[Dict[str, Any]]:
+        """Extracts internships explicitly documented in resume."""
+        internship_lines = sections.get("INTERNSHIPS", [])
+        internships: List[Dict[str, Any]] = []
+
+        for idx, item in enumerate(internship_lines):
+            line = item["line"].strip()
+            if not line:
+                continue
+            cleaned = re.sub(r"^[-•*–—\s]+", "", line).strip()
+            internship_item = {
+                "title": cleaned,
+                "page_number": item["page"],
+                "excerpt": line
+            }
+            internships.append(internship_item)
+            evidence_list.append(EvidenceDTO(
+                field_id=str(uuid.uuid4()),
+                field_name=f"internships[{idx}].title",
+                extracted_value=cleaned,
+                source_section="INTERNSHIPS",
+                excerpt=line,
+                page_number=item["page"],
+                extraction_method="SECTION_PARSER",
+                confidence_score=0.85,
+                confidence_level=ConfidenceLevel.HIGH,
+                review_status=ReviewStatus.PENDING
+            ))
+
+        return internships
+
+    def extract_publications(
+        self,
+        sections: Dict[str, List[Dict[str, Any]]],
+        evidence_list: List[EvidenceDTO]
+    ) -> List[Dict[str, Any]]:
+        """Extracts research papers and publications."""
+        pub_lines = sections.get("PUBLICATIONS", [])
+        if not pub_lines:
+            return []
+
+        publications: List[Dict[str, Any]] = []
+        for idx, item in enumerate(pub_lines):
+            line = item["line"].strip()
+            if not line:
+                continue
+            cleaned = re.sub(r"^[-•*–—\s]+", "", line).strip()
+            year_match = re.search(r"\b(19\d{2}|20\d{2})\b", cleaned)
+            year = year_match.group(0) if year_match else None
+            pub_item = {
+                "title": cleaned,
+                "year": year,
+                "page_number": item["page"],
+                "excerpt": line
+            }
+            publications.append(pub_item)
+            evidence_list.append(EvidenceDTO(
+                field_id=str(uuid.uuid4()),
+                field_name=f"publications[{idx}].title",
+                extracted_value=cleaned,
+                source_section="PUBLICATIONS",
+                excerpt=line,
+                page_number=item["page"],
+                extraction_method="SECTION_PARSER",
+                confidence_score=0.88,
+                confidence_level=ConfidenceLevel.HIGH,
+                review_status=ReviewStatus.PENDING
+            ))
+
+        return publications
+
+    def extract_languages(
+        self,
+        sections: Dict[str, List[Dict[str, Any]]],
+        evidence_list: List[EvidenceDTO]
+    ) -> List[Dict[str, Any]]:
+        """Extracts natural spoken/written languages and proficiencies."""
+        lang_lines = sections.get("LANGUAGES", [])
+        if not lang_lines:
+            return []
+
+        _COMMON_LANGUAGES = [
+            "english", "spanish", "french", "german", "mandarin", "cantonese",
+            "hindi", "japanese", "russian", "arabic", "portuguese", "italian",
+            "korean", "dutch", "polish", "turkish", "vietnamese", "swedish", "tamil", "bengali"
+        ]
+        _PROFICIENCY_PATTERNS = {
+            "NATIVE": r"\b(native|bilingual|mother\s+tongue)\b",
+            "FLUENT": r"\b(fluent|full\s+professional)\b",
+            "PROFESSIONAL": r"\b(professional|working\s+proficiency)\b",
+            "INTERMEDIATE": r"\b(intermediate|conversational)\b",
+            "ELEMENTARY": r"\b(basic|elementary|beginner)\b",
+        }
+
+        languages: List[Dict[str, Any]] = []
+        for item in lang_lines:
+            line = item["line"].strip()
+            if not line:
+                continue
+            lower_line = line.lower()
+            for lang in _COMMON_LANGUAGES:
+                if re.search(rf"\b{re.escape(lang)}\b", lower_line):
+                    prof = "PROFESSIONAL"
+                    for p_name, pat in _PROFICIENCY_PATTERNS.items():
+                        if re.search(pat, lower_line):
+                            prof = p_name
+                            break
+                    lang_item = {
+                        "language": lang.capitalize(),
+                        "proficiency": prof,
+                        "page_number": item["page"],
+                        "excerpt": line
+                    }
+                    languages.append(lang_item)
                     evidence_list.append(EvidenceDTO(
                         field_id=str(uuid.uuid4()),
-                        field_name=f"skills.{category}.{skill}",
-                        extracted_value=skill_item["name"],
-                        source_section=source_sec,
-                        excerpt=excerpt_snippet or skill,
-                        page_number=skills_section_page,
-                        extraction_method="KEYWORD_MATCHER",
-                        confidence_score=confidence,
-                        confidence_level=confidence_lvl,
+                        field_name=f"languages[{len(languages)-1}].language",
+                        extracted_value=lang.capitalize(),
+                        source_section="LANGUAGES",
+                        excerpt=line,
+                        page_number=item["page"],
+                        extraction_method="SECTION_PARSER",
+                        confidence_score=0.90,
+                        confidence_level=ConfidenceLevel.HIGH,
                         review_status=ReviewStatus.PENDING
                     ))
 
-        return categorized_skills
+        return languages
+
+    def extract_awards(
+        self,
+        sections: Dict[str, List[Dict[str, Any]]],
+        evidence_list: List[EvidenceDTO]
+    ) -> List[Dict[str, Any]]:
+        """Extracts awards, honors, and recognition."""
+        award_lines = sections.get("AWARDS", [])
+        if not award_lines:
+            return []
+
+        awards: List[Dict[str, Any]] = []
+        for idx, item in enumerate(award_lines):
+            line = item["line"].strip()
+            if not line:
+                continue
+            cleaned = re.sub(r"^[-•*–—\s]+", "", line).strip()
+            year_match = re.search(r"\b(19\d{2}|20\d{2})\b", cleaned)
+            year = year_match.group(0) if year_match else None
+            award_item = {
+                "title": cleaned,
+                "year": year,
+                "page_number": item["page"],
+                "excerpt": line
+            }
+            awards.append(award_item)
+            evidence_list.append(EvidenceDTO(
+                field_id=str(uuid.uuid4()),
+                field_name=f"awards[{idx}].title",
+                extracted_value=cleaned,
+                source_section="AWARDS",
+                excerpt=line,
+                page_number=item["page"],
+                extraction_method="SECTION_PARSER",
+                confidence_score=0.85,
+                confidence_level=ConfidenceLevel.HIGH,
+                review_status=ReviewStatus.PENDING
+            ))
+
+        return awards
 
     def extract_projects(
         self,
@@ -738,6 +949,46 @@ class ResumeParserService:
         pages = self.extract_document_text_and_pages(file_bytes, file_type)
         raw_text = "\n\n".join(f"--- Page {p['page_number']} ---\n{p['text']}" for p in pages)
 
+        # Scanned document & mixed-content diagnostics (per-page threshold < 50 extractable characters)
+        extraction_notes: List[str] = []
+        low_text_pages: List[int] = []
+        normal_text_pages: List[int] = []
+        is_scanned_pdf = False
+        is_mixed_content = False
+        ocr_required = False
+
+        if file_type == "pdf" and pages:
+            for p in pages:
+                page_chars = len(p["text"].strip())
+                if page_chars < 50:
+                    low_text_pages.append(p["page_number"])
+                else:
+                    normal_text_pages.append(p["page_number"])
+
+            if len(low_text_pages) == len(pages):
+                # All pages have fewer than 50 characters -> Scanned physical document
+                is_scanned_pdf = True
+                is_mixed_content = False
+                ocr_required = True
+                extraction_notes.append(
+                    "Notice: Scanned PDF detected (all pages contain fewer than 50 extractable characters). "
+                    "Optical Character Recognition (OCR) is required to accurately extract structured text."
+                )
+            elif len(low_text_pages) > 0:
+                # Some pages have < 50 characters while others have normal text -> Mixed-content document
+                is_scanned_pdf = False
+                is_mixed_content = True
+                ocr_required = True
+                low_pages_str = ", ".join(map(str, low_text_pages))
+                extraction_notes.append(
+                    f"Notice: Mixed-content PDF detected. Page(s) {low_pages_str} contain fewer than 50 characters "
+                    "(scanned images, portfolio inserts, or attachments). Portions of this resume require OCR."
+                )
+            else:
+                is_scanned_pdf = False
+                is_mixed_content = False
+                ocr_required = False
+
         # 2. Section Segmentation
         sections = self.detect_sections(pages)
 
@@ -748,9 +999,13 @@ class ResumeParserService:
         summary = self.extract_summary(sections, evidence_list)
         education = self.extract_education(sections, evidence_list)
         experience = self.extract_experience(sections, evidence_list)
-        skills = self.extract_skills(raw_text, sections, evidence_list)
+        internships = self.extract_internships(sections, evidence_list)
+        explicit_skills, inferred_skills = self.extract_skills(raw_text, sections, evidence_list)
         projects = self.extract_projects(sections, evidence_list)
         certifications = self.extract_certifications(sections, evidence_list)
+        publications = self.extract_publications(sections, evidence_list)
+        languages = self.extract_languages(sections, evidence_list)
+        awards = self.extract_awards(sections, evidence_list)
 
         structured_extractions = {
             "sections": {k: [i["line"] for i in v] for k, v in sections.items() if v},
@@ -758,9 +1013,20 @@ class ResumeParserService:
             "summary": summary,
             "education": education,
             "experience": experience,
-            "skills": skills,
+            "internships": internships,
+            "skills": explicit_skills,  # Backward compatible alias
+            "explicit_skills": explicit_skills,
+            "inferred_skills": inferred_skills,
             "projects": projects,
-            "certifications": certifications
+            "certifications": certifications,
+            "publications": publications,
+            "languages": languages,
+            "awards": awards,
+            "is_scanned_pdf": is_scanned_pdf,
+            "is_mixed_content": is_mixed_content,
+            "ocr_required": ocr_required,
+            "low_text_pages": low_text_pages,
+            "extraction_notes": extraction_notes,
         }
 
         return raw_text, structured_extractions, evidence_list

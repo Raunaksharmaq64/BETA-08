@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "../../../../../services/apiClient";
+import { ResumeSubNav } from "../../../../../features/resume/ResumeSubNav";
 
 export default function ResumeStatusPage() {
   const params = useParams();
@@ -89,6 +90,8 @@ export default function ResumeStatusPage() {
           <span className="text-slate-200 font-medium">{resume?.title || "your resume"}</span>.
         </p>
       </div>
+
+      <ResumeSubNav resumeId={resumeId} />
 
       {error && (
         <div className="mb-6 p-4 rounded-lg bg-rose-900/40 border border-rose-700 text-rose-300 text-sm">

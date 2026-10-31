@@ -152,6 +152,44 @@ async def delete_skill(
     return StandardResponse(data={"message": "Skill entry deleted."}, meta=make_meta(req_id))
 
 
+@router.post("/skills/{skill_id}/confirm", response_model=StandardResponse[dict])
+async def confirm_skill(
+    skill_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> StandardResponse[dict]:
+    """Confirms an extracted or inferred skill into candidate-confirmed status."""
+    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+    res = await ProfileService.confirm_skill(db, current_user.id, skill_id)
+    return StandardResponse(data=res, meta=make_meta(req_id))
+
+
+@router.post("/skills/{skill_id}/reject", response_model=StandardResponse[dict])
+async def reject_skill(
+    skill_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> StandardResponse[dict]:
+    """Rejects a suggested or extracted skill without affecting confirmed skills."""
+    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+    res = await ProfileService.reject_skill(db, current_user.id, skill_id)
+    return StandardResponse(data=res, meta=make_meta(req_id))
+
+
+@router.post("/skills/recompute", response_model=StandardResponse[dict])
+async def recompute_skills(
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> StandardResponse[dict]:
+    """Recalculates structured skill profile and updates versioning for re-ranking."""
+    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+    res = await ProfileService.recompute_skills(db, current_user.id)
+    return StandardResponse(data=res, meta=make_meta(req_id))
+
+
 @router.get("/preferences", response_model=StandardResponse[CandidatePreferencesResponse])
 async def get_preferences(
     request: Request,

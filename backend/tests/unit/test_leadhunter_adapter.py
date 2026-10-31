@@ -64,3 +64,4 @@ async def test_circuit_breaker_open_fast_fails_request():
         await adapter.search_leads(query="Plumbers", city="Austin")
 
     assert "Circuit Breaker OPEN" in str(exc_info.value)
+

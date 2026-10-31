@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.db.models import (
     CanonicalOpportunityRecord,
+    CandidateOpportunityFeedbackRecord,
     CandidateProfile,
     CandidateSkillRecord,
     CandidatePreferenceRecord,
@@ -161,7 +162,26 @@ class SearchService:
             norm_types = [t.upper() for t in filters.workplace_types]
             query = query.where(CanonicalOpportunityRecord.workplace_type.in_(norm_types))
 
-        # 6. Employment Types
+        # 6. Employment Types & Fresher/Internship Detection
+        if filters.is_internship is not None and filters.is_internship:
+            query = query.where(
+                or_(
+                    CanonicalOpportunityRecord.employment_type == "INTERNSHIP",
+                    func.lower(CanonicalOpportunityRecord.title).ilike("%intern%"),
+                )
+            )
+        if filters.is_fresher_friendly is not None and filters.is_fresher_friendly:
+            query = query.where(
+                or_(
+                    CanonicalOpportunityRecord.employment_type == "INTERNSHIP",
+                    func.lower(CanonicalOpportunityRecord.title).ilike("%fresher%"),
+                    func.lower(CanonicalOpportunityRecord.title).ilike("%entry level%"),
+                    func.lower(CanonicalOpportunityRecord.title).ilike("%graduate%"),
+                    func.lower(CanonicalOpportunityRecord.title).ilike("%junior%"),
+                    func.lower(CanonicalOpportunityRecord.title).ilike("%trainee%"),
+                    func.lower(CanonicalOpportunityRecord.description_clean).ilike("%0-1 year%"),
+                )
+            )
         if filters.employment_types:
             norm_emp = [e.upper() for e in filters.employment_types]
             query = query.where(CanonicalOpportunityRecord.employment_type.in_(norm_emp))
@@ -201,21 +221,31 @@ class SearchService:
         count_query = select(func.count()).select_from(query.subquery())
         total_count = session.execute(count_query).scalar() or 0
 
-        # Load candidate profile & saved jobs if user logged in
+        # Load candidate profile, saved jobs, and feedback if user logged in
         candidate_profile_dict: Optional[Dict[str, Any]] = None
         candidate_skills: List[Dict[str, Any]] = []
         candidate_prefs: Optional[Dict[str, Any]] = None
         saved_jobs_map: Dict[str, str] = {}  # opp_id -> saved_job_id
+        candidate_feedback_map: Dict[str, str] = {}  # opp_id -> feedback_category
 
         if current_user_id:
-            # Saved jobs
+            # 1. Saved jobs
             saved_records = session.execute(
                 select(SavedJobRecord).where(SavedJobRecord.user_id == current_user_id)
             ).scalars().all()
             for sj in saved_records:
                 saved_jobs_map[sj.opportunity_id] = sj.id
 
-            # Profile & skills
+            # 2. Candidate Opportunity Feedback (Personalized Recommendation Tuning)
+            fb_records = session.execute(
+                select(CandidateOpportunityFeedbackRecord).where(
+                    CandidateOpportunityFeedbackRecord.user_id == current_user_id
+                )
+            ).scalars().all()
+            for fb in fb_records:
+                candidate_feedback_map[fb.opportunity_id] = fb.feedback_category
+
+            # 3. Profile & skills
             prof = session.execute(
                 select(CandidateProfile).where(CandidateProfile.user_id == current_user_id)
             ).scalars().first()
@@ -284,35 +314,75 @@ class SearchService:
         for opp in results:
             is_saved = opp.id in saved_jobs_map
             saved_job_id = saved_jobs_map.get(opp.id)
+            fb_status = candidate_feedback_map.get(opp.id)
 
             skill_fit_score: Optional[float] = None
             elig_status: Optional[EligibilityStatus] = None
             matched_preview: List[str] = []
             missing_preview: List[str] = []
+            is_cold_start: bool = False
+            cold_start_explanation: Optional[str] = None
 
-            if current_user_id and candidate_skills:
-                opp_dict = {
-                    "workplace_type": opp.workplace_type,
-                    "is_remote": opp.is_remote,
-                    "city": opp.city,
-                    "country": opp.country,
-                    "title": opp.title,
-                    "description_clean": opp.description_clean,
-                    "required_skills_json": opp.required_skills_json or [],
-                }
-                fit_breakdown = MatchingService.compute_skill_fit(
-                    candidate_skills=candidate_skills,
-                    job_required_skills=opp.required_skills_json or [],
-                )
-                skill_fit_score = fit_breakdown.fit_score
-                matched_preview = fit_breakdown.matched_required_skills[:4]
-                missing_preview = fit_breakdown.missing_required_skills[:3]
+            opp_dict = {
+                "workplace_type": opp.workplace_type,
+                "is_remote": opp.is_remote,
+                "city": opp.city,
+                "country": opp.country,
+                "title": opp.title,
+                "description_clean": opp.description_clean,
+                "required_skills_json": opp.required_skills_json or [],
+            }
 
-                elig_breakdown = MatchingService.evaluate_eligibility(
-                    candidate_profile=candidate_profile_dict,
-                    opportunity=opp_dict,
-                )
-                elig_status = elig_breakdown.status
+            if current_user_id:
+                if candidate_skills and len(candidate_skills) >= 1:
+                    fit_breakdown = MatchingService.compute_skill_fit(
+                        candidate_skills=candidate_skills,
+                        job_required_skills=opp.required_skills_json or [],
+                    )
+                    skill_fit_score = fit_breakdown.fit_score
+                    matched_preview = fit_breakdown.matched_required_skills[:4]
+                    missing_preview = fit_breakdown.missing_required_skills[:3]
+
+                    elig_breakdown = MatchingService.evaluate_eligibility(
+                        candidate_profile=candidate_profile_dict,
+                        opportunity=opp_dict,
+                    )
+                    elig_status = elig_breakdown.status
+                else:
+                    # Module B: Cold-Start Recommendation Engine
+                    # Synthesize match from preferred roles, education fields, and location
+                    target_roles = (candidate_prefs.get("preferred_roles") if candidate_prefs else []) or []
+                    if prof and prof.headline and prof.headline not in target_roles:
+                        target_roles.append(prof.headline)
+
+                    role_overlap = any(r.lower() in opp.title.lower() for r in target_roles) if target_roles else False
+                    edu_fields = [e.get("field_of_study", "").lower() for e in (candidate_profile_dict.get("education") or [])]
+                    edu_overlap = any(ef in opp.description_clean.lower() for ef in edu_fields if ef)
+
+                    if role_overlap or edu_overlap:
+                        is_cold_start = True
+                        base_score = 60.0
+                        if role_overlap:
+                            base_score += 15.0
+                        if edu_overlap:
+                            base_score += 10.0
+                        skill_fit_score = min(base_score, 85.0)
+                        elig_status = EligibilityStatus.MEETS_REQUIREMENTS
+                        cold_start_explanation = (
+                            "Recommended from your target roles and educational background. "
+                            "Upload or confirm resume skills to unlock precision 100% evidence matching."
+                        )
+
+                # Module E: Candidate Recommendation Feedback Tuning
+                if fb_status and skill_fit_score is not None:
+                    if fb_status == "WRONG_SKILLS":
+                        skill_fit_score = round(skill_fit_score * 0.50, 1)
+                    elif fb_status == "LOCATION_UNSUITABLE":
+                        skill_fit_score = round(skill_fit_score * 0.60, 1)
+                    elif fb_status == "RELEVANT":
+                        skill_fit_score = min(100.0, round(skill_fit_score * 1.10, 1))
+                    elif fb_status in ("NOT_RELEVANT", "ALREADY_APPLIED", "JOB_CLOSED"):
+                        skill_fit_score = round(skill_fit_score * 0.20, 1)
 
             items.append(
                 JobSearchResultItem(
@@ -340,13 +410,16 @@ class SearchService:
                     saved_job_id=saved_job_id,
                     skill_fit_score=skill_fit_score,
                     eligibility_status=elig_status,
+                    is_cold_start=is_cold_start,
+                    cold_start_explanation=cold_start_explanation,
+                    candidate_feedback_status=fb_status,
                     matched_skills_preview=matched_preview,
                     missing_skills_preview=missing_preview,
                 )
             )
 
-        # If candidate requested BEST_FIT sorting and has skills, re-sort items by skill fit & eligibility
-        if filters.sort_by == SearchSortOption.BEST_FIT and current_user_id and candidate_skills:
+        # If candidate requested BEST_FIT sorting, sort by eligibility and skill_fit_score
+        if filters.sort_by == SearchSortOption.BEST_FIT and current_user_id:
             items.sort(
                 key=lambda x: (
                     1 if x.eligibility_status == EligibilityStatus.MEETS_REQUIREMENTS else 0,

@@ -87,3 +87,4 @@ async def test_recipient_suppression_api():
         assert res.status_code == 200
         assert res.json()["success"] is True
         assert res.json()["data"]["recipient_value"] == "unsub_me@domain.com"
+

@@ -22,6 +22,8 @@ from app.core.config import settings
 connect_args = {}
 if "sqlite" in settings.DATABASE_URL:
     connect_args["check_same_thread"] = False
+elif "neon.tech" in settings.DATABASE_URL or "pooler" in settings.DATABASE_URL:
+    connect_args["statement_cache_size"] = 0
 
 engine = create_async_engine(
     settings.DATABASE_URL,

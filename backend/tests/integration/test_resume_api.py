@@ -157,6 +157,36 @@ async def test_resume_upload_and_lifecycle():
         assert ats_json["bullet_impact_score"] > 0.0
         assert len(ats_json["actionable_suggestions"]) > 0
 
+        # 10b. Test Resume Quality Analysis Endpoint
+        quality_res = await client.get(f"/api/v1/resumes/{resume_id}/quality", headers=headers)
+        assert quality_res.status_code == 200
+        quality_json = quality_res.json()
+        assert quality_json["overall_quality_score"] > 0.0
+        assert quality_json["quality_band"] in ("STRONG", "MODERATE", "NEEDS_IMPROVEMENT")
+        assert len(quality_json["section_scores"]) >= 1
+
+        # 10c. Test Job-Specific Matcher Endpoint
+        match_res = await client.post(
+            f"/api/v1/resumes/{resume_id}/job-match",
+            headers=headers,
+            json={
+                "target_job_title": "Senior Python Backend Engineer",
+                "target_job_description": "Requires 5+ years experience in Python, FastAPI, Docker, and PostgreSQL."
+            }
+        )
+        assert match_res.status_code == 200
+        match_json = match_res.json()
+        assert match_json["overall_match_score"] > 0.0
+        assert match_json["keyword_coverage_score"] > 0.0
+        assert match_json["required_skills_match"]["match_percentage"] > 0.0
+
+        # 10d. Test AI Suggestions Endpoint
+        sug_res = await client.get(f"/api/v1/resumes/{resume_id}/ai-suggestions", headers=headers)
+        assert sug_res.status_code == 200
+        sug_json = sug_res.json()
+        assert len(sug_json["suggestions"]) > 0
+        assert sug_json["suggestions"][0]["evidence_required_from_candidate"] != ""
+
         # 11. Authenticated File Download
         download_res = await client.get(f"/api/v1/resumes/{resume_id}/download", headers=headers)
         assert download_res.status_code == 200

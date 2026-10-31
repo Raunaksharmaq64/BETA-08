@@ -114,11 +114,153 @@ class ResumeExtractionResponse(BaseModel):
     summary: Optional[Dict[str, Any]] = None
     education: List[Dict[str, Any]] = Field(default_factory=list)
     experience: List[Dict[str, Any]] = Field(default_factory=list)
-    skills: Dict[str, List[Dict[str, Any]]] = Field(default_factory=dict)
+    internships: List[Dict[str, Any]] = Field(default_factory=list)
+    skills: Dict[str, List[Dict[str, Any]]] = Field(
+        default_factory=dict,
+        description="Explicit categorized skills (backward compatible alias)"
+    )
+    explicit_skills: Dict[str, List[Dict[str, Any]]] = Field(
+        default_factory=dict,
+        description="Skills directly documented in the dedicated Skills section"
+    )
+    inferred_skills: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Skills inferred from experience narratives or project descriptions"
+    )
     projects: List[Dict[str, Any]] = Field(default_factory=list)
     certifications: List[Dict[str, Any]] = Field(default_factory=list)
+    publications: List[Dict[str, Any]] = Field(default_factory=list)
+    languages: List[Dict[str, Any]] = Field(default_factory=list)
+    awards: List[Dict[str, Any]] = Field(default_factory=list)
+    is_scanned_pdf: bool = False
+    is_mixed_content: bool = False
+    ocr_required: bool = False
+    low_text_pages: List[int] = Field(default_factory=list)
+    extraction_notes: List[str] = Field(default_factory=list)
     evidence_items: List[EvidenceDTO] = Field(default_factory=list)
     parsed_at: Optional[datetime] = None
+
+
+class AISuggestionDTO(BaseModel):
+    """Actionable improvement suggestion with explicit candidate evidence requirements."""
+    id: str = Field(description="Unique suggestion ID")
+    category: str = Field(description="BULLET_REWRITE, IMPACT_METRICS, SUMMARY_POLISH, SECTION_ORDER, SKILL_GAP, PROJECT_DESCRIPTION, MISSING_CONTEXT, VAGUE_TECHNICAL_SPEC, ACHIEVEMENT_STRUCTURE")
+    target_section: str
+    current_issue: str
+    why_it_matters: str
+    current_text: Optional[str] = None
+    recommended_text: str
+    evidence_required_from_candidate: str
+    status: str = Field(default="PENDING", description="PENDING, ACCEPTED, REJECTED, EDITED")
+    # Grounded evidence & candidate approval workflow fields
+    original_content: Optional[str] = None
+    identified_issue: Optional[str] = None
+    suggested_rewrite: Optional[str] = None
+    information_required_from_candidate: Optional[str] = None
+    evidence_supporting_suggestion: Optional[str] = None
+    confidence_level: str = Field(default="HIGH", description="HIGH, MEDIUM, LOW")
+    edited_content: Optional[str] = None
+    original_preserved: bool = True
+
+
+class SuggestionActionRequest(BaseModel):
+    """Request to accept, reject, edit, or regenerate an AI suggestion."""
+    suggestion_id: str
+    action: str = Field(description="ACCEPT, REJECT, EDIT, REGENERATE")
+    edited_text: Optional[str] = None
+    regeneration_guidance: Optional[str] = None
+
+
+class SuggestionActionResponse(BaseModel):
+    """Result of candidate action on an AI suggestion."""
+    success: bool
+    suggestion: AISuggestionDTO
+    message: str
+
+
+class ResumeAISuggestionsResponse(BaseModel):
+    """Structured AI suggestions comparing current resume text with best practices."""
+    resume_id: str
+    version_id: str
+    suggestions: List[AISuggestionDTO] = Field(default_factory=list)
+    provider_used: str = Field(default="DETERMINISTIC_HEURISTIC")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class QualityDimensionEvaluation(BaseModel):
+    """Detailed deterministic critique for an individual quality dimension."""
+    dimension_name: str
+    score: float = Field(ge=0.0, le=100.0)
+    positive_observations: List[str] = Field(default_factory=list)
+    negative_observations: List[str] = Field(default_factory=list)
+    actionable_recommendations: List[str] = Field(default_factory=list)
+
+
+class ResumeQualityReportResponse(BaseModel):
+    """Transparent multi-metric evaluation of resume quality and structure."""
+    resume_id: str
+    version_id: str
+    overall_quality_score: float = Field(ge=0.0, le=100.0)
+    quality_band: str = Field(description="STRONG, MODERATE, NEEDS_IMPROVEMENT")
+    section_scores: Dict[str, float] = Field(default_factory=dict)
+    dimension_evaluations: Dict[str, QualityDimensionEvaluation] = Field(default_factory=dict)
+    strengths: List[str] = Field(default_factory=list)
+    weaknesses: List[str] = Field(default_factory=list)
+    critical_issues: List[str] = Field(default_factory=list)
+    improvement_priorities: List[str] = Field(default_factory=list)
+    methodology: str
+
+
+class ResumeJobMatchRequest(BaseModel):
+    """Request to match a resume against a specific job description."""
+    target_job_title: str = Field(min_length=2, max_length=150)
+    target_job_description: str = Field(min_length=10, max_length=30000)
+
+
+class ResumeJobMatchResponse(BaseModel):
+    """Detailed evidence-backed comparison of resume against target job description."""
+    match_id: Optional[str] = None
+    resume_id: str
+    version_id: str
+    target_job_title: str
+    overall_match_score: float = Field(ge=0.0, le=100.0)
+    keyword_coverage_score: float = Field(ge=0.0, le=1.0)
+    required_skills_match: Dict[str, Any] = Field(
+        description="Matched and missing hard-requirement skills"
+    )
+    preferred_skills_match: Dict[str, Any] = Field(
+        description="Matched and missing preferred skills"
+    )
+    experience_level_match: Dict[str, Any] = Field(
+        description="Detected experience years vs required experience"
+    )
+    project_theme_alignments: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Portfolio/project bullet matches to JD themes via token overlap"
+    )
+    unverified_matches: List[str] = Field(
+        default_factory=list,
+        description="Skills mentioned in JD that are only inferred or partially supported"
+    )
+    job_specific_suggestions: List[Dict[str, Any]] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ResumeVersionDiffResponse(BaseModel):
+    """Semantic and textual difference between two resume versions."""
+    resume_id: str
+    version_id_1: str
+    version_id_2: str
+    version_label_1: str
+    version_label_2: str
+    character_count_diff: int
+    word_count_diff: int
+    added_skills: List[str] = Field(default_factory=list)
+    removed_skills: List[str] = Field(default_factory=list)
+    shared_skills: List[str] = Field(default_factory=list)
+    section_changes: Dict[str, str] = Field(default_factory=dict)
+    quality_score_diff: Optional[Dict[str, Any]] = None
+    compared_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class ResumeReviewFieldUpdate(BaseModel):
@@ -190,4 +332,15 @@ class ATSAnalysisResponse(BaseModel):
     formatting_observations: List[str]
     methodology_and_limitations: str
     created_at: datetime
+    # Phase 3 detailed ATS scoring & requirement segregation fields
+    total_relevant_keywords: int = 0
+    keyword_coverage_percentage: float = 0.0
+    required_keywords: List[str] = Field(default_factory=list)
+    required_matched: List[str] = Field(default_factory=list)
+    required_missing: List[str] = Field(default_factory=list)
+    preferred_keywords: List[str] = Field(default_factory=list)
+    preferred_matched: List[str] = Field(default_factory=list)
+    preferred_missing: List[str] = Field(default_factory=list)
+    keyword_details: Optional[Dict[str, Any]] = None
+    keyword_rankings: List[Dict[str, Any]] = Field(default_factory=list)
 

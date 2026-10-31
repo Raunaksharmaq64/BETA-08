@@ -25,12 +25,22 @@ from contracts.resume.schemas import (
     ResumeSummaryResponse,
     ResumeUploadResponse,
     ResumeVersionResponse,
+    ResumeQualityReportResponse,
+    ResumeJobMatchRequest,
+    ResumeJobMatchResponse,
+    ResumeAISuggestionsResponse,
+    AISuggestionDTO,
+    SuggestionActionRequest,
+    SuggestionActionResponse,
+    ResumeVersionDiffResponse,
 )
 from app.core.database import get_db
 from app.core.dependencies import get_current_active_user
 from app.db.models import (
     ATSAnalysisRecord,
     ResumeExtractionRecord,
+    ResumeJobMatchRecord,
+    ResumeAISuggestionActionRecord,
     ResumeRecord,
     ResumeVersionRecord,
     User,
@@ -39,6 +49,9 @@ from app.services.ats_service import ats_service
 from app.services.resume_service import resume_service
 from app.services.review_service import review_service
 from app.services.storage_service import StorageSecurityError, storage_service
+from app.services.resume_quality_service import resume_quality_analyzer
+from app.services.resume_job_matcher import resume_job_matcher
+from app.services.resume_ai_service import resume_ai_service
 
 router = APIRouter(prefix="/resumes", tags=["Resume Intelligence"])
 
@@ -333,7 +346,17 @@ async def analyze_ats_compatibility(
             actionable_suggestions=analysis_record.actionable_suggestions_json,
             formatting_observations=analysis_record.formatting_observations_json,
             methodology_and_limitations=analysis_record.methodology_and_limitations,
-            created_at=analysis_record.created_at
+            created_at=analysis_record.created_at,
+            total_relevant_keywords=analysis_data.get("total_relevant_keywords", 0),
+            keyword_coverage_percentage=analysis_data.get("keyword_coverage_percentage", 0.0),
+            required_keywords=analysis_data.get("required_keywords", []),
+            required_matched=analysis_data.get("required_matched", []),
+            required_missing=analysis_data.get("required_missing", []),
+            preferred_keywords=analysis_data.get("preferred_keywords", []),
+            preferred_matched=analysis_data.get("preferred_matched", []),
+            preferred_missing=analysis_data.get("preferred_missing", []),
+            keyword_details=analysis_data.get("keyword_details"),
+            keyword_rankings=analysis_data.get("keyword_rankings", [])
         )
 
     except ValueError as e:
@@ -372,6 +395,395 @@ async def get_ats_analysis(
         methodology_and_limitations=analysis.methodology_and_limitations,
         created_at=analysis.created_at
     )
+
+
+@router.get("/{resume_id}/quality", response_model=ResumeQualityReportResponse)
+async def get_resume_quality_report(
+    resume_id: str,
+    version_id: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Evaluates comprehensive resume quality, section scores, readability, and structural hygiene."""
+    try:
+        ext = await resume_service.get_extraction(db, current_user.id, resume_id, version_id)
+        stmt_ext = select(ResumeExtractionRecord).where(
+            ResumeExtractionRecord.resume_version_id == ext.version_id
+        )
+        res_ext = await db.execute(stmt_ext)
+        ext_rec = res_ext.scalar_one()
+
+        extractions_dict = {
+            "personal_info": ext.personal_info,
+            "summary": ext.summary,
+            "education": ext.education,
+            "experience": ext.experience,
+            "skills": ext.skills,
+            "projects": ext.projects,
+            "certifications": ext.certifications,
+            "sections": ext_rec.sections_json,
+        }
+
+        return resume_quality_analyzer.analyze_quality(
+            resume_id=resume_id,
+            version_id=ext.version_id,
+            raw_text=ext_rec.raw_text,
+            extractions=extractions_dict
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post("/{resume_id}/job-match", response_model=ResumeJobMatchResponse)
+async def match_resume_to_job(
+    resume_id: str,
+    req: ResumeJobMatchRequest,
+    version_id: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Evaluates multi-attribute fit against target job description without hallucinating qualifications."""
+    try:
+        ext = await resume_service.get_extraction(db, current_user.id, resume_id, version_id)
+        stmt_ext = select(ResumeExtractionRecord).where(
+            ResumeExtractionRecord.resume_version_id == ext.version_id
+        )
+        res_ext = await db.execute(stmt_ext)
+        ext_rec = res_ext.scalar_one()
+
+        extractions_dict = {
+            "personal_info": ext.personal_info,
+            "summary": ext.summary,
+            "education": ext.education,
+            "experience": ext.experience,
+            "skills": ext.skills,
+            "inferred_skills": ext.inferred_skills,
+            "projects": ext.projects,
+            "certifications": ext.certifications,
+        }
+
+        match_result = resume_job_matcher.match_resume_to_job(
+            resume_id=resume_id,
+            version_id=ext.version_id,
+            target_job_title=req.target_job_title,
+            target_job_description=req.target_job_description,
+            raw_resume_text=ext_rec.raw_text,
+            extractions=extractions_dict
+        )
+
+        # Persist the evaluation into resume_job_matches
+        match_record = ResumeJobMatchRecord(
+            resume_version_id=ext.version_id,
+            user_id=current_user.id,
+            target_job_title=req.target_job_title,
+            target_job_description=req.target_job_description,
+            overall_match_score=match_result.overall_match_score,
+            keyword_coverage_score=match_result.keyword_coverage_score,
+            required_skills_match_json=match_result.required_skills_match,
+            preferred_skills_match_json=match_result.preferred_skills_match,
+            experience_level_match_json=match_result.experience_level_match,
+            project_theme_alignments_json=match_result.project_theme_alignments,
+            unverified_matches_json=match_result.unverified_matches,
+            job_specific_suggestions_json=match_result.job_specific_suggestions
+        )
+        db.add(match_record)
+        await db.commit()
+        await db.refresh(match_record)
+
+        match_result.match_id = match_record.id
+        return match_result
+
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get("/{resume_id}/job-matches", response_model=List[ResumeJobMatchResponse])
+async def list_resume_job_matches(
+    resume_id: str,
+    version_id: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Lists saved job matching analyses for a resume."""
+    stmt = select(ResumeJobMatchRecord).where(ResumeJobMatchRecord.user_id == current_user.id)
+    if version_id:
+        stmt = stmt.where(ResumeJobMatchRecord.resume_version_id == version_id)
+    stmt = stmt.order_by(ResumeJobMatchRecord.created_at.desc())
+    res = await db.execute(stmt)
+    records = res.scalars().all()
+    return [
+        ResumeJobMatchResponse(
+            match_id=r.id,
+            resume_id=resume_id,
+            version_id=r.resume_version_id,
+            target_job_title=r.target_job_title,
+            overall_match_score=r.overall_match_score,
+            keyword_coverage_score=r.keyword_coverage_score,
+            required_skills_match=r.required_skills_match_json,
+            preferred_skills_match=r.preferred_skills_match_json,
+            experience_level_match=r.experience_level_match_json,
+            project_theme_alignments=r.project_theme_alignments_json,
+            unverified_matches=r.unverified_matches_json,
+            job_specific_suggestions=r.job_specific_suggestions_json,
+            created_at=r.created_at
+        )
+        for r in records
+    ]
+
+
+@router.get("/{resume_id}/job-matches/{match_id}", response_model=ResumeJobMatchResponse)
+async def get_resume_job_match(
+    resume_id: str,
+    match_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieves a specific past job match evaluation."""
+    stmt = select(ResumeJobMatchRecord).where(
+        ResumeJobMatchRecord.id == match_id,
+        ResumeJobMatchRecord.user_id == current_user.id
+    )
+    res = await db.execute(stmt)
+    r = res.scalar_one_or_none()
+    if not r:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job match not found.")
+    return ResumeJobMatchResponse(
+        match_id=r.id,
+        resume_id=resume_id,
+        version_id=r.resume_version_id,
+        target_job_title=r.target_job_title,
+        overall_match_score=r.overall_match_score,
+        keyword_coverage_score=r.keyword_coverage_score,
+        required_skills_match=r.required_skills_match_json,
+        preferred_skills_match=r.preferred_skills_match_json,
+        experience_level_match=r.experience_level_match_json,
+        project_theme_alignments=r.project_theme_alignments_json,
+        unverified_matches=r.unverified_matches_json,
+        job_specific_suggestions=r.job_specific_suggestions_json,
+        created_at=r.created_at
+    )
+
+
+@router.get("/{resume_id}/diff", response_model=ResumeVersionDiffResponse)
+async def compare_resume_versions(
+    resume_id: str,
+    v1: str = Query(..., description="First version ID (baseline)"),
+    v2: str = Query(..., description="Second version ID (comparison)"),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Compares two resume versions for textual, skill, and quality differences."""
+    stmt = select(ResumeVersionRecord).where(
+        ResumeVersionRecord.resume_id == resume_id,
+        ResumeVersionRecord.user_id == current_user.id,
+        ResumeVersionRecord.id.in_([v1, v2])
+    )
+    res = await db.execute(stmt)
+    versions_map = {ver.id: ver for ver in res.scalars().all()}
+    if v1 not in versions_map or v2 not in versions_map:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or both versions not found.")
+
+    ver1 = versions_map[v1]
+    ver2 = versions_map[v2]
+
+    stmt_e = select(ResumeExtractionRecord).where(
+        ResumeExtractionRecord.resume_version_id.in_([v1, v2]),
+        ResumeExtractionRecord.user_id == current_user.id
+    )
+    res_e = await db.execute(stmt_e)
+    ext_map = {e.resume_version_id: e for e in res_e.scalars().all()}
+
+    ext1 = ext_map.get(v1)
+    ext2 = ext_map.get(v2)
+
+    text1 = ext1.raw_text if ext1 else ""
+    text2 = ext2.raw_text if ext2 else ""
+
+    char_diff = len(text2) - len(text1)
+    words1 = text1.split()
+    words2 = text2.split()
+    word_diff = len(words2) - len(words1)
+
+    def collect_skills(ext_record):
+        if not ext_record or not ext_record.skills_json:
+            return set()
+        s_set = set()
+        for cat, items in ext_record.skills_json.items():
+            if isinstance(items, list):
+                for item in items:
+                    name = item.get("name") if isinstance(item, dict) else str(item)
+                    if name:
+                        s_set.add(name.strip())
+        return s_set
+
+    s1 = collect_skills(ext1)
+    s2 = collect_skills(ext2)
+    added = sorted(list(s2 - s1))
+    removed = sorted(list(s1 - s2))
+    shared = sorted(list(s1 & s2))
+
+    sec1 = set((ext1.sections_json or {}).keys()) if ext1 else set()
+    sec2 = set((ext2.sections_json or {}).keys()) if ext2 else set()
+    sec_changes = {}
+    for s in (sec2 - sec1):
+        if not s.startswith("_"):
+            sec_changes[s] = "ADDED"
+    for s in (sec1 - sec2):
+        if not s.startswith("_"):
+            sec_changes[s] = "REMOVED"
+    for s in (sec1 & sec2):
+        if not s.startswith("_"):
+            sec_changes[s] = "RETAINED"
+
+    quality_diff = None
+    try:
+        if ext1 and ext2:
+            q1 = resume_quality_analyzer.analyze_quality(
+                resume_id, v1, text1, {
+                    "personal_info": ext1.personal_info_json,
+                    "summary": ext1.summary_json,
+                    "education": ext1.education_json,
+                    "experience": ext1.experience_json,
+                    "skills": ext1.skills_json,
+                    "projects": ext1.projects_json,
+                    "sections": ext1.sections_json
+                }
+            )
+            q2 = resume_quality_analyzer.analyze_quality(
+                resume_id, v2, text2, {
+                    "personal_info": ext2.personal_info_json,
+                    "summary": ext2.summary_json,
+                    "education": ext2.education_json,
+                    "experience": ext2.experience_json,
+                    "skills": ext2.skills_json,
+                    "projects": ext2.projects_json,
+                    "sections": ext2.sections_json
+                }
+            )
+            quality_diff = {
+                "v1_score": q1.overall_quality_score,
+                "v2_score": q2.overall_quality_score,
+                "score_delta": round(q2.overall_quality_score - q1.overall_quality_score, 1),
+                "v1_band": q1.quality_band,
+                "v2_band": q2.quality_band,
+            }
+    except Exception:
+        pass
+
+    return ResumeVersionDiffResponse(
+        resume_id=resume_id,
+        version_id_1=v1,
+        version_id_2=v2,
+        version_label_1=ver1.version_label,
+        version_label_2=ver2.version_label,
+        character_count_diff=char_diff,
+        word_count_diff=word_diff,
+        added_skills=added,
+        removed_skills=removed,
+        shared_skills=shared,
+        section_changes=sec_changes,
+        quality_score_diff=quality_diff
+    )
+
+
+@router.get("/{resume_id}/ai-suggestions", response_model=ResumeAISuggestionsResponse)
+async def get_ai_suggestions(
+    resume_id: str,
+    version_id: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Generates grounded 'Before vs After' rewrite proposals requiring candidate verification."""
+    try:
+        ext = await resume_service.get_extraction(db, current_user.id, resume_id, version_id)
+        extractions_dict = {
+            "personal_info": ext.personal_info,
+            "summary": ext.summary,
+            "education": ext.education,
+            "experience": ext.experience,
+            "skills": ext.skills,
+            "projects": ext.projects,
+        }
+
+        return await resume_ai_service.generate_suggestions(
+            resume_id=resume_id,
+            version_id=ext.version_id,
+            extractions=extractions_dict
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post("/{resume_id}/ai-suggestions/{suggestion_id}/action", response_model=SuggestionActionResponse)
+async def handle_ai_suggestion_action(
+    resume_id: str,
+    suggestion_id: str,
+    req: SuggestionActionRequest,
+    version_id: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Applies candidate approval actions (ACCEPT, REJECT, EDIT, REGENERATE).
+    Never overwrites original resume content without explicit candidate confirmation.
+    """
+    try:
+        ext = await resume_service.get_extraction(db, current_user.id, resume_id, version_id)
+        extractions_dict = {
+            "personal_info": ext.personal_info,
+            "summary": ext.summary,
+            "education": ext.education,
+            "experience": ext.experience,
+            "skills": ext.skills,
+            "projects": ext.projects,
+        }
+
+        # Generate current suggestions to locate target suggestion
+        sug_resp = await resume_ai_service.generate_suggestions(
+            resume_id=resume_id,
+            version_id=ext.version_id,
+            extractions=extractions_dict
+        )
+        target_sug = next((s for s in sug_resp.suggestions if s.id == suggestion_id), None)
+        if not target_sug:
+            # Create a shell suggestion to apply action
+            target_sug = AISuggestionDTO(
+                id=suggestion_id,
+                category="BULLET_REWRITE",
+                target_section="EXPERIENCE",
+                current_issue="Target suggestion",
+                why_it_matters="Candidate review",
+                recommended_text=req.edited_text or "Suggested rewrite",
+                evidence_required_from_candidate="Proof required"
+            )
+
+        success, updated_sug, msg = resume_ai_service.apply_candidate_action(
+            target_sug, req.action, req.edited_text
+        )
+        if not success:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+
+        # Persist candidate action record
+        action_rec = ResumeAISuggestionActionRecord(
+            resume_version_id=ext.version_id,
+            user_id=current_user.id,
+            suggestion_id=suggestion_id,
+            action=req.action,
+            original_text=target_sug.current_text or target_sug.original_content,
+            suggested_text=target_sug.recommended_text or target_sug.suggested_rewrite,
+            edited_text=req.edited_text,
+            status="APPLIED"
+        )
+        db.add(action_rec)
+        await db.commit()
+
+        return SuggestionActionResponse(
+            success=True,
+            suggestion=updated_sug,
+            message=msg
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @router.get("/{resume_id}/download")

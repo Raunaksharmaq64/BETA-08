@@ -405,13 +405,26 @@ class ResumeService:
 
             evidence_dicts = [ev.model_dump() for ev in evidence_list]
 
+            enriched_sections = dict(extractions["sections"])
+            enriched_sections["_internships"] = extractions.get("internships", [])
+            enriched_sections["_inferred_skills"] = extractions.get("inferred_skills", [])
+            enriched_sections["_explicit_skills"] = extractions.get("explicit_skills", extractions.get("skills", {}))
+            enriched_sections["_publications"] = extractions.get("publications", [])
+            enriched_sections["_languages"] = extractions.get("languages", [])
+            enriched_sections["_awards"] = extractions.get("awards", [])
+            enriched_sections["_is_scanned_pdf"] = extractions.get("is_scanned_pdf", False)
+            enriched_sections["_is_mixed_content"] = extractions.get("is_mixed_content", False)
+            enriched_sections["_ocr_required"] = extractions.get("ocr_required", False)
+            enriched_sections["_low_text_pages"] = extractions.get("low_text_pages", [])
+            enriched_sections["_extraction_notes"] = extractions.get("extraction_notes", [])
+
             if not ext_record:
                 ext_record = ResumeExtractionRecord(
                     resume_version_id=version.id,
                     user_id=user_id,
                     raw_text=raw_text,
                     summary_json=extractions["summary"],
-                    sections_json=extractions["sections"],
+                    sections_json=enriched_sections,
                     personal_info_json=extractions["personal_info"],
                     education_json=extractions["education"],
                     experience_json=extractions["experience"],
@@ -424,7 +437,7 @@ class ResumeService:
             else:
                 ext_record.raw_text = raw_text
                 ext_record.summary_json = extractions["summary"]
-                ext_record.sections_json = extractions["sections"]
+                ext_record.sections_json = enriched_sections
                 ext_record.personal_info_json = extractions["personal_info"]
                 ext_record.education_json = extractions["education"]
                 ext_record.experience_json = extractions["experience"]
@@ -445,9 +458,20 @@ class ResumeService:
                 summary=extractions["summary"],
                 education=extractions["education"],
                 experience=extractions["experience"],
+                internships=extractions.get("internships", []),
                 skills=extractions["skills"],
+                explicit_skills=extractions.get("explicit_skills", extractions["skills"]),
+                inferred_skills=extractions.get("inferred_skills", []),
                 projects=extractions["projects"],
                 certifications=extractions["certifications"],
+                publications=extractions.get("publications", []),
+                languages=extractions.get("languages", []),
+                awards=extractions.get("awards", []),
+                is_scanned_pdf=extractions.get("is_scanned_pdf", False),
+                is_mixed_content=extractions.get("is_mixed_content", False),
+                ocr_required=extractions.get("ocr_required", False),
+                low_text_pages=extractions.get("low_text_pages", []),
+                extraction_notes=extractions.get("extraction_notes", []),
                 evidence_items=evidence_list,
                 parsed_at=version.parsed_at
             )
@@ -521,6 +545,20 @@ class ResumeService:
             for item in (ext.evidence_items_json or [])
         ]
 
+        # Unpack supplementary sections stored in sections_json if present
+        sections = ext.sections_json or {}
+        internships = sections.get("_internships", [])
+        inferred_skills = sections.get("_inferred_skills", [])
+        explicit_skills = sections.get("_explicit_skills", ext.skills_json or {})
+        publications = sections.get("_publications", [])
+        languages = sections.get("_languages", [])
+        awards = sections.get("_awards", [])
+        is_scanned_pdf = bool(sections.get("_is_scanned_pdf", False))
+        is_mixed_content = bool(sections.get("_is_mixed_content", False))
+        ocr_required = bool(sections.get("_ocr_required", False))
+        low_text_pages = sections.get("_low_text_pages", [])
+        extraction_notes = sections.get("_extraction_notes", [])
+
         return ResumeExtractionResponse(
             resume_id=resume_id,
             version_id=version.id,
@@ -529,9 +567,20 @@ class ResumeService:
             summary=ext.summary_json,
             education=ext.education_json or [],
             experience=ext.experience_json or [],
+            internships=internships,
             skills=ext.skills_json or {},
+            explicit_skills=explicit_skills,
+            inferred_skills=inferred_skills,
             projects=ext.projects_json or [],
             certifications=ext.certifications_json or [],
+            publications=publications,
+            languages=languages,
+            awards=awards,
+            is_scanned_pdf=is_scanned_pdf,
+            is_mixed_content=is_mixed_content,
+            ocr_required=ocr_required,
+            low_text_pages=low_text_pages,
+            extraction_notes=extraction_notes,
             evidence_items=evidence_items,
             parsed_at=version.parsed_at
         )
