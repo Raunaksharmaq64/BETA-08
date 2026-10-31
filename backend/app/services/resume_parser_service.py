@@ -32,7 +32,7 @@ _SECTION_PATTERNS: Dict[str, re.Pattern] = {
         re.IGNORECASE
     ),
     "EXPERIENCE": re.compile(
-        r"^(?:work\s+experience|professional\s+experience|experience|employment\s+history|work\s+history|career\s+history)\b",
+        r"^(?:(?:relevant|selected|professional|work|industry|software)\s+)*(?:experience|employment\s+history|work\s+history|career\s+history)\b",
         re.IGNORECASE
     ),
     "EDUCATION": re.compile(
@@ -48,11 +48,11 @@ _SECTION_PATTERNS: Dict[str, re.Pattern] = {
         re.IGNORECASE
     ),
     "PROJECTS": re.compile(
-        r"^(?:projects|key\s+projects|personal\s+projects|academic\s+projects|featured\s+projects)\b",
+        r"^(?:(?:selected|featured|key|personal|academic|technical|industry|ai\s*&?\s*automation|software|notable)\s+)*(?:projects|automations?|portfolio)\b",
         re.IGNORECASE
     ),
     "CERTIFICATIONS": re.compile(
-        r"^(?:certifications|licenses\s*&?\s*certifications|certificates|credentials|professional\s+certifications)\b",
+        r"^(?:certifications|certifications\s*&?\s*industry\s+simulations|licenses\s*&?\s*certifications|certificates|credentials|professional\s+certifications)\b",
         re.IGNORECASE
     ),
     "AWARDS": re.compile(
@@ -76,24 +76,32 @@ _SECTION_PATTERNS: Dict[str, re.Pattern] = {
 _KNOWN_SKILLS: Dict[str, List[str]] = {
     "languages": [
         "python", "javascript", "typescript", "golang", "go", "rust", "java", "c++", "c#",
-        "ruby", "php", "swift", "kotlin", "scala", "sql", "html", "css", "r", "julia"
+        "ruby", "php", "swift", "kotlin", "scala", "sql", "html", "html5", "css", "css3", "r", "julia"
     ],
     "frameworks": [
         "fastapi", "react", "react.js", "next.js", "nextjs", "vue", "vue.js", "angular",
         "django", "flask", "node.js", "nodejs", "express", "express.js", "spring boot",
-        "spring", "ruby on rails", "rails", "asp.net", "tailwind", "tailwindcss", "bootstrap"
+        "spring", "ruby on rails", "rails", "asp.net", "tailwind", "tailwindcss", "bootstrap",
+        "restful apis", "rest api", "web audio api", "jwt authentication", "whatsapp protocol"
     ],
     "databases": [
         "postgresql", "postgres", "mysql", "redis", "mongodb", "sqlite", "elasticsearch",
         "cassandra", "dynamodb", "mariadb", "oracle", "neo4j", "supabase"
     ],
     "cloud": [
-        "aws", "amazon web services", "gcp", "google cloud", "azure", "docker",
-        "kubernetes", "k8s", "terraform", "ansible", "cloudflare", "linux", "nginx"
+        "aws", "amazon web services", "gcp", "google cloud", "azure", "docker", "docker compose",
+        "kubernetes", "k8s", "terraform", "ansible", "cloudflare", "linux", "nginx", "render",
+        "vercel", "ec2", "s3", "vpc networking"
     ],
     "tools": [
         "git", "github", "gitlab", "jira", "ci/cd", "postman", "celery", "rabbitmq",
-        "kafka", "pytest", "jest", "webpack", "vite", "argocd", "datadog", "prometheus"
+        "kafka", "pytest", "jest", "webpack", "vite", "argocd", "datadog", "prometheus",
+        "playwright", "selenium", "serpapi", "webhooks"
+    ],
+    "ai_agentic": [
+        "ai agent workflows", "ai agents", "llm apis", "llm integrations", "large language models",
+        "gemini", "claude", "gpt", "rag", "document rag", "bolna", "prompt engineering",
+        "langchain", "llamaindex", "autogen", "crewai"
     ],
     "soft_skills": [
         "leadership", "mentorship", "agile", "scrum", "communication", "collaboration",
@@ -279,6 +287,7 @@ class ResumeParserService:
 
         info: Dict[str, Any] = {
             "full_name": None,
+            "headline": None,
             "email": None,
             "phone": None,
             "city": None,
@@ -308,6 +317,57 @@ class ResumeParserService:
                     confidence_level=ConfidenceLevel.HIGH,
                     review_status=ReviewStatus.PENDING
                 ))
+
+        # Headline / Professional Title: typically the line right after name
+        if len(lines) > 1:
+            headline_candidate = lines[1].strip()
+            if (
+                headline_candidate
+                and len(headline_candidate) < 140
+                and not _EMAIL_RE.search(headline_candidate)
+                and not _PHONE_RE.search(headline_candidate)
+                and "http" not in headline_candidate.lower()
+                and "github" not in headline_candidate.lower()
+                and "linkedin" not in headline_candidate.lower()
+            ):
+                info["headline"] = headline_candidate
+                evidence_list.append(EvidenceDTO(
+                    field_id=str(uuid.uuid4()),
+                    field_name="personal_info.headline",
+                    extracted_value=headline_candidate,
+                    source_section="HEADER",
+                    excerpt=headline_candidate,
+                    page_number=page_num,
+                    extraction_method="DOCUMENT_HEADER",
+                    confidence_score=0.92,
+                    confidence_level=ConfidenceLevel.HIGH,
+                    review_status=ReviewStatus.PENDING
+                ))
+
+        # Location extraction (City, State, Country)
+        loc_match = re.search(r"(?:📍|location[:\s]+)?\s*([A-Za-z\s]+),\s*([A-Za-z\s]+),\s*(India|United States|USA|UK|Canada|Germany|Singapore|[A-Za-z\s]+)", text)
+        if loc_match:
+            c = loc_match.group(1).strip()
+            s = loc_match.group(2).strip()
+            co = loc_match.group(3).strip()
+            if c and len(c) < 50:
+                info["city"] = c
+            if s and len(s) < 50:
+                info["state"] = s
+            if co and len(co) < 50:
+                info["country"] = co
+            evidence_list.append(EvidenceDTO(
+                field_id=str(uuid.uuid4()),
+                field_name="personal_info.location",
+                extracted_value=f"{info.get('city')}, {info.get('state')}, {info.get('country')}",
+                source_section="HEADER",
+                excerpt=loc_match.group(0).strip(),
+                page_number=page_num,
+                extraction_method="REGEX",
+                confidence_score=0.92,
+                confidence_level=ConfidenceLevel.HIGH,
+                review_status=ReviewStatus.PENDING
+            ))
 
         # Email
         email_match = _EMAIL_RE.search(text)
@@ -599,6 +659,7 @@ class ResumeParserService:
             "databases": [],
             "cloud": [],
             "tools": [],
+            "ai_agentic": [],
             "soft_skills": []
         }
         inferred_skills: List[Dict[str, Any]] = []
@@ -857,31 +918,60 @@ class ResumeParserService:
         current_proj: Optional[Dict[str, Any]] = None
 
         for item in proj_lines:
-            line = item["line"]
+            line = item["line"].strip()
             page_num = item["page"]
-            is_bullet = line.startswith(("-", "•", "*", "–", "—"))
+            if not line:
+                continue
 
-            if not is_bullet and len(line) < 80:
+            # Detect tech stack lines like "React • FastAPI • PostgreSQL • Redis"
+            if current_proj and ("•" in line or "|" in line) and any(
+                kw in line.lower() for kw in ("react", "fastapi", "python", "node", "express", "postgres", "redis", "mongodb", "docker", "gemini", "aws", "bolna", "rag", "sql")
+            ):
+                techs = [t.strip() for t in re.split(r"[•|]", line) if t.strip()]
+                current_proj["technologies"].extend(techs)
+                continue
+
+            # Check if this line is a project title: short, not starting with bullet point
+            is_bullet = line.startswith(("-", "•", "*", "–", "—"))
+            is_title = (not is_bullet) and (
+                "—" in line or " - " in line or ":" in line or "(" in line or len(line) < 65
+            ) and not any(line.lower().startswith(b) for b in ("architected", "engineered", "integrated", "built", "developed", "implemented"))
+
+            if is_title:
                 if current_proj:
                     projects.append(current_proj)
                 current_proj = {
                     "name": line.strip(),
                     "description": "",
                     "technologies": [],
+                    "bullets": [],
                     "page_number": page_num,
                     "excerpt": line
                 }
             elif current_proj:
                 cleaned = re.sub(r"^[-•*–—\s]+", "", line).strip()
-                if current_proj["description"]:
-                    current_proj["description"] += " " + cleaned
-                else:
-                    current_proj["description"] = cleaned
+                if cleaned:
+                    current_proj.setdefault("bullets", []).append(cleaned)
+                    if current_proj["description"]:
+                        current_proj["description"] += "\n" + cleaned
+                    else:
+                        current_proj["description"] = cleaned
 
         if current_proj:
             projects.append(current_proj)
 
-        for idx, proj in enumerate(projects):
+        # Clean duplicates or fragment titles (filter out orphan bullets)
+        final_projects = []
+        for p in projects:
+            name = p["name"].strip()
+            if (
+                len(name) >= 6
+                and not name[0].islower()
+                and not name.lower().startswith(("and ", "architecture", "dynamic", "fees", "spoken", "technical audits", "recognition"))
+            ):
+                final_projects.append(p)
+
+        for idx, proj in enumerate(final_projects):
             evidence_list.append(EvidenceDTO(
                 field_id=str(uuid.uuid4()),
                 field_name=f"projects[{idx}].name",
@@ -890,12 +980,12 @@ class ResumeParserService:
                 excerpt=proj["excerpt"],
                 page_number=proj["page_number"],
                 extraction_method="SECTION_PARSER",
-                confidence_score=0.85,
+                confidence_score=0.88,
                 confidence_level=ConfidenceLevel.HIGH,
                 review_status=ReviewStatus.PENDING
             ))
 
-        return projects
+        return final_projects
 
     def extract_certifications(
         self,
@@ -907,15 +997,34 @@ class ResumeParserService:
         if not cert_lines:
             return []
 
+        # Merge wrapped lines (e.g., "(EC2, S3, VPC Networking," followed by "Cloud Architecture)")
+        merged_lines: List[Dict[str, Any]] = []
+        for item in cert_lines:
+            raw_line = item["line"].strip()
+            if not raw_line:
+                continue
+            if merged_lines and (
+                merged_lines[-1]["line"].count("(") > merged_lines[-1]["line"].count(")")
+                or merged_lines[-1]["line"].endswith(",")
+            ):
+                merged_lines[-1]["line"] += " " + raw_line
+            else:
+                merged_lines.append({"line": raw_line, "page": item["page"]})
+
         certifications: List[Dict[str, Any]] = []
-        for idx, item in enumerate(cert_lines):
+        for idx, item in enumerate(merged_lines):
             line = item["line"].strip()
             if not line:
                 continue
             cleaned = re.sub(r"^[-•*–—\s]+", "", line).strip()
+            issuer = None
+            if ":" in cleaned:
+                parts = cleaned.split(":", 1)
+                issuer = parts[0].strip()
+
             cert_item = {
                 "name": cleaned,
-                "issuer": None,
+                "issuer": issuer,
                 "page_number": item["page"],
                 "excerpt": line
             }
@@ -929,7 +1038,7 @@ class ResumeParserService:
                 excerpt=line,
                 page_number=item["page"],
                 extraction_method="SECTION_PARSER",
-                confidence_score=0.85,
+                confidence_score=0.90,
                 confidence_level=ConfidenceLevel.HIGH,
                 review_status=ReviewStatus.PENDING
             ))

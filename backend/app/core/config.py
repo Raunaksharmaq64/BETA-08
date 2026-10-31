@@ -51,7 +51,10 @@ class Settings(BaseSettings):
     RATE_LIMIT_RESUME_UPLOAD: int = 10
 
     # Resume Storage & Intelligence
-    RESUME_STORAGE_DIR: str = os.getenv("RESUME_STORAGE_DIR", "./storage/resumes")
+    RESUME_STORAGE_DIR: str = os.getenv(
+        "RESUME_STORAGE_DIR",
+        os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "storage", "resumes"))
+    )
     MAX_RESUME_FILE_SIZE_BYTES: int = 10 * 1024 * 1024  # 10 MB limit
     ALLOWED_RESUME_EXTENSIONS: List[str] = ["pdf", "docx"]
     ALLOWED_RESUME_MIME_TYPES: List[str] = [
@@ -61,7 +64,7 @@ class Settings(BaseSettings):
 
     # Satellite Service Integrations
     LEADHUNTER_BASE_URL: str = os.getenv("LEADHUNTER_BASE_URL", "http://localhost:8001")
-    STARTUP_INTELLIGENCE_BASE_URL: str = os.getenv("STARTUP_INTELLIGENCE_BASE_URL", "http://localhost:8002")
+    STARTUP_INTELLIGENCE_BASE_URL: str = os.getenv("STARTUP_INTELLIGENCE_BASE_URL", "http://127.0.0.1:8002")
     INTERNAL_SERVICE_KEY: str = os.getenv("INTERNAL_SERVICE_KEY", "rightfit_internal_shared_secret_key_123")
 
     # AI & LLM Engine Keys
@@ -94,7 +97,10 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env"),
+            ".env",
+        ),
         case_sensitive=True,
         extra="allow",
     )

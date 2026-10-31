@@ -184,8 +184,44 @@ class SafeURLChecker:
 
                     # Final non-redirect response reached
                     latency = (time.time() - start_time) * 1000.0
-                    content_type = resp.headers.get("content-type")
+                    content_type = resp.headers.get("content-type") or ""
                     is_ok = 200 <= resp.status_code < 400
+
+                    # Check for DOM tombstones in HTML responses (e.g., job expired but returns 200)
+                    tombstone_found = None
+                    if is_ok and "html" in content_type.lower():
+                        try:
+                            # Read initial snippet to prevent unbounded memory usage
+                            body_snippet = (resp.text[:65536] if hasattr(resp, "text") else "").lower()
+                            tombstone_phrases = [
+                                "no longer accepting applications",
+                                "this position has been filled",
+                                "job has been closed",
+                                "this job is closed",
+                                "this listing has expired",
+                                "requisition has been unposted",
+                                "the job you are looking for is no longer available",
+                                "this opening is closed",
+                                "this vacancy has been closed",
+                                "posting has closed",
+                            ]
+                            for phrase in tombstone_phrases:
+                                if phrase in body_snippet:
+                                    tombstone_found = phrase
+                                    break
+                        except Exception:
+                            tombstone_found = None
+
+                    if tombstone_found:
+                        is_ok = False
+                        error_category = "TOMBSTONE_DETECTED"
+                        error_message = f"Vacancy closed: detected '{tombstone_found}' on employer page"
+                    elif is_ok:
+                        error_category = None
+                        error_message = None
+                    else:
+                        error_category = "HTTP_ERROR"
+                        error_message = f"HTTP {resp.status_code}"
 
                     return URLProbeResult(
                         url=url,
@@ -195,8 +231,8 @@ class SafeURLChecker:
                         latency_ms=round(latency, 2),
                         content_type=content_type,
                         redirect_count=redirects_followed,
-                        error_category=None if is_ok else "HTTP_ERROR",
-                        error_message=None if is_ok else f"HTTP {resp.status_code}",
+                        error_category=error_category,
+                        error_message=error_message,
                     )
 
         except SSRFSecurityException as redirect_ssrf:

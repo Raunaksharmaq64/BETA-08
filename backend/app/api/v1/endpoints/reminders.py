@@ -160,3 +160,66 @@ async def check_schedule_conflicts(
     check = await db.run_sync(_sync_conflict)
     return StandardResponse(data=check, meta=make_meta(req_id))
 
+
+@router.get("/calendar/export.ics")
+async def export_calendar_ics(
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generates standard RFC 5545 iCalendar stream for Google Calendar, Apple Calendar, and Outlook."""
+    from fastapi.responses import Response
+
+    def _sync_export(session: Session) -> str:
+        events = ReminderService.get_calendar_events(
+            session=session,
+            user_id=current_user.id,
+            start_utc=None,
+            end_utc=None,
+            candidate_timezone="UTC",
+        )
+        lines = [
+            "BEGIN:VCALENDAR",
+            "VERSION:2.0",
+            "PRODID:-//RIGHT FIT//Career Intelligence Engine//EN",
+            "CALSCALE:GREGORIAN",
+            "METHOD:PUBLISH",
+            "X-WR-CALNAME:RIGHT FIT Interview & Career Schedule",
+        ]
+        now_str = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        for ev in events:
+            st = ev.start_time
+            if hasattr(st, "strftime"):
+                dt_start = st.strftime("%Y%m%dT%H%M%SZ")
+            else:
+                dt_start = str(st).replace("-", "").replace(":", "")[:15] + "Z"
+
+            end_t = getattr(ev, "end_time", None)
+            if end_t and hasattr(end_t, "strftime"):
+                dt_end = end_t.strftime("%Y%m%dT%H%M%SZ")
+            else:
+                dt_end = dt_start
+
+            summary = ev.title.replace("\n", " ").replace(",", "\\,")
+            lines.extend([
+                "BEGIN:VEVENT",
+                f"UID:{ev.event_id}@rightfit.platform",
+                f"DTSTAMP:{now_str}",
+                f"DTSTART:{dt_start}",
+                f"DTEND:{dt_end}",
+                f"SUMMARY:{summary}",
+                f"DESCRIPTION:RIGHT FIT Scheduled Event - {ev.event_type}",
+                "STATUS:CONFIRMED",
+                "END:VEVENT",
+            ])
+        lines.append("END:VCALENDAR")
+        return "\r\n".join(lines)
+
+    ics_content = await db.run_sync(_sync_export)
+    return Response(
+        content=ics_content,
+        media_type="text/calendar",
+        headers={"Content-Disposition": 'attachment; filename="rightfit-schedule.ics"'}
+    )
+
+

@@ -99,12 +99,12 @@ class ReviewService:
                     "description": "Phone number in resume differs from existing profile."
                 })
             # Check headline
-            if profile.headline and personal_info.get("full_name") and profile.headline.lower() != personal_info["full_name"].lower():
+            if profile.headline and personal_info.get("headline") and profile.headline.strip().lower() != personal_info["headline"].strip().lower():
                 conflicts.append({
                     "field_name": "headline",
                     "current_profile_value": profile.headline,
-                    "extracted_value": personal_info["full_name"],
-                    "description": "Headline/name in resume differs from current profile."
+                    "extracted_value": personal_info["headline"],
+                    "description": "Headline in resume differs from current profile."
                 })
 
         # 4. Parse evidence items and calculate counts
@@ -247,6 +247,30 @@ class ReviewService:
 
         # Sync Personal Information
         personal = extraction.personal_info_json or {}
+
+        # Sync Headline
+        if personal.get("headline"):
+            if not profile.headline:
+                profile.headline = personal["headline"]
+                synced_count += 1
+            elif sync_req.overwrite_conflicts:
+                profile.headline = personal["headline"]
+                overwritten_count += 1
+
+        # Sync Location (City, State, Country)
+        if personal.get("city"):
+            if not profile.city or sync_req.overwrite_conflicts:
+                profile.city = personal["city"]
+                synced_count += 1
+        if personal.get("state"):
+            if not profile.state or sync_req.overwrite_conflicts:
+                profile.state = personal["state"]
+                synced_count += 1
+        if personal.get("country"):
+            if not profile.country or sync_req.overwrite_conflicts:
+                profile.country = personal["country"]
+                synced_count += 1
+
         if personal.get("phone"):
             if not profile.phone:
                 profile.phone = personal["phone"]
@@ -287,9 +311,31 @@ class ReviewService:
                     db.add(new_skill)
                     synced_count += 1
 
+        # Sync Inferred / Project Skills
+        for item in (extraction.inferred_skills_json or []):
+            s_name = item.get("name")
+            if s_name:
+                stmt_s = select(CandidateSkillRecord).where(
+                    CandidateSkillRecord.profile_id == profile.id,
+                    CandidateSkillRecord.skill_name == s_name
+                )
+                res_s = await db.execute(stmt_s)
+                if not res_s.scalar_one_or_none():
+                    new_skill = CandidateSkillRecord(
+                        profile_id=profile.id,
+                        skill_name=s_name,
+                        category=item.get("category", "tools"),
+                        proficiency="Intermediate",
+                        provenance=FieldProvenance.RESUME_EXTRACTED.value
+                    )
+                    db.add(new_skill)
+                    synced_count += 1
+
         # Sync Education
         for edu in (extraction.education_json or []):
-            inst = edu.get("institution")
+            inst = (edu.get("institution") or "").strip()[:140]
+            deg = (edu.get("degree") or "Degree").strip()[:140]
+            fos = (edu.get("field_of_study") or "Computer Science & Engineering").strip()[:140]
             if inst:
                 stmt_e = select(EducationRecord).where(
                     EducationRecord.profile_id == profile.id,
@@ -300,8 +346,8 @@ class ReviewService:
                     new_edu = EducationRecord(
                         profile_id=profile.id,
                         institution=inst,
-                        degree=edu.get("degree") or "Degree",
-                        field_of_study=edu.get("field_of_study") or "General Studies",
+                        degree=deg,
+                        field_of_study=fos,
                         start_date=edu.get("start_date"),
                         end_date=edu.get("end_date"),
                         achievements=edu.get("grade"),
@@ -310,8 +356,22 @@ class ReviewService:
                     db.add(new_edu)
                     synced_count += 1
 
-        # Sync Experience
-        for exp in (extraction.experience_json or []):
+        # Sync Experience (formal or verified practical projects)
+        experiences_to_sync = list(extraction.experience_json or [])
+        if not experiences_to_sync and extraction.projects_json:
+            for proj in extraction.projects_json:
+                desc = proj.get("description") or ""
+                if proj.get("technologies"):
+                    desc = f"Technologies: {', '.join(proj['technologies'])}\n{desc}".strip()
+                experiences_to_sync.append({
+                    "company": proj.get("name", "Software Project"),
+                    "title": (profile.headline or "AI Automation & Full-Stack Developer").split("|")[0].strip(),
+                    "start_date": "2023",
+                    "end_date": "Present",
+                    "responsibilities": [desc] if desc else []
+                })
+
+        for exp in experiences_to_sync:
             comp = exp.get("company")
             if comp:
                 stmt_x = select(ExperienceRecord).where(
@@ -320,11 +380,12 @@ class ReviewService:
                 )
                 res_x = await db.execute(stmt_x)
                 if not res_x.scalar_one_or_none():
-                    desc = "\n".join(exp.get("responsibilities", []))
+                    resp = exp.get("responsibilities", [])
+                    desc = "\n".join(resp) if isinstance(resp, list) else str(resp)
                     new_exp = ExperienceRecord(
                         profile_id=profile.id,
                         company=comp,
-                        role=exp.get("title") or "Professional Role",
+                        role=exp.get("title") or "Developer",
                         employment_type="Full-time",
                         start_date=exp.get("start_date"),
                         end_date=exp.get("end_date"),

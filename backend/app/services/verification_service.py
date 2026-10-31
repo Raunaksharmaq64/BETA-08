@@ -465,6 +465,18 @@ class VerificationService:
                     "confidence_category": "MEDIUM",
                     "safe_metadata": {"latency_ms": probe.latency_ms},
                 }
+            elif probe.error_category == "TOMBSTONE_DETECTED":
+                target_status = VerificationStatus.CLOSED_CONFIRMED
+                evidence_info = {
+                    "check_outcome": "CONFIRMED_CLOSED",
+                    "http_status": probe.http_status,
+                    "provider_status": "DOM_TOMBSTONE_EXPIRED",
+                    "evidence_category": "DOM_TOMBSTONE_DETECTION",
+                    "evidence_reference": probe.final_url,
+                    "confidence_category": "HIGH",
+                    "error_category": "VACANCY_CLOSED_ON_PORTAL",
+                    "safe_metadata": {"message": probe.error_message},
+                }
             elif probe.http_status in (404, 410):
                 target_status = VerificationStatus.UNAVAILABLE
                 evidence_info = {

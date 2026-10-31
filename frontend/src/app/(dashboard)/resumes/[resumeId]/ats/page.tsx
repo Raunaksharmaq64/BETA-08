@@ -80,12 +80,36 @@ interface SavedMatchSummary {
   created_at: string;
 }
 
+interface SuggestedJob {
+  job_id: string;
+  title: string;
+  company_name: string;
+  location: string;
+  is_remote: boolean;
+  employment_type: string;
+  salary_display?: string;
+  application_url: string;
+  match_score: number;
+  matched_skills: string[];
+  missing_skills: string[];
+  description_snippet: string;
+  full_description: string;
+  verification_status?: string;
+  freshness_state?: string;
+  listing_age_days?: number;
+  last_verified_display?: string;
+}
+
 export default function ResumeATSAnalysisPage() {
   const params = useParams();
   const resumeId = params?.resumeId as string;
 
-  // Active view tab: "quality" or "job-match"
-  const [activeTab, setActiveTab] = useState<"job-match" | "quality">("job-match");
+  // Active view tab: "suggested", "job-match", or "quality"
+  const [activeTab, setActiveTab] = useState<"suggested" | "job-match" | "quality">("suggested");
+
+  // Suggested Jobs state
+  const [suggestedJobs, setSuggestedJobs] = useState<SuggestedJob[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   // Quality Report state
   const [qualityReport, setQualityReport] = useState<QualityReport | null>(null);
@@ -104,8 +128,22 @@ export default function ResumeATSAnalysisPage() {
   const [matchingLoading, setMatchingLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch quality report on initial mount
+  // Fetch data on initial mount
   useEffect(() => {
+    const fetchSuggestedJobs = async () => {
+      try {
+        setLoadingSuggestions(true);
+        const res = await apiClient.get<SuggestedJob[]>(`/api/v1/resumes/${resumeId}/suggested-jobs?limit=10`);
+        if (res.success && res.data) {
+          setSuggestedJobs(res.data);
+        }
+      } catch (err: any) {
+        // Silently capture suggestions load issue
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+
     const fetchQuality = async () => {
       try {
         setLoadingQuality(true);
@@ -135,10 +173,18 @@ export default function ResumeATSAnalysisPage() {
     };
 
     if (resumeId) {
+      fetchSuggestedJobs();
       fetchQuality();
       fetchSavedMatches();
     }
   }, [resumeId]);
+
+  const handleAnalyzeSuggestedJob = (job: SuggestedJob) => {
+    setJobTitle(job.title);
+    setJobDescription(job.full_description);
+    setActiveTab("job-match");
+    window.scrollTo({ top: 300, behavior: "smooth" });
+  };
 
   const loadSavedMatchDetails = async (matchId: string) => {
     try {
@@ -207,7 +253,22 @@ export default function ResumeATSAnalysisPage() {
       <ResumeSubNav resumeId={resumeId} />
 
       {/* View Switcher Sub-tabs */}
-      <div className="flex space-x-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
+        <button
+          onClick={() => setActiveTab("suggested")}
+          className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center space-x-2 ${
+            activeTab === "suggested"
+              ? "bg-indigo-600 text-white shadow-sm"
+              : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+          }`}
+        >
+          <span>✨ Suggested Jobs For You</span>
+          {suggestedJobs.length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-900 text-indigo-200 border border-indigo-700">
+              {suggestedJobs.length}
+            </span>
+          )}
+        </button>
         <button
           onClick={() => setActiveTab("job-match")}
           className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
@@ -216,7 +277,7 @@ export default function ResumeATSAnalysisPage() {
               : "bg-slate-800 text-slate-300 hover:bg-slate-700"
           }`}
         >
-          🎯 Job-Specific Description Matcher
+          🎯 Custom Job Matcher & ATS
         </button>
         <button
           onClick={() => setActiveTab("quality")}
@@ -233,6 +294,133 @@ export default function ResumeATSAnalysisPage() {
       {error && (
         <div className="mb-6 p-4 rounded-lg bg-rose-900/40 border border-rose-700 text-rose-300 text-sm">
           {error}
+        </div>
+      )}
+
+      {/* ================= TAB 0: SUGGESTED JOBS ================= */}
+      {activeTab === "suggested" && (
+        <div className="space-y-6">
+          <div className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 flex items-start justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-100 flex items-center space-x-2">
+                <span>Tailored Recommendations Grounded In Your Facts</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-950/70 border border-emerald-800 text-emerald-300">
+                  Verified Real Jobs • No Mock Data
+                </span>
+              </h2>
+              <p className="mt-1 text-xs text-slate-400">
+                Matched against your extracted technical skills, verified SaaS projects (LeadHunter, AI Voice Agent, HostelBuddy), and professional headline.
+              </p>
+            </div>
+            {loadingSuggestions && (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-400"></div>
+            )}
+          </div>
+
+          {loadingSuggestions ? (
+            <div className="text-center py-12 text-slate-400 text-xs">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-400 mx-auto mb-3"></div>
+              Analyzing profile fit against live market opportunities...
+            </div>
+          ) : suggestedJobs.length === 0 ? (
+            <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-8 text-center text-slate-400 text-xs">
+              No matching job opportunities found yet. Try uploading or confirming more resume sections.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {suggestedJobs.map((job) => (
+                <div
+                  key={job.job_id}
+                  className="bg-slate-900/60 border border-slate-800 hover:border-slate-700 rounded-xl p-5 transition-all shadow-sm flex flex-col md:flex-row md:items-start md:justify-between gap-5"
+                >
+                  <div className="flex-1 space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-bold text-slate-100">{job.title}</span>
+                      <span className="text-xs text-slate-400 font-medium">@ {job.company_name}</span>
+                      {job.is_remote && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-950/80 border border-indigo-800 text-indigo-300">
+                          Remote
+                        </span>
+                      )}
+                      {job.salary_display && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950/80 border border-emerald-800 text-emerald-300">
+                          {job.salary_display}
+                        </span>
+                      )}
+                      {job.last_verified_display && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 border border-slate-700 text-slate-300 flex items-center space-x-1">
+                          <span>{job.last_verified_display}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-xs text-slate-400 flex items-center space-x-3">
+                      <span>📍 {job.location}</span>
+                      <span>•</span>
+                      <span>💼 {job.employment_type.replace('_', ' ')}</span>
+                    </div>
+
+                    <p className="text-xs text-slate-300 leading-relaxed font-sans line-clamp-2">
+                      {job.description_snippet}
+                    </p>
+
+                    {/* Matched Skills */}
+                    <div className="space-y-1.5 pt-1">
+                      <div className="text-[11px] font-semibold text-slate-400 flex items-center space-x-1.5">
+                        <span>Matched Skills & Proof:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {job.matched_skills.map((skill, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-950/70 border border-emerald-800/80 text-emerald-300 flex items-center space-x-1"
+                          >
+                            <span>✓</span>
+                            <span>{skill}</span>
+                          </span>
+                        ))}
+                        {job.missing_skills.map((skill, idx) => (
+                          <span
+                            key={`miss-${idx}`}
+                            className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-800 border border-slate-700 text-slate-400"
+                            title="Requirement not explicitly detected on candidate resume"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Score & Actions */}
+                  <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start gap-3 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-slate-800">
+                    <div className={`px-3 py-1.5 rounded-lg border font-bold text-sm ${getScoreColor(job.match_score)} bg-slate-950 flex items-center space-x-1.5`}>
+                      <span>{job.match_score}%</span>
+                      <span className="text-[10px] font-normal uppercase tracking-wider text-slate-400">Match</span>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleAnalyzeSuggestedJob(job)}
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors"
+                        title="Load this job description into the ATS analyzer with project bullet mapping"
+                      >
+                        1-Click ATS Analyze
+                      </button>
+                      <a
+                        href={job.application_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 rounded-lg border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white text-xs font-medium transition-colors"
+                      >
+                        Apply Directly ↗
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

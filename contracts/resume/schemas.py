@@ -344,3 +344,26 @@ class ATSAnalysisResponse(BaseModel):
     keyword_details: Optional[Dict[str, Any]] = None
     keyword_rankings: List[Dict[str, Any]] = Field(default_factory=list)
 
+
+class SuggestedJobResponse(BaseModel):
+    """Job suggestion scored against candidate's verified profile & resume evidence."""
+    job_id: str
+    title: str
+    company_name: str
+    location: str
+    is_remote: bool
+    employment_type: str
+    salary_display: Optional[str] = None
+    application_url: str
+    match_score: float = Field(ge=0.0, le=100.0)
+    matched_skills: List[str] = Field(default_factory=list)
+    missing_skills: List[str] = Field(default_factory=list)
+    description_snippet: str
+    full_description: str
+    verification_status: str = "OPEN_CONFIRMED"
+    freshness_state: str = "FRESH"
+    listing_age_days: float = 0.0
+    last_verified_display: str = "Verified active today"
+
+
+

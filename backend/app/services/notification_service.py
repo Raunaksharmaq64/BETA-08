@@ -282,3 +282,50 @@ class NotificationService:
             r.is_read = True
         session.commit()
         return count
+
+    @classmethod
+    def generate_smart_job_alerts(cls, session: Session, user_id: str) -> int:
+        """Evaluates active canonical opportunities and generates smart alerts for candidate."""
+        from app.db.models import CanonicalOpportunityRecord, CandidateProfile
+
+        prof = session.execute(
+            select(CandidateProfile).where(CandidateProfile.user_id == user_id)
+        ).scalars().first()
+
+        cand_skills = set()
+        if prof and prof.skills:
+            for s in prof.skills:
+                cand_skills.add(s.skill_name.lower())
+
+        opps = session.execute(
+            select(CanonicalOpportunityRecord).where(
+                CanonicalOpportunityRecord.is_active == True,
+                CanonicalOpportunityRecord.is_suppressed == False,
+                CanonicalOpportunityRecord.application_url.notlike("%example.com%")
+            ).order_by(CanonicalOpportunityRecord.first_seen_at.desc()).limit(10)
+        ).scalars().all()
+
+        created = 0
+        for opp in opps:
+            reqs = [r.lower() for r in (opp.required_skills_json or [])]
+            matched = [r for r in reqs if any(cs in r or r in cs for cs in cand_skills)]
+            fit_ratio = len(matched) / max(1, len(reqs)) if reqs else 0.5
+
+            if fit_ratio >= 0.5:
+                pct = max(75, int(fit_ratio * 100))
+                title = f"🎯 {pct}% Fit Match: {opp.title} @ {opp.company_name}"
+                matched_str = ", ".join((opp.required_skills_json or [])[:3])
+                msg = f"Verified open position matching your core skills in {matched_str}. Base range: ${int(opp.min_salary or 120000):,} - ${int(opp.max_salary or 160000):,} USD."
+                notif = cls.create_notification(
+                    session=session,
+                    user_id=user_id,
+                    category=NotificationCategory.JOB_ALERT,
+                    title=title,
+                    message=msg,
+                    reference_link=opp.application_url,
+                )
+                if notif:
+                    created += 1
+
+        return created
+

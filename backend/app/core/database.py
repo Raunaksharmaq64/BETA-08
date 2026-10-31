@@ -22,13 +22,18 @@ from app.core.config import settings
 connect_args = {}
 if "sqlite" in settings.DATABASE_URL:
     connect_args["check_same_thread"] = False
-elif "neon.tech" in settings.DATABASE_URL or "pooler" in settings.DATABASE_URL:
+else:
     connect_args["statement_cache_size"] = 0
+    connect_args["prepared_statement_cache_size"] = 0
+    connect_args["prepared_statement_name_func"] = lambda: ""
+
 
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,
     connect_args=connect_args,
+    pool_pre_ping=True,
+    pool_recycle=300,
     future=True,
 )
 

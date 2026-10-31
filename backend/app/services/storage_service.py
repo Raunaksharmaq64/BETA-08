@@ -119,6 +119,20 @@ class StorageService:
         user_dir = (self.base_dir / clean_user_id).resolve()
         target_path = (self.base_dir / storage_path).resolve()
 
+        if not target_path.exists() or not target_path.is_file():
+            # Check fallback locations (e.g. if running from a different working directory)
+            potential_bases = [
+                Path(__file__).resolve().parent.parent.parent.parent / "storage" / "resumes",
+                Path.cwd() / "storage" / "resumes",
+                Path.cwd() / "rightFIT" / "storage" / "resumes"
+            ]
+            for alt_base in potential_bases:
+                alt_target = (alt_base / storage_path).resolve()
+                if alt_target.exists() and alt_target.is_file():
+                    target_path = alt_target
+                    user_dir = (alt_base / clean_user_id).resolve()
+                    break
+
         if not str(target_path).startswith(str(user_dir)):
             raise StorageSecurityError("Access denied: File does not belong to candidate.")
 

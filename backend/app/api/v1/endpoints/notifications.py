@@ -42,15 +42,43 @@ async def list_notifications(
     req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
 
     def _sync_list(session: Session) -> List[NotificationResponse]:
-        return NotificationService.list_notifications(
+        res = NotificationService.list_notifications(
             session=session,
             user_id=current_user.id,
             unread_only=unread_only,
             limit=limit,
         )
+        if not res and not unread_only:
+            NotificationService.generate_smart_job_alerts(session, current_user.id)
+            res = NotificationService.list_notifications(
+                session=session,
+                user_id=current_user.id,
+                unread_only=unread_only,
+                limit=limit,
+            )
+        return res
 
     items = await db.run_sync(_sync_list)
     return StandardResponse(data=items, meta=make_meta(req_id))
+
+
+@router.post("/evaluate-alerts", response_model=StandardResponse[Dict[str, Any]])
+async def trigger_evaluate_alerts(
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> StandardResponse[Dict[str, Any]]:
+    """Evaluates candidate profile against active opportunities and generates real-time smart alerts."""
+    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+
+    def _sync_gen(session: Session) -> int:
+        return NotificationService.generate_smart_job_alerts(session, current_user.id)
+
+    count = await db.run_sync(_sync_gen)
+    return StandardResponse(
+        data={"generated_count": count, "message": f"Successfully evaluated and generated {count} smart alerts."},
+        meta=make_meta(req_id),
+    )
 
 
 @router.patch("/{notification_id}/read", response_model=StandardResponse[Dict[str, Any]])

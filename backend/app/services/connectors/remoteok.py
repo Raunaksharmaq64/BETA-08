@@ -39,9 +39,15 @@ class RemoteOKConnector(BaseJobConnector):
         if not base_url or len(base_url.strip()) < 5:
             raise ValueError("RemoteOK base URL is required (e.g. 'https://remoteok.com/api')")
 
+    def _resolve_api_url(self, base_url: Optional[str]) -> str:
+        b = (base_url or "").strip() or "https://remoteok.com/api"
+        if not b.endswith("/api"):
+            return f"{b.rstrip('/')}/api"
+        return b
+
     async def check_health(self, source: JobSourceRecord) -> HealthCheckResult:
         """Checks availability of RemoteOK public endpoint."""
-        url = source.base_url.strip() or "https://remoteok.com/api"
+        url = self._resolve_api_url(source.base_url)
         start_time = time.time()
 
         try:
@@ -66,7 +72,7 @@ class RemoteOKConnector(BaseJobConnector):
 
     async def fetch_jobs(self, source: JobSourceRecord, limit: int = 50) -> ConnectorFetchResult:
         """Pulls public listings from RemoteOK feed."""
-        url = source.base_url.strip() or "https://remoteok.com/api"
+        url = self._resolve_api_url(source.base_url)
 
         async with httpx.AsyncClient(timeout=source.timeout_seconds, headers={"User-Agent": USER_AGENT}) as client:
             resp = await client.get(url)

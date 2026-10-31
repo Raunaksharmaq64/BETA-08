@@ -25,6 +25,9 @@ export default function NotificationsPage() {
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [loading, setLoading] = useState(true);
 
+  const [scanning, setScanning] = useState(false);
+  const [scanMessage, setScanMessage] = useState<string | null>(null);
+
   const fetchNotifications = async () => {
     setLoading(true);
     try {
@@ -35,6 +38,22 @@ export default function NotificationsPage() {
       console.error("Failed to load notifications:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleScanAlerts = async () => {
+    try {
+      setScanning(true);
+      setScanMessage(null);
+      const res = await apiClient<any>("/notifications/evaluate-alerts", { method: "POST" });
+      if (res.data?.message) {
+        setScanMessage(res.data.message);
+      }
+      fetchNotifications();
+    } catch (err: any) {
+      console.error("Failed to scan alerts:", err);
+    } finally {
+      setScanning(false);
     }
   };
 
@@ -92,12 +111,19 @@ export default function NotificationsPage() {
         </div>
 
         <div className="flex items-center space-x-3">
+          <button
+            onClick={handleScanAlerts}
+            disabled={scanning}
+            className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 text-white shadow-sm transition flex items-center space-x-1.5"
+          >
+            <span>{scanning ? "Evaluating..." : "⚡ Scan Realtime Job Alerts"}</span>
+          </button>
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllAsRead}
               className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
             >
-              ✓ Mark All as Read
+              ✓ Mark All Read
             </button>
           )}
           <Link
@@ -109,10 +135,17 @@ export default function NotificationsPage() {
         </div>
       </div>
 
+      {scanMessage && (
+        <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800 text-emerald-300 text-xs flex items-center justify-between">
+          <span>✓ {scanMessage}</span>
+          <button onClick={() => setScanMessage(null)} className="text-emerald-400 hover:text-white font-bold ml-2">×</button>
+        </div>
+      )}
+
       {/* Filter Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-        <div className="flex items-center space-x-2">
-          {["ALL", "REMINDER", "APPLICATION_UPDATE", "INTERVIEW_ROUND"].map((cat) => (
+        <div className="flex flex-wrap items-center gap-2">
+          {["ALL", "JOB_ALERT", "INTERVIEW_REMINDER", "APPLICATION_FOLLOW_UP", "REMINDER"].map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
@@ -122,7 +155,7 @@ export default function NotificationsPage() {
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              {cat.replace(/_/g, " ")}
+              {cat === "JOB_ALERT" ? "🎯 Job Alerts" : cat.replace(/_/g, " ")}
             </button>
           ))}
         </div>

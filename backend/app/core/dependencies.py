@@ -46,6 +46,8 @@ async def get_current_user(
     token: Optional[str] = None
     if bearer_creds and bearer_creds.credentials:
         token = bearer_creds.credentials
+    elif request.query_params.get("token"):
+        token = request.query_params.get("token")
     else:
         # Fallback to session cookie
         token = request.cookies.get(settings.AUTH_COOKIE_NAME)

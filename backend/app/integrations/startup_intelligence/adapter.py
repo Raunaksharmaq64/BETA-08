@@ -93,7 +93,7 @@ class StartupIntelligenceAdapter:
         read_timeout: float = 10.0,
         max_retries: int = 2,
     ):
-        self.base_url = (base_url or getattr(settings, "STARTUP_INTELLIGENCE_BASE_URL", "http://localhost:8002")).rstrip("/")
+        self.base_url = (base_url or getattr(settings, "STARTUP_INTELLIGENCE_BASE_URL", "http://127.0.0.1:8002")).rstrip("/")
         self.internal_service_key = internal_service_key or getattr(
             settings, "INTERNAL_SERVICE_KEY", "rightfit_internal_shared_secret_key_123"
         )

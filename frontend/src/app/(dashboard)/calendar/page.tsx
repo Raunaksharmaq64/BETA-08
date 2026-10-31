@@ -59,6 +59,18 @@ export default function CalendarPage() {
   const [remPriority, setRemPriority] = useState("NORMAL");
   const [savingReminder, setSavingReminder] = useState(false);
 
+  const getGoogleCalendarUrl = (title: string, start: string, end?: string) => {
+    try {
+      const s = new Date(start).toISOString().replace(/-|:|\.\d\d\d/g, "");
+      const e = end ? new Date(end).toISOString().replace(/-|:|\.\d\d\d/g, "") : s;
+      return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+        title
+      )}&dates=${s}/${e}&details=${encodeURIComponent("RIGHT FIT Scheduled Career Event")}`;
+    } catch {
+      return "#";
+    }
+  };
+
   useEffect(() => {
     // Detect candidate default browser timezone
     try {
@@ -172,7 +184,7 @@ export default function CalendarPage() {
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Timezone picker */}
           <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs">
             <span className="text-slate-400 font-medium">🌐 Timezone:</span>
@@ -193,6 +205,15 @@ export default function CalendarPage() {
               )}
             </select>
           </div>
+
+          <a
+            href="/api/v1/calendar/export.ics"
+            download="rightfit-schedule.ics"
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5 shadow-sm"
+            title="Download standard .ics file for Google Calendar, Apple Calendar, and Outlook"
+          >
+            <span>📅 Export (.ics)</span>
+          </a>
 
           <button
             onClick={() => setIsNewReminderOpen(true)}
@@ -309,6 +330,14 @@ export default function CalendarPage() {
                           <span>Company: {ev.metadata.company_name}</span>
                         )}
                         {ev.metadata.category && <span>Category: {ev.metadata.category}</span>}
+                        <a
+                          href={getGoogleCalendarUrl(ev.title, ev.start_time, ev.end_time)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-emerald-400 hover:text-emerald-300 underline font-medium ml-auto"
+                        >
+                          + Add to Google Cal ↗
+                        </a>
                       </div>
                     )}
                   </div>
