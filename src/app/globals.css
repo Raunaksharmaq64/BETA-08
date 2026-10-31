@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #d6dae4;
+  --foreground: #171c23;
+}
+
+body {
+  color: var(--foreground);
+  background-color: var(--background);
+  background-image: 
+    radial-gradient(ellipse at 15% 15%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 60%),
+    radial-gradient(ellipse at 85% 85%, rgba(200, 208, 224, 0.7) 0%, rgba(200, 208, 224, 0) 65%),
+    linear-gradient(135deg, #d6dae4 0%, #e0e4ee 50%, #d8dce6 100%);
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
