@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Navbar from "../../../components/layout/Navbar";
 import { apiClient } from "../../../services/apiClient";
 
 interface Education {
@@ -196,19 +195,13 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-200">
-        <Navbar />
-        <div className="max-w-5xl mx-auto py-12 px-4 text-center">Loading profile...</div>
-      </div>
+      <div className="max-w-5xl mx-auto py-12 px-4 text-center text-slate-400">Loading profile...</div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <Navbar />
-
-      <main className="max-w-5xl mx-auto py-8 px-4 sm:px-6 space-y-8">
-        {/* Completeness Banner & Section Impact Unlocks */}
+    <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
+      {/* Completeness Banner & Section Impact Unlocks */}
         {completeness && (
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm space-y-4">
             <div className="flex justify-between items-center">
@@ -415,7 +408,6 @@ export default function ProfilePage() {
             )}
           </div>
         </section>
-      </main>
 
       {/* Add Education Modal */}
       {showEduModal && (

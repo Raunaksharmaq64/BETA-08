@@ -105,7 +105,7 @@ export default function SavedJobsPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between pb-6 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Saved Jobs</h1>
           <p className="text-sm text-slate-400 mt-1">
@@ -164,7 +164,7 @@ export default function SavedJobsPage() {
                       )}
                     </div>
                     {opp && (
-                      <div className="text-xs text-slate-400 flex items-center gap-2">
+                      <div className="text-xs text-slate-400 flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-slate-300">{opp.company_name}</span>
                         <span>•</span>
                         <span>{opp.city ? `${opp.city}, ${opp.country || ""}` : opp.country || "Worldwide"}</span>

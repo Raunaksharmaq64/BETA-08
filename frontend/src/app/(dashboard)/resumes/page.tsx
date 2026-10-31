@@ -144,11 +144,11 @@ export default function ResumeDashboardPage() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-800/80 gap-3">
                   <div>
-                    <div className="flex items-center space-x-3">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h2 className="text-lg font-semibold text-slate-100">{resume.title}</h2>
                       {getStatusBadge(ver?.parsing_status)}
                     </div>
-                    <div className="mt-1 flex items-center space-x-4 text-xs text-slate-400">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
                       <span>File: {ver?.original_filename || "N/A"}</span>
                       <span>•</span>
                       <span>Format: {ver?.file_type?.toUpperCase()}</span>

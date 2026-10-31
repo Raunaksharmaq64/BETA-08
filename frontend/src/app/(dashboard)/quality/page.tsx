@@ -68,7 +68,7 @@ export default function QualityDashboardPage() {
             circuit breaker health, and cross-source deduplication status.
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/quality/duplicates"
             className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors shadow-lg shadow-indigo-950"

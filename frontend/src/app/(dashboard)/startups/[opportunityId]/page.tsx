@@ -128,13 +128,13 @@ export default function StartupOpportunityDetailPage() {
   const { opportunity, ai_summary, evidence_ledger, technology_findings, corroboration_ledger } = data;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Top Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <Link href="/startups" className="text-sm font-semibold text-indigo-600 hover:underline">
           &larr; Back to Startup Directory
         </Link>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleBookmark}
             className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm"
@@ -201,8 +201,8 @@ export default function StartupOpportunityDetailPage() {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center flex-1 sm:flex-none min-w-[120px]">
               <div className="text-xs font-semibold text-slate-500 uppercase">Urgency Score</div>
               <div
                 className={`text-xl font-bold mt-0.5 ${
@@ -216,7 +216,7 @@ export default function StartupOpportunityDetailPage() {
                 {opportunity.urgency_score} / 10
               </div>
             </div>
-            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center">
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center flex-1 sm:flex-none min-w-[120px]">
               <div className="text-xs font-semibold text-slate-500 uppercase">Corroboration</div>
               <div className="text-xl font-bold text-slate-800 mt-0.5">
                 {opportunity.corroboration_count} Source{opportunity.corroboration_count > 1 ? "s" : ""}
@@ -236,7 +236,7 @@ export default function StartupOpportunityDetailPage() {
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex border-b border-slate-200 space-x-6 text-sm font-semibold">
+      <div className="flex border-b border-slate-200 space-x-6 text-sm font-semibold overflow-x-auto scrollbar-none whitespace-nowrap">
         <button
           onClick={() => setActiveTab("observation")}
           className={`pb-3 border-b-2 transition-colors ${

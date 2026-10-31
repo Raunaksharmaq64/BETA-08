@@ -90,7 +90,7 @@ export default function UnifiedSavedOpportunitiesPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
         {[
           { id: "ALL", label: "All Saved", count: savedItems.length },
           { id: "JOB", label: "Jobs", count: savedItems.filter((i) => i.opportunity_type === "JOB").length },

@@ -135,7 +135,7 @@ export default function DiscoveryOperationsPage() {
             Real-time management of background Celery Beat schedules, connector quotas, per-source rate limits, and task executions.
           </p>
         </div>
-        <div className="mt-4 md:mt-0 flex gap-3">
+        <div className="mt-4 md:mt-0 flex flex-wrap gap-2">
           <button
             onClick={() => handleGlobalPauseToggle(isGlobalPaused)}
             disabled={actionInProgress === "global"}

@@ -397,11 +397,10 @@ function SearchContent() {
                     <button
                       onClick={() => handleToggleSaveJob(job)}
                       title={job.is_saved ? "Remove from saved jobs" : "Save this job"}
-                      className={`p-2 rounded-xl border transition-colors ${
-                        job.is_saved
-                          ? "bg-rose-950/50 border-rose-700/60 text-rose-400 hover:bg-rose-900/50"
-                          : "bg-slate-800/80 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700"
-                      }`}
+                      className={`p-2 rounded-xl border transition-colors ${job.is_saved
+                        ? "bg-rose-950/50 border-rose-700/60 text-rose-400 hover:bg-rose-900/50"
+                        : "bg-slate-800/80 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700"
+                        }`}
                     >
                       <svg className="w-5 h-5 fill-current" viewBox="0 0 20 20">
                         <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
@@ -413,26 +412,24 @@ function SearchContent() {
                   <div className="flex items-center gap-3 flex-wrap text-xs pt-1">
                     {/* Verification Badge */}
                     <span
-                      className={`px-2.5 py-1 rounded-md font-medium border ${
-                        job.verification_status === "OPEN_CONFIRMED"
-                          ? "bg-emerald-950/50 border-emerald-800/70 text-emerald-300"
-                          : job.verification_status === "UNVERIFIED"
+                      className={`px-2.5 py-1 rounded-md font-medium border ${job.verification_status === "OPEN_CONFIRMED"
+                        ? "bg-emerald-950/50 border-emerald-800/70 text-emerald-300"
+                        : job.verification_status === "UNVERIFIED"
                           ? "bg-slate-800/80 border-slate-700 text-slate-400"
                           : "bg-amber-950/50 border-amber-800/70 text-amber-300"
-                      }`}
+                        }`}
                     >
                       {job.verification_status === "OPEN_CONFIRMED" ? "✓ Open Confirmed" : job.verification_status}
                     </span>
 
                     {/* Freshness Badge */}
                     <span
-                      className={`px-2.5 py-1 rounded-md font-medium border ${
-                        job.freshness_state === "FRESH"
-                          ? "bg-blue-950/50 border-blue-800/70 text-blue-300"
-                          : job.freshness_state === "RECENT"
+                      className={`px-2.5 py-1 rounded-md font-medium border ${job.freshness_state === "FRESH"
+                        ? "bg-blue-950/50 border-blue-800/70 text-blue-300"
+                        : job.freshness_state === "RECENT"
                           ? "bg-cyan-950/50 border-cyan-800/70 text-cyan-300"
                           : "bg-slate-800 border-slate-700 text-slate-400"
-                      }`}
+                        }`}
                     >
                       Freshness: {job.freshness_state}
                     </span>
@@ -447,13 +444,12 @@ function SearchContent() {
                     {/* Mandatory Eligibility Badge */}
                     {job.eligibility_status && (
                       <span
-                        className={`px-2.5 py-1 rounded-md font-medium border ${
-                          job.eligibility_status === "MEETS_REQUIREMENTS"
-                            ? "bg-emerald-950/40 border-emerald-700/60 text-emerald-400"
-                            : job.eligibility_status === "UNKNOWN"
+                        className={`px-2.5 py-1 rounded-md font-medium border ${job.eligibility_status === "MEETS_REQUIREMENTS"
+                          ? "bg-emerald-950/40 border-emerald-700/60 text-emerald-400"
+                          : job.eligibility_status === "UNKNOWN"
                             ? "bg-slate-800 border-slate-700 text-slate-400"
                             : "bg-rose-950/40 border-rose-800/60 text-rose-400"
-                        }`}
+                          }`}
                       >
                         Eligibility: {job.eligibility_status.replace(/_/g, " ")}
                       </span>
@@ -491,7 +487,7 @@ function SearchContent() {
                   </div>
 
                   {/* Card Footer: Salary & Actions */}
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-800 text-sm">
                     <div className="font-semibold text-slate-200">
                       {job.min_salary || job.max_salary ? (
                         <>
@@ -503,7 +499,7 @@ function SearchContent() {
                         <span className="text-xs text-slate-500 font-normal">Salary not disclosed</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/jobs/${job.id}`}
                         className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 transition-colors"

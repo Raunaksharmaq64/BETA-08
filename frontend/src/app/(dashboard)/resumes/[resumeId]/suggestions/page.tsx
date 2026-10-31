@@ -169,8 +169,8 @@ export default function ResumeSuggestionsPage() {
                 key={cat}
                 onClick={() => setFilterCategory(cat)}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${filterCategory === cat
-                    ? "bg-indigo-600 text-white shadow-sm"
-                    : "bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700"
                   }`}
               >
                 {cat.replace(/_/g, " ")}
@@ -194,17 +194,17 @@ export default function ResumeSuggestionsPage() {
                 <div
                   key={sug.id}
                   className={`rounded-xl border transition-all p-6 ${isAccepted
-                      ? "bg-slate-900/40 border-emerald-800/80"
-                      : isRejected
-                        ? "bg-slate-900/30 border-rose-900/40 opacity-75"
-                        : isEdited
-                          ? "bg-slate-900/40 border-indigo-700/80"
-                          : "bg-slate-900/70 border-slate-800 hover:border-slate-700"
+                    ? "bg-slate-900/40 border-emerald-800/80"
+                    : isRejected
+                      ? "bg-slate-900/30 border-rose-900/40 opacity-75"
+                      : isEdited
+                        ? "bg-slate-900/40 border-indigo-700/80"
+                        : "bg-slate-900/70 border-slate-800 hover:border-slate-700"
                     }`}
                 >
                   {/* Card Header */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 mb-4 border-b border-slate-800 gap-2">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-[11px] font-bold px-2.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
                         {sug.category.replace(/_/g, " ")}
                       </span>
@@ -228,7 +228,7 @@ export default function ResumeSuggestionsPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => handleCopy(sug.id, sug.edited_content || sug.recommended_text)}
                         className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors"

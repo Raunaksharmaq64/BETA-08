@@ -399,7 +399,7 @@ export default function ResumeATSAnalysisPage() {
                       <span className="text-[10px] font-normal uppercase tracking-wider text-slate-400">Match</span>
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => handleAnalyzeSuggestedJob(job)}
                         className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-colors"
@@ -696,7 +696,7 @@ export default function ResumeATSAnalysisPage() {
                             <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
                               Theme: {themeName}
                             </span>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               {align.requires_human_review && (
                                 <span className="text-[10px] px-2 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800 font-semibold flex items-center">
                                   <span className="mr-1">⚠️</span> Human Review Required
@@ -746,7 +746,7 @@ export default function ResumeATSAnalysisPage() {
                     </span>
                   </div>
                   <div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <h2 className="text-lg font-bold text-slate-100">Resume Quality Index</h2>
                       <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
                         qualityReport.quality_band === "STRONG"

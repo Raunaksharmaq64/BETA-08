@@ -221,7 +221,7 @@ export default function ApplicationDetailPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Back button & Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/applications"
           className="text-sm font-medium text-slate-400 hover:text-white flex items-center gap-1 transition"

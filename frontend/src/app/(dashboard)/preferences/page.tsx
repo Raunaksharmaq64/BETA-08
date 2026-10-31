@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Navbar from "../../../components/layout/Navbar";
 import { apiClient } from "../../../services/apiClient";
 
 interface Preferences {
@@ -80,19 +79,13 @@ export default function PreferencesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100">
-        <Navbar />
-        <div className="max-w-4xl mx-auto py-12 px-4 text-center">Loading preferences...</div>
-      </div>
+      <div className="max-w-4xl mx-auto py-12 px-4 text-center text-slate-400">Loading preferences...</div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <Navbar />
-
-      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6">
-        <div className="bg-slate-900 border border-slate-800 p-8 rounded-xl shadow-lg">
+    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-xl shadow-lg">
           <div className="mb-6 border-b border-slate-800 pb-4">
             <h1 className="text-xl font-bold text-white">Career & Opportunity Preferences</h1>
             <p className="text-sm text-slate-400 mt-1">
@@ -206,8 +199,7 @@ export default function PreferencesPage() {
             </div>
           </form>
         </div>
-      </main>
-    </div>
+      </div>
   );
 }
 

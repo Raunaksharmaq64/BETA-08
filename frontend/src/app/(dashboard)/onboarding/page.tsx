@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Navbar from "../../../components/layout/Navbar";
 import { apiClient } from "../../../services/apiClient";
 
 interface SkillItem {
@@ -234,11 +233,8 @@ export default function OnboardingPage() {
   const estimatedScore = calculateEstimatedCompleteness();
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-16">
-      <Navbar />
-
-      <main className="max-w-4xl mx-auto py-10 px-4 sm:px-6">
-        {/* Header and Progress Bar */}
+    <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8 pb-16">
+      {/* Header and Progress Bar */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -844,7 +840,6 @@ export default function OnboardingPage() {
             )}
           </div>
         </div>
-      </main>
-    </div>
+      </div>
   );
 }

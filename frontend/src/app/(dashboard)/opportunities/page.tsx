@@ -313,14 +313,14 @@ export default function UnifiedOpportunitiesPage() {
 
       {/* Floating / Inline Banner when new background items are discovered */}
       {pendingNewItems.length > 0 && (
-        <div className="p-4 rounded-xl bg-indigo-950/80 border border-indigo-700/80 text-white flex items-center justify-between shadow-lg">
+        <div className="p-4 rounded-xl bg-indigo-950/80 border border-indigo-700/80 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <span>✨</span>
             <span>{pendingNewItems.length} new opportunities discovered in background!</span>
           </div>
           <button
             onClick={applyPendingNewItems}
-            className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold transition-colors shadow"
+            className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold transition-colors shadow shrink-0"
           >
             Load New Opportunities
           </button>
@@ -329,7 +329,7 @@ export default function UnifiedOpportunitiesPage() {
 
       {/* Partial Outage Notice */}
       {availability && availability.is_partial_results && (
-        <div className="rounded-xl border border-amber-800/60 bg-amber-950/40 p-4 text-sm text-amber-300 flex items-center justify-between">
+        <div className="rounded-xl border border-amber-800/60 bg-amber-950/40 p-4 text-sm text-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
             <span>

@@ -122,11 +122,11 @@ export default function CompensationExplorerPage() {
       {/* Filter Bar */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 shrink-0">
               Pay Type:
             </span>
-            <div className="inline-flex rounded-lg bg-slate-950 p-1 border border-slate-800">
+            <div className="inline-flex rounded-lg bg-slate-950 p-1 border border-slate-800 overflow-x-auto max-w-full scrollbar-none">
               {[
                 { id: "BASE_SALARY", label: "Base Salary" },
                 { id: "TOTAL_COMPENSATION", label: "Total Comp" },

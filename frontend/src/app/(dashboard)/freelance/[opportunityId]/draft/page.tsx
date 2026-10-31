@@ -324,7 +324,7 @@ function OutreachDraftEditorContent() {
               {saving ? "Saving Changes..." : "Save Edits"}
             </button>
 
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setShowApprovalModal(true)}
                 disabled={approving || draft?.status === "APPROVED"}

@@ -100,16 +100,12 @@ export default function StartupIntelligenceDashboardPage() {
     }
   }, []);
 
-  const applyPendingSignals = () => {
-    setOpportunities(prev => [...pendingNewSignals, ...prev]);
-    setPendingNewSignals([]);
-  };
-
   useEffect(() => {
     fetchOpportunities(false);
     checkIntegration();
   }, [fetchOpportunities, checkIntegration]);
 
+  // Periodic polling for realtime detection
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(() => {
@@ -118,21 +114,25 @@ export default function StartupIntelligenceDashboardPage() {
     return () => clearInterval(interval);
   }, [autoRefresh, fetchOpportunities]);
 
+  const applyPendingSignals = () => {
+    setOpportunities(prev => {
+      const currentIds = new Set(prev.map(o => o.id));
+      const newlyAdded = pendingNewSignals.filter(o => !currentIds.has(o.id));
+      return [...newlyAdded, ...prev];
+    });
+    setPendingNewSignals([]);
+  };
+
   const handleScanLeads = async () => {
     setScanning(true);
     setError(null);
     try {
-      const payload: any = { limit: 50 };
+      const payload: any = {};
       if (scanCategory !== "All") payload.category = scanCategory;
-      const res: any = await apiClient.post("/startups/scan-leads", payload);
-      if (res?.degraded) {
-        setDegradedMessage(res.message);
-      } else {
-        setDegradedMessage(null);
-      }
-      await fetchOpportunities();
+      await apiClient.post("/startups/scan", payload);
+      await fetchOpportunities(false);
     } catch (err: any) {
-      setError(err?.message || "Failed to scan startup opportunities.");
+      setError(err?.message || "Failed to trigger real-time signal detection scan.");
     } finally {
       setScanning(false);
     }
@@ -140,10 +140,10 @@ export default function StartupIntelligenceDashboardPage() {
 
   const handleSave = async (oppId: string) => {
     try {
-      await apiClient.post(`/startups/${oppId}/save`, { notes: "Bookmarked from dashboard" });
-      alert("Opportunity saved to your bookmarks!");
+      await apiClient.post(`/startups/${oppId}/save`, { notes: "Bookmarked from explorer" });
+      alert("Opportunity bookmarked to your saved list!");
     } catch (err: any) {
-      alert("Failed to save opportunity: " + (err?.message || "Error"));
+      alert("Failed to bookmark opportunity: " + (err?.message || "Error"));
     }
   };
 
@@ -154,28 +154,28 @@ export default function StartupIntelligenceDashboardPage() {
   const perfCount = opportunities.filter((o) => o.category === "Performance").length;
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Page Title & Quick Links */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">
             Startup Intelligence & Pain Point Explorer
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-slate-400 mt-1">
             Discover real technical bottlenecks and hiring signals from early-stage platforms with verifiable evidence.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/startups/saved"
-            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm"
+            className="px-4 py-2 text-sm font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition"
           >
             Saved Opportunities
           </Link>
           <button
             onClick={handleScanLeads}
             disabled={scanning}
-            className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 shadow-sm flex items-center gap-2"
+            className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 disabled:opacity-50 shadow-sm flex items-center gap-2 transition"
           >
             {scanning ? (
               <>
@@ -183,7 +183,7 @@ export default function StartupIntelligenceDashboardPage() {
                 Scanning Feeds...
               </>
             ) : (
-              "Scan & Refresh Signals"
+              "Scan & Refresh Signals ⚡"
             )}
           </button>
         </div>
@@ -223,14 +223,14 @@ export default function StartupIntelligenceDashboardPage() {
 
       {/* Floating / Inline Banner when new signals are discovered */}
       {pendingNewSignals.length > 0 && (
-        <div className="p-4 rounded-xl bg-indigo-950/80 border border-indigo-700/80 text-white flex items-center justify-between shadow-lg">
+        <div className="p-4 rounded-xl bg-indigo-950/80 border border-indigo-700/80 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <span>⚡</span>
             <span>{pendingNewSignals.length} new startup pain-point signals detected in background!</span>
           </div>
           <button
             onClick={applyPendingSignals}
-            className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold transition-colors shadow"
+            className="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold transition-colors shadow shrink-0"
           >
             Load New Signals
           </button>
@@ -239,49 +239,49 @@ export default function StartupIntelligenceDashboardPage() {
 
       {/* Degraded State Banner */}
       {degradedMessage && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 flex items-start gap-3">
-          <span className="text-xl">⚠️</span>
+        <div className="p-4 bg-amber-950/40 border border-amber-800/80 rounded-xl text-amber-200 flex items-start gap-3 text-xs">
+          <span className="text-base">⚠️</span>
           <div>
-            <h4 className="font-semibold text-sm">Degraded Resilience Mode Active</h4>
-            <p className="text-xs mt-0.5 text-amber-800">{degradedMessage}</p>
+            <h4 className="font-semibold text-sm text-amber-300">Degraded Resilience Mode Active</h4>
+            <p className="mt-0.5 text-amber-200/90 leading-relaxed">{degradedMessage}</p>
           </div>
         </div>
       )}
 
       {/* KPI Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-5 bg-slate-900 rounded-xl border border-slate-800 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Total Opportunities
           </div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">{totalCount}</div>
-          <div className="text-xs text-slate-400 mt-1">Discovered across 12 platforms</div>
+          <div className="text-3xl font-black text-white mt-1">{totalCount}</div>
+          <div className="text-xs text-slate-500 mt-1">Discovered across 12 platforms</div>
         </div>
-        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wider text-rose-600">
+        <div className="p-5 bg-slate-900 rounded-xl border border-slate-800 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wider text-rose-400">
             High Urgency (8-10)
           </div>
-          <div className="text-2xl font-bold text-rose-600 mt-1">{highUrgencyCount}</div>
-          <div className="text-xs text-slate-400 mt-1">Active hiring or critical bugs</div>
+          <div className="text-3xl font-black text-rose-400 mt-1">{highUrgencyCount}</div>
+          <div className="text-xs text-slate-500 mt-1">Active hiring or critical bugs</div>
         </div>
-        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wider text-indigo-600">
+        <div className="p-5 bg-slate-900 rounded-xl border border-slate-800 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wider text-indigo-400">
             Development Gaps
           </div>
-          <div className="text-2xl font-bold text-indigo-600 mt-1">{devCount}</div>
-          <div className="text-xs text-slate-400 mt-1">Founders seeking dev capacity</div>
+          <div className="text-3xl font-black text-indigo-300 mt-1">{devCount}</div>
+          <div className="text-xs text-slate-500 mt-1">Founders seeking dev capacity</div>
         </div>
-        <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-semibold uppercase tracking-wider text-emerald-600">
+        <div className="p-5 bg-slate-900 rounded-xl border border-slate-800 shadow-sm">
+          <div className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
             Performance / Speed
           </div>
-          <div className="text-2xl font-bold text-emerald-600 mt-1">{perfCount}</div>
-          <div className="text-xs text-slate-400 mt-1">Latency & SEO vulnerabilities</div>
+          <div className="text-3xl font-black text-emerald-400 mt-1">{perfCount}</div>
+          <div className="text-xs text-slate-500 mt-1">Latency & SEO vulnerabilities</div>
         </div>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-sm space-y-3">
+      <div className="p-5 bg-slate-900 rounded-xl border border-slate-800 shadow-sm space-y-3">
         <div className="flex flex-col md:flex-row gap-3">
           <div className="flex-1">
             <input
@@ -289,15 +289,15 @@ export default function StartupIntelligenceDashboardPage() {
               placeholder="Search by startup name, problem statement, or tech keywords..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && fetchOpportunities()}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              onKeyDown={(e) => e.key === "Enter" && fetchOpportunities(false)}
+              className="w-full px-3.5 py-2 text-sm bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              className="px-3 py-2 text-sm border border-slate-800 bg-slate-950 text-slate-200 rounded-lg focus:outline-none focus:border-indigo-500"
             >
               <option value="All">All Categories</option>
               <option value="Development">Development</option>
@@ -309,7 +309,7 @@ export default function StartupIntelligenceDashboardPage() {
             <select
               value={minScore}
               onChange={(e) => setMinScore(Number(e.target.value))}
-              className="px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+              className="px-3 py-2 text-sm border border-slate-800 bg-slate-950 text-slate-200 rounded-lg focus:outline-none focus:border-indigo-500"
             >
               <option value={0}>Any Urgency Score</option>
               <option value={7}>Score 7+ (Urgent)</option>
@@ -318,7 +318,7 @@ export default function StartupIntelligenceDashboardPage() {
             </select>
             <button
               onClick={() => fetchOpportunities(false)}
-              className="px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200"
+              className="px-4 py-2 text-sm font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition"
             >
               Filter
             </button>
@@ -328,17 +328,17 @@ export default function StartupIntelligenceDashboardPage() {
 
       {/* Opportunity Cards List */}
       {loading ? (
-        <div className="p-12 text-center text-slate-500">
-          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+        <div className="p-16 text-center text-slate-400">
+          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
           Loading verified startup opportunities...
         </div>
       ) : error ? (
-        <div className="p-6 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm">
+        <div className="p-6 bg-rose-950/40 border border-rose-800 rounded-xl text-rose-300 text-sm">
           {error}
         </div>
       ) : opportunities.length === 0 ? (
-        <div className="p-12 bg-white rounded-xl border border-slate-200 text-center">
-          <p className="text-base font-semibold text-slate-700">No startup opportunities found</p>
+        <div className="p-16 bg-slate-900 border border-slate-800 rounded-xl text-center text-slate-400">
+          <p className="text-base font-semibold text-slate-300">No startup opportunities found</p>
           <p className="text-xs text-slate-500 mt-1">
             Try adjusting filters or click &quot;Scan & Refresh Signals&quot; to fetch live leads.
           </p>
@@ -348,54 +348,54 @@ export default function StartupIntelligenceDashboardPage() {
           {opportunities.map((opp) => (
             <div
               key={opp.id}
-              className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between"
+              className="p-5 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition flex flex-col justify-between shadow-sm space-y-4"
             >
-              <div>
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <div className="space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800">
                     {opp.category}
                   </span>
                   <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                    className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                       opp.urgency_score >= 8
-                        ? "bg-rose-100 text-rose-800"
+                        ? "bg-rose-950/80 text-rose-300 border-rose-800"
                         : opp.urgency_score >= 6
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-slate-100 text-slate-700"
+                        ? "bg-amber-950/80 text-amber-300 border-amber-800"
+                        : "bg-slate-800 text-slate-400 border-slate-700"
                     }`}
                   >
                     Urgency {opp.urgency_score}/10
                   </span>
                 </div>
 
-                <h3 className="font-bold text-slate-900 text-base leading-snug">
+                <h3 className="font-bold text-white text-base leading-snug line-clamp-1">
                   {opp.startup_name}
                 </h3>
                 {opp.domain && (
-                  <p className="text-xs text-slate-400 font-mono mt-0.5">{opp.domain}</p>
+                  <p className="text-xs text-slate-400 font-mono">{opp.domain}</p>
                 )}
 
-                <p className="text-xs text-slate-700 mt-3 line-clamp-3 leading-relaxed">
+                <p className="text-xs text-slate-300 line-clamp-3 leading-relaxed">
                   {opp.detected_signal}
                 </p>
 
-                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                <div className="pt-2 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
                   <span>Source: {opp.primary_source}</span>
                   <span>{opp.corroboration_count} signal{opp.corroboration_count > 1 ? "s" : ""}</span>
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
+              <div className="pt-3 border-t border-slate-800 flex items-center gap-2">
                 <Link
                   href={`/startups/${opp.id}`}
-                  className="flex-1 text-center py-2 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                  className="flex-1 text-center py-2 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 transition"
                 >
-                  Explore Pain Point
+                  Explore Pain Point →
                 </Link>
                 <button
                   onClick={() => handleSave(opp.id)}
                   title="Bookmark opportunity"
-                  className="px-3 py-2 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100"
+                  className="px-3 py-2 text-xs text-slate-300 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 transition"
                 >
                   Bookmark
                 </button>

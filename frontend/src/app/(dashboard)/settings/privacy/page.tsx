@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Navbar from "../../../../components/layout/Navbar";
 import { apiClient } from "../../../../services/apiClient";
 
 interface PrivacySettings {
@@ -126,19 +125,13 @@ export default function PrivacySettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100">
-        <Navbar />
-        <div className="max-w-4xl mx-auto py-12 px-4 text-center">Loading privacy preferences...</div>
-      </div>
+      <div className="max-w-4xl mx-auto py-12 px-4 text-center text-slate-400">Loading privacy preferences...</div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <Navbar />
-
-      <main className="max-w-4xl mx-auto py-8 px-4 sm:px-6 space-y-8">
-        {deletionStatus && (
+    <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
+      {deletionStatus && (
           <div className="p-4 bg-amber-950/80 border border-amber-500/50 rounded-xl text-amber-200 text-sm">
             {deletionStatus}
           </div>
@@ -309,7 +302,6 @@ export default function PrivacySettingsPage() {
             Initiate Account Deletion
           </button>
         </section>
-      </main>
 
       {/* Account Deletion Confirmation Modal */}
       {showDeleteModal && (

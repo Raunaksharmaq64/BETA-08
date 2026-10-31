@@ -171,7 +171,7 @@ export default function SourceDetailPage() {
             <h1 className="text-3xl font-bold text-white">{source.display_name}</h1>
             <p className="text-sm font-mono text-slate-400">{source.source_key}</p>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 capitalize">
               {source.provider}
             </span>

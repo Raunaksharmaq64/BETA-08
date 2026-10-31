@@ -52,42 +52,42 @@ export default function SavedStartupOpportunitiesPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      <div className="flex items-center justify-between">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Saved Startup Opportunities
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-slate-400 mt-1">
             Bookmarked pain points and technical signals for follow-up and custom proposals.
           </p>
         </div>
         <Link
           href="/startups"
-          className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm"
+          className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 shadow-sm transition shrink-0"
         >
           &larr; Discover More Startups
         </Link>
       </div>
 
       {loading ? (
-        <div className="p-12 text-center text-slate-500">
-          <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+        <div className="p-16 text-center text-slate-400">
+          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
           Loading bookmarks...
         </div>
       ) : error ? (
-        <div className="p-6 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm">
+        <div className="p-6 bg-rose-950/40 border border-rose-800 rounded-xl text-rose-300 text-sm">
           {error}
         </div>
       ) : savedItems.length === 0 ? (
-        <div className="p-12 bg-white rounded-xl border border-slate-200 text-center">
-          <p className="text-base font-semibold text-slate-700">No saved opportunities yet</p>
+        <div className="p-16 bg-slate-900 border border-slate-800 rounded-xl text-center">
+          <p className="text-base font-semibold text-slate-300">No saved opportunities yet</p>
           <p className="text-xs text-slate-500 mt-1">
             Browse the Startup Intelligence directory and click &quot;Bookmark&quot; on relevant pain points.
           </p>
           <Link
             href="/startups"
-            className="mt-4 inline-block px-4 py-2 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100"
+            className="mt-4 inline-block px-4 py-2 text-xs font-semibold text-indigo-400 bg-indigo-950/60 border border-indigo-800 rounded-lg hover:bg-indigo-900/60 transition"
           >
             Explore Directory
           </Link>
@@ -99,43 +99,43 @@ export default function SavedStartupOpportunitiesPage() {
             return (
               <div
                 key={item.saved_id}
-                className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="p-5 bg-slate-900 rounded-xl border border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-700 transition"
               >
-                <div className="space-y-1 max-w-2xl">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">
+                <div className="space-y-1.5 max-w-2xl">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800">
                       {opp.category}
                     </span>
-                    <span className="text-xs font-bold text-rose-600">
+                    <span className="text-[10px] font-bold text-rose-400 px-2 py-0.5 rounded bg-rose-950/60 border border-rose-800/60">
                       Urgency {opp.urgency_score}/10
                     </span>
                     <span className="text-xs text-slate-400">Source: {opp.primary_source}</span>
                   </div>
-                  <h3 className="font-bold text-slate-900 text-base">{opp.startup_name}</h3>
-                  <p className="text-xs text-slate-700 line-clamp-2">{opp.detected_signal}</p>
+                  <h3 className="font-bold text-white text-base">{opp.startup_name}</h3>
+                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">{opp.detected_signal}</p>
                   {item.notes && (
-                    <p className="text-xs text-indigo-600 italic mt-1">
+                    <p className="text-xs text-indigo-400 italic mt-1">
                       Note: &ldquo;{item.notes}&rdquo;
                     </p>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
                   <Link
                     href={`/startups/${opp.id}`}
-                    className="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200"
+                    className="px-3 py-1.5 text-xs font-semibold text-slate-200 bg-slate-800 rounded-lg hover:bg-slate-700 border border-slate-700 transition"
                   >
                     View Details
                   </Link>
                   <Link
                     href={`/startups/${opp.id}/pitch`}
-                    className="px-3 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                    className="px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 transition"
                   >
                     Draft Pitch
                   </Link>
                   <button
                     onClick={() => handleUnsave(opp.id)}
-                    className="px-3 py-2 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100"
+                    className="px-3 py-1.5 text-xs font-semibold text-rose-300 bg-rose-950/60 border border-rose-800/60 rounded-lg hover:bg-rose-900/60 transition"
                   >
                     Remove
                   </button>
@@ -148,4 +148,3 @@ export default function SavedStartupOpportunitiesPage() {
     </div>
   );
 }
-

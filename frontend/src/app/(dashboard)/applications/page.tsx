@@ -179,7 +179,7 @@ export default function ApplicationsPage() {
             Track career opportunities through auditable state transitions, notes, and milestones.
           </p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/calendar"
             className="px-4 py-2 text-sm font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
@@ -254,21 +254,19 @@ export default function ApplicationsPage() {
           <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
             <button
               onClick={() => setViewMode("board")}
-              className={`px-3 py-1.5 rounded-md font-medium transition ${
-                viewMode === "board"
+              className={`px-3 py-1.5 rounded-md font-medium transition ${viewMode === "board"
                   ? "bg-indigo-600 text-white"
                   : "text-slate-400 hover:text-slate-200"
-              }`}
+                }`}
             >
               Kanban Board
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`px-3 py-1.5 rounded-md font-medium transition ${
-                viewMode === "list"
+              className={`px-3 py-1.5 rounded-md font-medium transition ${viewMode === "list"
                   ? "bg-indigo-600 text-white"
                   : "text-slate-400 hover:text-slate-200"
-              }`}
+                }`}
             >
               Table View
             </button>
@@ -288,11 +286,10 @@ export default function ApplicationsPage() {
             <button
               key={col.key}
               onClick={() => setSelectedStatus(col.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition ${
-                isSelected
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition ${isSelected
                   ? "bg-indigo-600 text-white border-indigo-500 shadow"
                   : "bg-slate-900/80 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200"
-              }`}
+                }`}
             >
               {col.label} ({count})
             </button>
@@ -436,8 +433,8 @@ export default function ApplicationsPage() {
                     {app.next_interview_at
                       ? `Interview: ${new Date(app.next_interview_at).toLocaleDateString()}`
                       : app.next_action_due_at
-                      ? `Due: ${new Date(app.next_action_due_at).toLocaleDateString()}`
-                      : "—"}
+                        ? `Due: ${new Date(app.next_action_due_at).toLocaleDateString()}`
+                        : "—"}
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-400">
                     {app.notes_count > 0 ? `${app.notes_count} note(s)` : "None"}

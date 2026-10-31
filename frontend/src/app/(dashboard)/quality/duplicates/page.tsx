@@ -162,10 +162,10 @@ export default function DuplicateReviewWorkbenchPage() {
       )}
 
       {/* Filter Tabs */}
-      <div className="flex items-center space-x-2 border-b border-slate-800 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto scrollbar-none whitespace-nowrap">
         <button
           onClick={() => setFilterStatus("PROPOSED")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors ${
             filterStatus === "PROPOSED"
               ? "bg-indigo-600 text-white"
               : "text-slate-400 hover:text-white hover:bg-slate-850"
@@ -175,7 +175,7 @@ export default function DuplicateReviewWorkbenchPage() {
         </button>
         <button
           onClick={() => setFilterStatus("CONFIRMED")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors ${
             filterStatus === "CONFIRMED"
               ? "bg-indigo-600 text-white"
               : "text-slate-400 hover:text-white hover:bg-slate-850"
@@ -185,7 +185,7 @@ export default function DuplicateReviewWorkbenchPage() {
         </button>
         <button
           onClick={() => setFilterStatus("ALL")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors ${
             filterStatus === "ALL"
               ? "bg-indigo-600 text-white"
               : "text-slate-400 hover:text-white hover:bg-slate-850"
@@ -214,7 +214,7 @@ export default function DuplicateReviewWorkbenchPage() {
             >
               {/* Header Badge & Confidence */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800/80 pb-4 gap-3">
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-wrap items-center gap-2">
                   {getTierBadge(cand.match_tier)}
                   <span className="text-xs font-semibold text-slate-300">
                     Confidence: {(cand.confidence_score * 100).toFixed(0)}%
@@ -223,7 +223,7 @@ export default function DuplicateReviewWorkbenchPage() {
                     Method: {cand.match_method}
                   </span>
                 </div>
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                       cand.status === "CONFIRMED"

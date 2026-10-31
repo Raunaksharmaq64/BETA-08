@@ -223,7 +223,7 @@ export default function ResumeReviewPage() {
                         </div>
 
                         {isEditing ? (
-                          <div className="mt-2 flex items-center space-x-2">
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
                             <input
                               type="text"
                               value={correctedValue}
@@ -264,7 +264,7 @@ export default function ResumeReviewPage() {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center space-x-2">
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
                         <button
                           onClick={() => handleFieldAction(ev.field_id, "CONFIRM")}
                           disabled={submitting || ev.review_status === "CONFIRMED"}

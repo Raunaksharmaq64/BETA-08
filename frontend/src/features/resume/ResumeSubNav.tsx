@@ -21,7 +21,7 @@ export function ResumeSubNav({ resumeId }: ResumeSubNavProps) {
   ];
 
   return (
-    <div className="flex border-b border-slate-800 mb-8 overflow-x-auto gap-2 text-xs font-medium text-slate-400">
+    <nav className="flex border-b border-slate-800 mb-8 overflow-x-auto scrollbar-none gap-1 sm:gap-2 text-xs font-medium text-slate-400 -mx-4 px-4 sm:mx-0 sm:px-0" aria-label="Resume Sub-Navigation">
       {links.map((link) => {
         const isActive = pathname === link.href;
         return (
@@ -38,6 +38,6 @@ export function ResumeSubNav({ resumeId }: ResumeSubNavProps) {
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }

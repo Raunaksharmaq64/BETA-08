@@ -103,7 +103,7 @@ export default function UnifiedDashboardPage() {
             Unified view across full-time jobs, freelance leads, startup signals, and candidate CRM.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/opportunities"
             className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white shadow-sm transition-colors"
@@ -140,7 +140,7 @@ export default function UnifiedDashboardPage() {
                 : "Partial Service Degradation — Returning Available Aggregates"}
             </span>
           </div>
-          <div className="flex items-center gap-4 text-xs font-mono">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono">
             <span>Core: <strong className="text-white">{health.core_career_engine}</strong></span>
             <span>LeadHunter: <strong className="text-white">{health.leadhunter_satellite}</strong></span>
             <span>Startup Intel: <strong className="text-white">{health.startup_intelligence_satellite}</strong></span>
@@ -163,7 +163,7 @@ export default function UnifiedDashboardPage() {
         </div>
       ) : metrics ? (
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-400">
             <span className="font-semibold tracking-wide uppercase text-slate-300">Aggregated Pipeline Totals</span>
             <span className="bg-slate-800/80 px-2.5 py-1 rounded border border-slate-700 text-slate-300 font-mono">
               Reconciled: {metrics.total_opportunities} = {metrics.total_jobs} (Jobs) + {metrics.total_freelance} (Freelance) + {metrics.total_startups} (Startups)

@@ -107,12 +107,12 @@ function Sprint48HourContent() {
 
         {/* Plan Selector */}
         {plans.length > 0 && (
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-2 flex items-center space-x-2 text-xs">
-            <span className="text-slate-400 font-medium">Target Plan:</span>
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-2 flex items-center space-x-2 text-xs max-w-full overflow-hidden">
+            <span className="text-slate-400 font-medium whitespace-nowrap">Target Plan:</span>
             <select
               value={selectedPlanId}
               onChange={(e) => setSelectedPlanId(e.target.value)}
-              className="bg-transparent text-indigo-400 font-bold focus:outline-none"
+              className="bg-transparent text-indigo-400 font-bold focus:outline-none truncate max-w-[200px] sm:max-w-xs"
             >
               {plans.map((p) => (
                 <option key={p.id} value={p.id} className="bg-slate-900 text-slate-200">
@@ -224,11 +224,10 @@ function Sprint48HourContent() {
                         return (
                           <label
                             key={taskKey}
-                            className={`flex items-start space-x-3 p-2.5 rounded-lg border text-xs cursor-pointer transition ${
-                              isDone
+                            className={`flex items-start space-x-3 p-2.5 rounded-lg border text-xs cursor-pointer transition ${isDone
                                 ? "bg-slate-950/40 border-slate-800/40 opacity-60 text-slate-500 line-through"
                                 : "bg-slate-950 border-slate-800 text-slate-200 hover:border-slate-700"
-                            }`}
+                              }`}
                           >
                             <input
                               type="checkbox"

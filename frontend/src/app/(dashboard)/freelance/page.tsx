@@ -147,7 +147,7 @@ export default function FreelanceDashboardPage() {
               Autonomous local business discovery, 100-point website health diagnostics, and candidate-governed outreach pitches.
             </p>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/freelance/saved"
               className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition"
@@ -260,7 +260,7 @@ export default function FreelanceDashboardPage() {
 
             {/* Advanced Scan Toggles */}
             <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-slate-800">
-              <div className="flex items-center space-x-6 text-xs text-slate-300">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-xs text-slate-300">
                 <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -326,11 +326,10 @@ export default function FreelanceDashboardPage() {
                 <button
                   key={p.id}
                   onClick={() => setSelectedPriority(p.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs transition ${
-                    selectedPriority === p.id
+                  className={`px-3 py-1.5 rounded-lg text-xs transition ${selectedPriority === p.id
                       ? "ring-2 ring-indigo-500 bg-indigo-600 text-white font-bold"
                       : p.color
-                  }`}
+                    }`}
                 >
                   {p.label}
                 </button>
@@ -354,11 +353,10 @@ export default function FreelanceDashboardPage() {
                 <button
                   key={st}
                   onClick={() => setSelectedState(st)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                    selectedState === st
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${selectedState === st
                       ? "bg-indigo-600 text-white"
                       : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-                  }`}
+                    }`}
                 >
                   {st === "ALL" ? "All Statuses" : st.replace(/_/g, " ")}
                 </button>
@@ -379,26 +377,24 @@ export default function FreelanceDashboardPage() {
             {filtered.map((opp) => (
               <div
                 key={opp.id}
-                className={`bg-slate-900 border transition rounded-xl p-6 flex flex-col justify-between shadow-sm ${
-                  opp.priority === "HIGH"
+                className={`bg-slate-900 border transition rounded-xl p-6 flex flex-col justify-between shadow-sm ${opp.priority === "HIGH"
                     ? "border-rose-900/60 hover:border-rose-600 ring-1 ring-rose-950/40"
                     : opp.priority === "MEDIUM"
-                    ? "border-amber-900/50 hover:border-amber-600"
-                    : "border-slate-800 hover:border-slate-700"
-                }`}
+                      ? "border-amber-900/50 hover:border-amber-600"
+                      : "border-slate-800 hover:border-slate-700"
+                  }`}
               >
                 <div>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                            opp.priority === "HIGH"
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${opp.priority === "HIGH"
                               ? "bg-rose-950 text-rose-300 border border-rose-600 shadow-sm shadow-rose-950"
                               : opp.priority === "MEDIUM"
-                              ? "bg-amber-950 text-amber-300 border border-amber-600"
-                              : "bg-slate-800 text-slate-400 border border-slate-700"
-                          }`}
+                                ? "bg-amber-950 text-amber-300 border border-amber-600"
+                                : "bg-slate-800 text-slate-400 border border-slate-700"
+                            }`}
                         >
                           {opp.priority === "HIGH" ? "⚡ HIGH PRIORITY" : `${opp.priority || "MEDIUM"} PRIORITY`}
                         </span>
@@ -410,19 +406,18 @@ export default function FreelanceDashboardPage() {
                       <p className="text-xs text-slate-400">{opp.city}</p>
                     </div>
                     <span
-                      className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
-                        opp.is_broken_website
+                      className={`text-xs px-2.5 py-1 rounded-full font-semibold ${opp.is_broken_website
                           ? "bg-rose-950 text-rose-300 border border-rose-700"
                           : !opp.website
-                          ? "bg-emerald-950 text-emerald-300 border border-emerald-700"
-                          : "bg-slate-800 text-slate-300"
-                      }`}
+                            ? "bg-emerald-950 text-emerald-300 border border-emerald-700"
+                            : "bg-slate-800 text-slate-300"
+                        }`}
                     >
                       {opp.is_broken_website
                         ? "Broken Website"
                         : !opp.website
-                        ? "No Website"
-                        : "Active Website"}
+                          ? "No Website"
+                          : "Active Website"}
                     </span>
                   </div>
 

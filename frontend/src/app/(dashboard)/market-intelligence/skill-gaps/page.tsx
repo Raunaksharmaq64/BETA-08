@@ -106,7 +106,7 @@ export default function CandidateSkillGapPage() {
             Compare your verified resume skills against observed technology demand in active job postings.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/market-intelligence"
             className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-sm font-semibold border border-slate-700 transition-colors"

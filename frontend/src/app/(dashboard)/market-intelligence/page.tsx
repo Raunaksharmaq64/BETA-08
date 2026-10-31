@@ -118,7 +118,7 @@ export default function MarketIntelligenceDashboardPage() {
       {/* Controls & Filters */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900 border border-slate-800">
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800 overflow-x-auto max-w-full">
             <span className="text-xs text-slate-400 font-medium px-2">Window:</span>
             {["7d", "30d", "90d"].map((w) => (
               <button

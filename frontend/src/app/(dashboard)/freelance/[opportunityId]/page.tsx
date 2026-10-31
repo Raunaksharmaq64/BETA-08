@@ -423,9 +423,9 @@ export default function FreelanceDetailPage() {
               )}
             </div>
           ) : (
-            <div className="bg-slate-950/60 p-4 rounded-lg border border-slate-800/80 text-xs text-slate-400 flex items-center justify-between">
-              <span>Website: <a href={opp.website} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">{opp.website}</a></span>
-              <span>Click "Audit Website Now" to run a live 100-point diagnostic scan.</span>
+            <div className="bg-slate-950/60 p-4 rounded-lg border border-slate-800/80 text-xs text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="truncate max-w-full">Website: <a href={opp.website} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">{opp.website}</a></span>
+              <span className="text-[11px] text-slate-500">Click "Audit Website Now" to run a live 100-point diagnostic scan.</span>
             </div>
           )}
         </div>

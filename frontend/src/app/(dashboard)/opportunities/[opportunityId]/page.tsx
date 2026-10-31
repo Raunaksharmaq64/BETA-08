@@ -190,7 +190,7 @@ export default function OpportunityVerificationPage() {
             </p>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={handleVerifyNow}
               disabled={verifying}
@@ -235,7 +235,7 @@ export default function OpportunityVerificationPage() {
               {detail?.user_friendly_status}
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="px-3 py-1 rounded-full text-xs font-bold border bg-indigo-950 text-indigo-300 border-indigo-800">
               State: {detail?.verification_status}
             </span>

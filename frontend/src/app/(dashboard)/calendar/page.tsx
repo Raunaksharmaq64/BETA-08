@@ -186,12 +186,12 @@ export default function CalendarPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Timezone picker */}
-          <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs">
-            <span className="text-slate-400 font-medium">🌐 Timezone:</span>
+          <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs max-w-full">
+            <span className="text-slate-400 font-medium shrink-0">🌐 Timezone:</span>
             <select
               value={selectedTz}
               onChange={(e) => setSelectedTz(e.target.value)}
-              className="bg-transparent text-indigo-400 font-semibold focus:outline-none"
+              className="bg-transparent text-indigo-400 font-semibold focus:outline-none max-w-[170px] sm:max-w-xs truncate"
             >
               {COMMON_TIMEZONES.map((tz) => (
                 <option key={tz.value} value={tz.value} className="bg-slate-900 text-slate-200">
@@ -334,7 +334,7 @@ export default function CalendarPage() {
                           href={getGoogleCalendarUrl(ev.title, ev.start_time, ev.end_time)}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-emerald-400 hover:text-emerald-300 underline font-medium ml-auto"
+                          className="text-emerald-400 hover:text-emerald-300 underline font-medium sm:ml-auto"
                         >
                           + Add to Google Cal ↗
                         </a>

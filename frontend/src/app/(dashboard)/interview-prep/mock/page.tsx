@@ -201,11 +201,11 @@ export default function MockInterviewPage() {
         /* Active Practice Session */
         <div className="space-y-6">
           {/* Question Stepper */}
-          <div className="flex items-center justify-between bg-slate-900 border border-slate-800 px-5 py-3 rounded-xl text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 px-4 sm:px-5 py-3 rounded-xl text-xs">
             <span className="font-semibold text-slate-300">
               {session.target_role} ({session.round_type})
             </span>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2 overflow-x-auto max-w-full pb-1 sm:pb-0 scrollbar-none">
               {session.questions.map((q, idx) => {
                 const isCurrent = idx === currentQIndex;
                 const isAnswered = !!q.rubric_evaluation;
@@ -216,7 +216,7 @@ export default function MockInterviewPage() {
                       setCurrentQIndex(idx);
                       setResponseText(q.candidate_response || "");
                     }}
-                    className={`w-7 h-7 rounded-full text-xs font-bold transition ${
+                    className={`w-7 h-7 shrink-0 rounded-full text-xs font-bold transition ${
                       isCurrent
                         ? "bg-indigo-600 text-white ring-2 ring-indigo-400"
                         : isAnswered
@@ -271,8 +271,8 @@ export default function MockInterviewPage() {
                   />
                 </div>
 
-                <div className="flex justify-between items-center pt-2">
-                  <span className="text-[11px] text-slate-500">
+                <div className="flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-2">
+                  <span className="text-[11px] text-slate-500 text-center sm:text-left">
                     {responseText.trim().split(/\s+/).filter(Boolean).length} words
                   </span>
                   <button

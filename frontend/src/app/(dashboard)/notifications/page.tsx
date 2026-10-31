@@ -110,7 +110,7 @@ export default function NotificationsPage() {
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleScanAlerts}
             disabled={scanning}
@@ -193,7 +193,7 @@ export default function NotificationsPage() {
               }`}
             >
               <div className="space-y-1">
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-400 uppercase">
                     {item.category.replace(/_/g, " ")}
                   </span>

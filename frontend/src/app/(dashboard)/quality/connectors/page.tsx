@@ -149,7 +149,7 @@ export default function ConnectorHealthPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6">
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-4 sm:gap-6 overflow-x-auto scrollbar-none whitespace-nowrap">
         {["ALL", "ATS", "FREELANCE", "STARTUP", "JOB_BOARD"].map((type) => (
           <button
             key={type}
