@@ -4,9 +4,14 @@ Ensures project root and backend root are on sys.path.
 Initializes a clean, isolated database and resets rate limits before each test.
 """
 
+import os
 import sys
 from pathlib import Path
 import pytest
+
+# Ensure testing environment uses an isolated local SQLite database
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_core.db"
+os.environ["APP_ENV"] = "testing"
 
 # Project root: c:\Users\Sahil\Desktop\manit\rightFIT
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent

@@ -35,6 +35,29 @@ Universal engineering policies mandatory for human engineers and AI coding assis
 Comprehensive feature specifications, user journeys, API contracts, and implementation guides.
 * [Feature Catalog Overview](./features/README.md) — Master index of planned and active features.
 * [Feature Specification Template (`_template.md`)](./features/_template.md) — Mandatory 18-point template for feature documentation.
+* [CRM & Interview Intelligence](./features/crm-and-interview-intel/README.md) — Phase 8 Application CRM Pipeline, 48-Hour Sprint, STAR Builder, Mock Rubric & Reminders.
+  * [Application State Machine](./features/crm-and-interview-intel/application-state-machine.md)
+  * [Save and Apply Tracking](./features/crm-and-interview-intel/save-and-apply-tracking.md)
+  * [Status History and Notes](./features/crm-and-interview-intel/status-history-and-notes.md)
+  * [CRM Dashboard and Metrics](./features/crm-and-interview-intel/crm-dashboard-and-metrics.md)
+  * [Reminders and Timezone](./features/crm-and-interview-intel/reminders-and-timezone.md)
+  * [Interview Plans and Rounds](./features/crm-and-interview-intel/interview-plans-and-rounds.md)
+  * [48-Hour Preparation Mode](./features/crm-and-interview-intel/48-hour-preparation-mode.md)
+  * [STAR Answer Builder](./features/crm-and-interview-intel/star-answer-builder.md)
+  * [Mock Interview and Rubric](./features/crm-and-interview-intel/mock-interview-and-rubric.md)
+  * [Interview Debrief and Conflicts](./features/crm-and-interview-intel/interview-debrief-and-conflicts.md)
+  * [Notifications and Preferences](./features/crm-and-interview-intel/notifications-and-preferences.md)
+* [Job Search, Candidate Matching & Personalized Discovery](./features/job-search-and-matching/README.md) — Phase 7 Multi-Dimensional Search, Skill Fit, Mandatory Eligibility & Alerts.
+  * [Search Architecture & Execution](./features/job-search-and-matching/search-architecture.md)
+  * [Evidence-Based Skill Fit Engine](./features/job-search-and-matching/skill-fit-engine.md)
+  * [Mandatory Eligibility Engine](./features/job-search-and-matching/mandatory-eligibility.md)
+  * [Explainable Multi-Dimensional Ranking](./features/job-search-and-matching/explainable-ranking.md)
+  * [Source Coverage & Partial Results Transparency](./features/job-search-and-matching/source-coverage-transparency.md)
+  * [Candidate Saved Jobs & Private Notes](./features/job-search-and-matching/saved-jobs-and-notes.md)
+  * [Saved Searches & Alert Subscriptions](./features/job-search-and-matching/saved-searches-and-alerts.md)
+  * [Alert Delivery & Idempotency](./features/job-search-and-matching/alert-delivery-and-idempotency.md)
+  * [Frontend Discovery & UI Guide](./features/job-search-and-matching/frontend-discovery-guide.md)
+  * [Evaluation Dataset & Precision Benchmarks](./features/job-search-and-matching/evaluation-dataset-and-precision.md)
 * [Verification, Deduplication & Quality Guide](./features/verification-and-dedup/README.md) — Phase 6 Verification, Deduplication, Freshness & Data Quality.
   * [Verification State Machine](./features/verification-and-dedup/verification-state-machine.md)
   * [Verification Evidence Ledger](./features/verification-and-dedup/verification-evidence.md)
@@ -89,6 +112,9 @@ Forensic audits of existing legacy source systems, test reports, and phase execu
 * [Phase 3 Execution Record](./audit/phase-3/phase-3-execution-record.md) — Identity, candidate profile, and GDPR/CCPA privacy foundation.
 * [Phase 4 Execution Record](./audit/phase-4/phase-4-execution-record.md) — Resume Intelligence, reviewed evidence, and ATS analysis.
 * [Phase 5 Execution Record](./audit/phase-5/phase-5-execution-record.md) — Job Source Framework, Connectors, Normalization & Provenance.
+* [Phase 6 Execution Record](./audit/phase-6/phase-6-execution-record.md) — Verification, Deduplication, Freshness & Quality Intelligence.
+* [Phase 7 Execution Record](./audit/phase-7/phase-7-execution-record.md) — Job Search, Candidate Matching & Personalized Discovery.
+* [Phase 8 Execution Record](./audit/phase-8/phase-8-execution-record.md) — CRM and Interview Intelligence.
 
 ---
 

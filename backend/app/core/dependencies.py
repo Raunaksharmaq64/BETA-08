@@ -108,3 +108,17 @@ async def get_current_active_user(
         )
     return current_user
 
+
+async def get_optional_current_user(
+    request: Request,
+    bearer_creds: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[User]:
+    """Attempts to retrieve current active user, returning None if unauthenticated."""
+    try:
+        user = await get_current_user(request, bearer_creds, db)
+        return user
+    except HTTPException:
+        return None
+
+

@@ -13,6 +13,12 @@ from app.api.v1.endpoints.privacy import router as privacy_router
 from app.api.v1.endpoints.resume import router as resume_router
 from app.api.v1.endpoints.sources import router as sources_router
 from app.api.v1.endpoints.verification import router as verification_router
+from app.api.v1.endpoints.matching import router as matching_router
+from app.api.v1.endpoints.crm import router as crm_router
+from app.api.v1.endpoints.reminders import router as reminders_router
+from app.api.v1.endpoints.interview_intelligence import router as interview_intelligence_router
+from app.api.v1.endpoints.notifications import router as notifications_router
+from app.api.v1.endpoints.freelance import router as freelance_router
 
 api_v1_router = APIRouter()
 
@@ -24,3 +30,9 @@ api_v1_router.include_router(privacy_router)
 api_v1_router.include_router(resume_router)
 api_v1_router.include_router(sources_router)
 api_v1_router.include_router(verification_router)
+api_v1_router.include_router(matching_router)
+api_v1_router.include_router(crm_router)
+api_v1_router.include_router(reminders_router)
+api_v1_router.include_router(interview_intelligence_router)
+api_v1_router.include_router(notifications_router)
+api_v1_router.include_router(freelance_router)

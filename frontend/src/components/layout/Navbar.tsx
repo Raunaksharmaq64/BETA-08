@@ -16,14 +16,18 @@ export default function Navbar() {
   };
 
   const navLinks = [
+    { name: "Find Jobs", href: "/search" },
+    { name: "Applications", href: "/applications" },
+    { name: "Calendar", href: "/calendar" },
+    { name: "Interview Prep", href: "/interview-prep" },
+    { name: "Notifications", href: "/notifications" },
+    { name: "Saved Jobs", href: "/saved-jobs" },
+    { name: "Alerts", href: "/saved-searches" },
     { name: "Resumes", href: "/resumes" },
-    { name: "Opportunities", href: "/opportunities" },
+    { name: "Candidate Profile", href: "/profile" },
     { name: "Job Sources", href: "/sources" },
     { name: "Data Quality", href: "/quality" },
-    { name: "Candidate Profile", href: "/profile" },
-    { name: "Onboarding Wizard", href: "/onboarding" },
-    { name: "Preferences", href: "/preferences" },
-    { name: "Privacy & Data Rights", href: "/settings/privacy" },
+    { name: "Privacy", href: "/settings/privacy" },
   ];
 
   return (

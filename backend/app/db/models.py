@@ -76,6 +76,19 @@ class User(Base):
     export_requests: Mapped[List["DataExportRequestRecord"]] = relationship("DataExportRequestRecord", back_populates="user", cascade="all, delete-orphan")
     deletion_requests: Mapped[List["AccountDeletionRequestRecord"]] = relationship("AccountDeletionRequestRecord", back_populates="user", cascade="all, delete-orphan")
     resumes: Mapped[List["ResumeRecord"]] = relationship("ResumeRecord", back_populates="user", cascade="all, delete-orphan")
+    saved_jobs: Mapped[List["SavedJobRecord"]] = relationship("SavedJobRecord", back_populates="user", cascade="all, delete-orphan")
+    saved_searches: Mapped[List["SavedSearchRecord"]] = relationship("SavedSearchRecord", back_populates="user", cascade="all, delete-orphan")
+    alert_logs: Mapped[List["AlertDeliveryLogRecord"]] = relationship("AlertDeliveryLogRecord", back_populates="user", cascade="all, delete-orphan")
+    applications: Mapped[List["ApplicationRecord"]] = relationship("ApplicationRecord", back_populates="user", cascade="all, delete-orphan")
+    reminders: Mapped[List["ReminderRecord"]] = relationship("ReminderRecord", back_populates="user", cascade="all, delete-orphan")
+    interview_plans: Mapped[List["InterviewPlanRecord"]] = relationship("InterviewPlanRecord", back_populates="user", cascade="all, delete-orphan")
+    star_answers: Mapped[List["STARAnswerRecord"]] = relationship("STARAnswerRecord", back_populates="user", cascade="all, delete-orphan")
+    mock_sessions: Mapped[List["MockInterviewSessionRecord"]] = relationship("MockInterviewSessionRecord", back_populates="user", cascade="all, delete-orphan")
+    debriefs: Mapped[List["InterviewDebriefRecord"]] = relationship("InterviewDebriefRecord", back_populates="user", cascade="all, delete-orphan")
+    notifications: Mapped[List["NotificationRecord"]] = relationship("NotificationRecord", back_populates="user", cascade="all, delete-orphan")
+    notification_preferences: Mapped[Optional["NotificationPreferencesRecord"]] = relationship("NotificationPreferencesRecord", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    saved_freelance_opportunities: Mapped[List["SavedFreelanceOpportunityRecord"]] = relationship("SavedFreelanceOpportunityRecord", back_populates="user", cascade="all, delete-orphan")
+    outreach_drafts: Mapped[List["OutreachDraftRecord"]] = relationship("OutreachDraftRecord", back_populates="user", cascade="all, delete-orphan")
 
 
 class RefreshTokenRecord(Base):
@@ -542,6 +555,15 @@ class CanonicalOpportunityRecord(Base):
         back_populates="opportunity",
         cascade="all, delete-orphan"
     )
+    saved_by: Mapped[List["SavedJobRecord"]] = relationship(
+        "SavedJobRecord",
+        back_populates="opportunity",
+        cascade="all, delete-orphan"
+    )
+    applications: Mapped[List["ApplicationRecord"]] = relationship(
+        "ApplicationRecord",
+        back_populates="opportunity"
+    )
 
 
 class SourceRunLogRecord(Base):
@@ -681,5 +703,514 @@ class UserListingFeedbackRecord(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
     opportunity: Mapped["CanonicalOpportunityRecord"] = relationship("CanonicalOpportunityRecord", back_populates="feedbacks")
+
+
+# ==============================================================================
+# Phase 7: Job Search, Candidate Matching, Saved Jobs & Alerts
+# ==============================================================================
+
+class SavedJobRecord(Base):
+    """Candidate-saved job listing with optional private notes."""
+    __tablename__ = "saved_jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    opportunity_id: Mapped[str] = mapped_column(String(36), ForeignKey("canonical_opportunities.id", ondelete="CASCADE"), index=True, nullable=False)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="saved_jobs")
+    opportunity: Mapped["CanonicalOpportunityRecord"] = relationship("CanonicalOpportunityRecord", back_populates="saved_by")
+
+
+class SavedSearchRecord(Base):
+    """Saved search query parameters and candidate alert notification subscription."""
+    __tablename__ = "saved_searches"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    query_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    filters_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    alert_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    alert_frequency: Mapped[str] = mapped_column(String(20), default="DAILY", nullable=False)
+    last_notified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="saved_searches")
+    delivery_logs: Mapped[List["AlertDeliveryLogRecord"]] = relationship(
+        "AlertDeliveryLogRecord",
+        back_populates="saved_search",
+        cascade="all, delete-orphan"
+    )
+
+
+class AlertDeliveryLogRecord(Base):
+    """Audit log of delivered job match alert notifications."""
+    __tablename__ = "alert_delivery_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    saved_search_id: Mapped[str] = mapped_column(String(36), ForeignKey("saved_searches.id", ondelete="CASCADE"), index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    opportunity_ids_json: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
+    delivery_channel: Mapped[str] = mapped_column(String(30), default="IN_APP", nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="DELIVERED", nullable=False)
+    delivered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="alert_logs")
+    saved_search: Mapped["SavedSearchRecord"] = relationship("SavedSearchRecord", back_populates="delivery_logs")
+
+
+# ==============================================================================
+# Phase 8: CRM, Reminders, Interview Intelligence & Notifications Models
+# ==============================================================================
+
+class ApplicationRecord(Base):
+    """Candidate job application tracking and CRM entity."""
+    __tablename__ = "applications"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    opportunity_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("canonical_opportunities.id", ondelete="SET NULL"), nullable=True, index=True)
+    company_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    job_title: Mapped[str] = mapped_column(String(150), nullable=False)
+    application_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="SAVED", index=True, nullable=False)
+    applied_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    apply_link_opened_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_submission_confirmed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    current_stage: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    salary_offered: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    salary_currency: Mapped[Optional[str]] = mapped_column(String(10), default="USD", nullable=True)
+    contact_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    contact_email: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="applications")
+    opportunity: Mapped[Optional["CanonicalOpportunityRecord"]] = relationship("CanonicalOpportunityRecord", back_populates="applications")
+    status_history: Mapped[List["ApplicationStatusHistoryRecord"]] = relationship(
+        "ApplicationStatusHistoryRecord",
+        back_populates="application",
+        cascade="all, delete-orphan",
+        order_by="desc(ApplicationStatusHistoryRecord.changed_at)"
+    )
+    notes: Mapped[List["ApplicationNoteRecord"]] = relationship(
+        "ApplicationNoteRecord",
+        back_populates="application",
+        cascade="all, delete-orphan",
+        order_by="desc(ApplicationNoteRecord.created_at)"
+    )
+    reminders: Mapped[List["ReminderRecord"]] = relationship(
+        "ReminderRecord",
+        back_populates="application",
+        cascade="all, delete-orphan"
+    )
+    interview_plans: Mapped[List["InterviewPlanRecord"]] = relationship(
+        "InterviewPlanRecord",
+        back_populates="application",
+        cascade="all, delete-orphan"
+    )
+    debriefs: Mapped[List["InterviewDebriefRecord"]] = relationship(
+        "InterviewDebriefRecord",
+        back_populates="application",
+        cascade="all, delete-orphan"
+    )
+
+
+class ApplicationStatusHistoryRecord(Base):
+    """Immutable audit trail of application state transitions."""
+    __tablename__ = "application_status_history"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    application_id: Mapped[str] = mapped_column(String(36), ForeignKey("applications.id", ondelete="CASCADE"), index=True, nullable=False)
+    from_status: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    to_status: Mapped[str] = mapped_column(String(30), nullable=False)
+    changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    actor_type: Mapped[str] = mapped_column(String(30), default="CANDIDATE", nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    reason: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+
+    application: Mapped["ApplicationRecord"] = relationship("ApplicationRecord", back_populates="status_history")
+
+
+class ApplicationNoteRecord(Base):
+    """Candidate private notes attached to an application."""
+    __tablename__ = "application_notes"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    application_id: Mapped[str] = mapped_column(String(36), ForeignKey("applications.id", ondelete="CASCADE"), index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    note_type: Mapped[str] = mapped_column(String(30), default="GENERAL", nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    application: Mapped["ApplicationRecord"] = relationship("ApplicationRecord", back_populates="notes")
+
+
+class ReminderRecord(Base):
+    """Candidate scheduled follow-ups, interview reminders, and deadlines."""
+    __tablename__ = "reminders"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    application_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("applications.id", ondelete="CASCADE"), nullable=True, index=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
+    reminder_type: Mapped[str] = mapped_column(String(30), default="FOLLOW_UP", nullable=False)
+    due_at_utc: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True, nullable=False)
+    timezone: Mapped[str] = mapped_column(String(50), default="UTC", nullable=False)
+    is_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    notification_sent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="reminders")
+    application: Mapped[Optional["ApplicationRecord"]] = relationship("ApplicationRecord", back_populates="reminders")
+
+
+class InterviewPlanRecord(Base):
+    """Interview preparation container linking a job role with rounds and study plans."""
+    __tablename__ = "interview_plans"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    application_id: Mapped[str] = mapped_column(String(36), ForeignKey("applications.id", ondelete="CASCADE"), index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    title: Mapped[str] = mapped_column(String(150), nullable=False)
+    role_title: Mapped[str] = mapped_column(String(150), nullable=False)
+    company_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    job_description_excerpt: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="interview_plans")
+    application: Mapped["ApplicationRecord"] = relationship("ApplicationRecord", back_populates="interview_plans")
+    rounds: Mapped[List["InterviewRoundRecord"]] = relationship(
+        "InterviewRoundRecord",
+        back_populates="plan",
+        cascade="all, delete-orphan",
+        order_by="InterviewRoundRecord.round_number"
+    )
+    star_answers: Mapped[List["STARAnswerRecord"]] = relationship(
+        "STARAnswerRecord",
+        back_populates="plan",
+        cascade="all, delete-orphan"
+    )
+    mock_sessions: Mapped[List["MockInterviewSessionRecord"]] = relationship(
+        "MockInterviewSessionRecord",
+        back_populates="plan"
+    )
+
+
+class InterviewRoundRecord(Base):
+    """Specific scheduled round within an interview plan."""
+    __tablename__ = "interview_rounds"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    plan_id: Mapped[str] = mapped_column(String(36), ForeignKey("interview_plans.id", ondelete="CASCADE"), index=True, nullable=False)
+    round_number: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    round_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    scheduled_at_utc: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    interview_format: Mapped[str] = mapped_column(String(30), default="VIDEO", nullable=False)
+    interviewer_names: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    focus_areas_json: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="SCHEDULED", nullable=False)
+
+    plan: Mapped["InterviewPlanRecord"] = relationship("InterviewPlanRecord", back_populates="rounds")
+
+
+class STARAnswerRecord(Base):
+    """Structured STAR answer grounded in candidate verified resume and experience."""
+    __tablename__ = "star_answers"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    plan_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("interview_plans.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    question: Mapped[str] = mapped_column(String(500), nullable=False)
+    category: Mapped[str] = mapped_column(String(80), default="TECHNICAL_CHALLENGE", nullable=False)
+    situation: Mapped[str] = mapped_column(Text, nullable=False)
+    task: Mapped[str] = mapped_column(Text, nullable=False)
+    action: Mapped[str] = mapped_column(Text, nullable=False)
+    result: Mapped[str] = mapped_column(Text, nullable=False)
+    supporting_evidence_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    missing_information_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_candidate_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="star_answers")
+    plan: Mapped[Optional["InterviewPlanRecord"]] = relationship("InterviewPlanRecord", back_populates="star_answers")
+
+
+class MockInterviewSessionRecord(Base):
+    """Interactive practice interview session."""
+    __tablename__ = "mock_interview_sessions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    plan_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("interview_plans.id", ondelete="SET NULL"), nullable=True, index=True)
+    role_title: Mapped[str] = mapped_column(String(150), nullable=False)
+    session_type: Mapped[str] = mapped_column(String(30), default="BEHAVIORAL", nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="IN_PROGRESS", nullable=False)
+    average_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    overall_feedback_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped["User"] = relationship("User", back_populates="mock_sessions")
+    plan: Mapped[Optional["InterviewPlanRecord"]] = relationship("InterviewPlanRecord", back_populates="mock_sessions")
+    questions: Mapped[List["MockInterviewQuestionRecord"]] = relationship(
+        "MockInterviewQuestionRecord",
+        back_populates="session",
+        cascade="all, delete-orphan",
+        order_by="MockInterviewQuestionRecord.order_index"
+    )
+
+
+class MockInterviewQuestionRecord(Base):
+    """Individual question and rubric evaluation within a mock interview session."""
+    __tablename__ = "mock_interview_questions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    session_id: Mapped[str] = mapped_column(String(36), ForeignKey("mock_interview_sessions.id", ondelete="CASCADE"), index=True, nullable=False)
+    question_text: Mapped[str] = mapped_column(String(1000), nullable=False)
+    category: Mapped[str] = mapped_column(String(80), nullable=False)
+    order_index: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    candidate_answer: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    feedback_json: Mapped[Dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    follow_up_question: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    answered_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    session: Mapped["MockInterviewSessionRecord"] = relationship("MockInterviewSessionRecord", back_populates="questions")
+
+
+class InterviewDebriefRecord(Base):
+    """Post-interview candidate reflections, questions asked, and follow-up tracking."""
+    __tablename__ = "interview_debriefs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    application_id: Mapped[str] = mapped_column(String(36), ForeignKey("applications.id", ondelete="CASCADE"), index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    round_name: Mapped[str] = mapped_column(String(150), nullable=False)
+    interview_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    questions_asked_json: Mapped[List[str]] = mapped_column(JSON, default=list, nullable=False)
+    topics_discussed: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    candidate_reflections: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    strengths: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    areas_to_improve: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    recruiter_commitments: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    expected_response_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_step: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="debriefs")
+    application: Mapped["ApplicationRecord"] = relationship("ApplicationRecord", back_populates="debriefs")
+
+
+class NotificationRecord(Base):
+    """In-app alerts and notifications delivered to candidate."""
+    __tablename__ = "notifications"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    category: Mapped[str] = mapped_column(String(50), default="SYSTEM", nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    reference_link: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, index=True, nullable=False)
+    delivery_channel: Mapped[str] = mapped_column(String(30), default="IN_APP", nullable=False)
+    delivery_status: Mapped[str] = mapped_column(String(30), default="DELIVERED", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, index=True, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="notifications")
+
+
+class NotificationPreferencesRecord(Base):
+    """Candidate notification settings and delivery channel controls."""
+    __tablename__ = "notification_preferences"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True, nullable=False)
+    in_app_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    email_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    interview_reminders: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    application_follow_ups: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    assessment_deadlines: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    prep_milestones: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="notification_preferences")
+
+
+# ==============================================================================
+# PHASE 9: FREELANCE OPPORTUNITIES, CONTACT EVIDENCE & OUTREACH
+# ==============================================================================
+
+class FreelanceOpportunityRecord(Base):
+    """Canonical freelance and local business development opportunity imported from LeadHunter."""
+    __tablename__ = "freelance_opportunities"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    leadhunter_lead_id: Mapped[Optional[str]] = mapped_column(String(64), index=True, nullable=True)
+    place_id: Mapped[Optional[str]] = mapped_column(String(255), index=True, nullable=True)
+    business_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    opportunity_title: Mapped[str] = mapped_column(String(255), nullable=False)
+    service_category: Mapped[str] = mapped_column(String(120), default="Web Development", nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    city: Mapped[str] = mapped_column(String(120), index=True, nullable=False)
+    location: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    is_remote: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    website: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
+    is_broken_website: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    rating: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    reviews_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    required_skills: Mapped[List[Any]] = mapped_column(JSON, default=list, nullable=False)
+    suggested_service: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    suggested_pitch: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    classification_state: Mapped[str] = mapped_column(
+        String(50), default="POTENTIAL_FREELANCE_OPPORTUNITY", index=True, nullable=False
+    )
+    classification_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    relevance_score: Mapped[float] = mapped_column(Float, default=85.0, nullable=False)
+    source: Mapped[str] = mapped_column(String(60), default="leadhunter_google_maps", nullable=False)
+    original_source_url: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
+    discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    last_verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    contact_evidence: Mapped[List["ContactEvidenceRecord"]] = relationship(
+        "ContactEvidenceRecord", back_populates="opportunity", cascade="all, delete-orphan"
+    )
+    drafts: Mapped[List["OutreachDraftRecord"]] = relationship(
+        "OutreachDraftRecord", back_populates="opportunity", cascade="all, delete-orphan"
+    )
+    saved_by: Mapped[List["SavedFreelanceOpportunityRecord"]] = relationship(
+        "SavedFreelanceOpportunityRecord", back_populates="opportunity", cascade="all, delete-orphan"
+    )
+
+
+class ContactEvidenceRecord(Base):
+    """Audit evidence ledger for contact points discovered for a freelance opportunity."""
+    __tablename__ = "contact_evidence"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    opportunity_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("freelance_opportunities.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    contact_type: Mapped[str] = mapped_column(String(30), nullable=False)  # EMAIL, PHONE, WEBSITE, etc.
+    contact_value: Mapped[str] = mapped_column(String(255), nullable=False)
+    source: Mapped[str] = mapped_column(String(60), default="leadhunter", nullable=False)
+    source_evidence_url: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True)
+    evidence_status: Mapped[str] = mapped_column(String(30), default="OBSERVED", nullable=False)
+    verification_method: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    verification_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    discovered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    opportunity: Mapped["FreelanceOpportunityRecord"] = relationship(
+        "FreelanceOpportunityRecord", back_populates="contact_evidence"
+    )
+
+
+class SavedFreelanceOpportunityRecord(Base):
+    """Candidate-saved freelance opportunity bookmarks."""
+    __tablename__ = "saved_freelance_opportunities"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    opportunity_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("freelance_opportunities.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    status: Mapped[str] = mapped_column(String(30), default="SAVED", nullable=False)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="saved_freelance_opportunities")
+    opportunity: Mapped["FreelanceOpportunityRecord"] = relationship(
+        "FreelanceOpportunityRecord", back_populates="saved_by"
+    )
+
+
+class OutreachDraftRecord(Base):
+    """Outreach message draft requiring explicit candidate review and approval."""
+    __tablename__ = "outreach_drafts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    opportunity_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("freelance_opportunities.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    channel: Mapped[str] = mapped_column(String(30), default="EMAIL", nullable=False)
+    recipient_name: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    recipient_contact: Mapped[str] = mapped_column(String(255), nullable=False)
+    subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    message_body: Mapped[str] = mapped_column(Text, nullable=False)
+    proposed_service: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    status: Mapped[str] = mapped_column(String(30), default="DRAFT", index=True, nullable=False)
+    is_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_recipient: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    approved_subject: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    approved_body_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    candidate_edits_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="outreach_drafts")
+    opportunity: Mapped["FreelanceOpportunityRecord"] = relationship(
+        "FreelanceOpportunityRecord", back_populates="drafts"
+    )
+    delivery_logs: Mapped[List["OutreachDeliveryLogRecord"]] = relationship(
+        "OutreachDeliveryLogRecord", back_populates="draft", cascade="all, delete-orphan"
+    )
+
+
+class OutreachDeliveryLogRecord(Base):
+    """Audit delivery ledger for sent outreach messages."""
+    __tablename__ = "outreach_delivery_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    draft_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("outreach_drafts.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    provider: Mapped[str] = mapped_column(String(50), default="SMTP", nullable=False)
+    provider_message_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    provider_response_code: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    provider_raw_response: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    delivery_status: Mapped[str] = mapped_column(String(30), default="SENT", nullable=False)
+    webhook_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    event_timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    draft: Mapped["OutreachDraftRecord"] = relationship(
+        "OutreachDraftRecord", back_populates="delivery_logs"
+    )
+
+
+class OutreachSuppressionRecord(Base):
+    """Do-not-contact and unsubscribed recipients suppression list."""
+    __tablename__ = "outreach_suppression_list"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
+    recipient_value: Mapped[str] = mapped_column(String(255), index=True, unique=True, nullable=False)
+    reason: Mapped[str] = mapped_column(String(50), default="UNSUBSCRIBED", nullable=False)
+    created_by_user_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+
 
 

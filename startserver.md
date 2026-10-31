@@ -9,18 +9,10 @@ start_servers.bat
 
 ## 2. Start Backend (FastAPI — Port 8000)
 
-### Windows Command Prompt (cmd.exe):
-```cmd
-cd c:\Users\Sahil\Desktop\manit\rightFIT
-set PYTHONPATH=%CD%;%CD%\backend
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-
-### Windows PowerShell:
+### Universal Command (PowerShell / CMD / Terminal):
 ```powershell
 cd c:\Users\Sahil\Desktop\manit\rightFIT
-$env:PYTHONPATH = "$PWD;$PWD/backend"
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload
 ```
 
 - API URL: http://localhost:8000
@@ -58,10 +50,8 @@ Tareeqa 2 (Manual Terminal Se):
 
 Terminal 1 — Backend:
 
-cmd
 cd c:\Users\Sahil\Desktop\manit\rightFIT
-set PYTHONPATH=%CD%;%CD%\backend
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload
 
 erminal 2 — Frontend:
 

@@ -321,3 +321,4 @@ class AlertDeliveryLogResponse(BaseModel):
     delivered_at: datetime
     delivery_channel: str
     status: str
+
