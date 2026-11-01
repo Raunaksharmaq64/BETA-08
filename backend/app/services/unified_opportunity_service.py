@@ -689,7 +689,7 @@ class UnifiedOpportunityService:
 
         app_url = getattr(job, "application_url", None) or getattr(job, "apply_url", None) or getattr(job, "source_url", "")
         if not app_url or "jooble.org" in str(app_url).lower():
-            app_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(f'{org_name} {title} job apply')}"
+            app_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(f'{org_name} {title} careers apply')}"
         pub_dt = getattr(job, "source_published_at", None) or getattr(job, "published_at", None)
         trust_metrics = UnifiedOpportunityService.compute_trust_metrics("JOB", job)
 

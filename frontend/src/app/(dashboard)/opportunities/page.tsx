@@ -297,9 +297,9 @@ export default function UnifiedOpportunitiesPage() {
     }
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchOpportunities();
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    fetchOpportunities(false, false, searchTerm.trim());
   };
 
   const handleOpenSaveModal = (item: OpportunityEnvelope) => {
@@ -592,7 +592,7 @@ export default function UnifiedOpportunitiesPage() {
       </div>
 
       {/* Active View Context Banner & Sub-Filters (Explicitly specifies active view & sub-filters) */}
-      <div className="p-4 rounded-xl bg-slate-900/95 border border-slate-800 space-y-3">
+      <div className="p-4 rounded-2xl neo-box border border-white/90 shadow-sm space-y-3">
         {activeType === "ALL" && (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
@@ -759,7 +759,7 @@ export default function UnifiedOpportunitiesPage() {
       <div className="space-y-3">
         <form
           onSubmit={handleSearchSubmit}
-          className="grid grid-cols-1 md:grid-cols-12 gap-3 p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs"
+          className="grid grid-cols-1 md:grid-cols-12 gap-3 p-4 rounded-2xl neo-box border border-white/90 shadow-sm text-xs"
         >
           {/* Search */}
           <div className="md:col-span-5">
@@ -768,7 +768,7 @@ export default function UnifiedOpportunitiesPage() {
               placeholder="Search roles, skills (e.g. React, WebDev), companies, or problems..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="w-full neo-inset rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-bold focus:outline-none"
             />
           </div>
 
@@ -777,7 +777,7 @@ export default function UnifiedOpportunitiesPage() {
             <select
               value={selectedDiscipline}
               onChange={(e) => setSelectedDiscipline(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+              className="w-full neo-inset rounded-xl px-3.5 py-2.5 text-sm text-slate-900 font-bold focus:outline-none"
             >
               {DISCIPLINES.map((d) => (
                 <option key={d.id} value={d.id}>
@@ -791,7 +791,7 @@ export default function UnifiedOpportunitiesPage() {
           <div className="md:col-span-3 flex gap-2">
             <button
               type="submit"
-              className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+              className="flex-1 px-4 py-2.5 rounded-xl neo-btn-primary text-sm font-bold text-white shadow-md transition-all cursor-pointer"
             >
               Search
             </button>
@@ -804,7 +804,7 @@ export default function UnifiedOpportunitiesPage() {
                 setMinScore(0);
                 fetchOpportunities(false, false, "", activeType, "All", "ALL", 0);
               }}
-              className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-medium text-slate-300 border border-slate-700 transition-colors"
+              className="px-4 py-2.5 rounded-xl neo-pill text-sm font-bold text-slate-800 hover:text-indigo-600 transition-all cursor-pointer"
             >
               Reset
             </button>

@@ -101,9 +101,9 @@ class JoobleConnector(BaseJobConnector):
             job_title = str(item.get("title") or "").strip()
 
             # Jooble's internal /desc/ redirect links block end users via Cloudflare anti-bot.
-            # Convert to a verified direct Google Job Apply search URL so users are never blocked.
+            # Build a targeted Google search that helps users find the real employer listing.
             if not raw_link or "jooble.org" in raw_link.lower():
-                query_str = f"{company_name} {job_title} job apply".strip()
+                query_str = f"{company_name} {job_title} careers apply".strip()
                 apply_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(query_str)}"
             else:
                 apply_url = raw_link

@@ -147,13 +147,20 @@ function SearchContent() {
   const [isSavingSearch, setIsSavingSearch] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
-  const fetchJobs = async () => {
-    const qTerm = debouncedQuery.trim();
-    const roleTerm = debouncedRole.trim();
-    const compTerm = debouncedCompany.trim();
-    const cityTerm = debouncedCity.trim();
+  const fetchJobs = async (overrides?: {
+    q?: string;
+    role?: string;
+    company?: string;
+    city?: string;
+    page?: number;
+  }) => {
+    const qTerm = (overrides?.q !== undefined ? overrides.q : debouncedQuery).trim();
+    const roleTerm = (overrides?.role !== undefined ? overrides.role : debouncedRole).trim();
+    const compTerm = (overrides?.company !== undefined ? overrides.company : debouncedCompany).trim();
+    const cityTerm = (overrides?.city !== undefined ? overrides.city : debouncedCity).trim();
+    const pageNum = overrides?.page !== undefined ? overrides.page : page;
 
-    const cacheKey = `search_${qTerm}_${roleTerm}_${compTerm}_${cityTerm}_${isRemoteOnly}_${workplaceType}_${employmentType}_${experienceLevel}_${selectedSkills.join(",")}_${sortBy}_${page}`;
+    const cacheKey = `search_${qTerm}_${roleTerm}_${compTerm}_${cityTerm}_${isRemoteOnly}_${workplaceType}_${employmentType}_${experienceLevel}_${selectedSkills.join(",")}_${sortBy}_${pageNum}`;
     const cached = fastCache.get<any>(cacheKey);
     if (cached && cached.items) {
       setJobs(cached.items);
@@ -185,7 +192,7 @@ function SearchContent() {
       if (minSalary > 0) params.set("min_salary", minSalary.toString());
       if (verificationFilter) params.append("verification_statuses", verificationFilter);
       params.set("sort_by", sortBy);
-      params.set("page", page.toString());
+      params.set("page", pageNum.toString());
       params.set("page_size", "15");
 
       const res = await apiClient<any>(`/search/jobs?${params.toString()}`);
@@ -241,14 +248,11 @@ function SearchContent() {
   };
 
   const handleQuickPill = (val: string) => {
-    if (query.toLowerCase() === val.toLowerCase()) {
-      setQuery("");
-      setDebouncedQuery("");
-    } else {
-      setQuery(val);
-      setDebouncedQuery(val);
-    }
+    const nextVal = query.toLowerCase() === val.toLowerCase() ? "" : val;
+    setQuery(nextVal);
+    setDebouncedQuery(nextVal);
     setPage(1);
+    fetchJobs({ q: nextVal, page: 1 });
   };
 
   const handleResetFilters = () => {
@@ -269,16 +273,17 @@ function SearchContent() {
     setVerificationFilter("");
     setSortBy("BEST_FIT");
     setPage(1);
+    fetchJobs({ q: "", role: "", company: "", city: "", page: 1 });
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setDebouncedQuery(query);
     setDebouncedRole(role);
     setDebouncedCompany(company);
     setDebouncedCity(city);
     setPage(1);
-    fetchJobs();
+    fetchJobs({ q: query, role, company, city, page: 1 });
   };
 
   const handleToggleSaveJob = async (job: JobItem) => {
@@ -403,6 +408,7 @@ function SearchContent() {
                       setQuery("");
                       setDebouncedQuery("");
                       setPage(1);
+                      fetchJobs({ q: "", page: 1 });
                     }}
                     className="text-[10px] text-slate-700 font-bold hover:text-slate-200"
                   >
@@ -613,14 +619,14 @@ function SearchContent() {
             <div className="pt-2 space-y-2">
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium text-sm transition-colors shadow-lg shadow-indigo-600/20"
+                className="w-full py-2.5 px-4 neo-btn-primary text-white rounded-xl font-bold text-sm shadow-md transition-all cursor-pointer"
               >
                 Search & Apply Filters
               </button>
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="w-full py-2 px-4 bg-slate-800 hover:bg-slate-750 text-slate-300 rounded-lg text-xs font-medium border border-slate-700 transition-colors"
+                className="w-full py-2.5 px-4 neo-pill text-slate-800 hover:text-indigo-600 rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
                 Reset All Filters
               </button>
@@ -637,7 +643,7 @@ function SearchContent() {
               {query && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 font-medium">
                   <span>Keyword: {query}</span>
-                  <button type="button" onClick={() => setQuery("")} className="hover:text-white ml-0.5">✕</button>
+                  <button type="button" onClick={() => { setQuery(""); setDebouncedQuery(""); setPage(1); fetchJobs({ q: "", page: 1 }); }} className="hover:text-white ml-0.5">✕</button>
                 </span>
               )}
               {selectedSkills.map((sk) => (

@@ -341,7 +341,7 @@ class NormalizationService:
         # Ensure application URL is direct and not blocked by aggregator bot walls
         clean_app_url = raw_job.listing_url
         if not clean_app_url or "jooble.org" in clean_app_url.lower():
-            clean_app_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(f'{company_name.strip()} {title.strip()} job apply')}"
+            clean_app_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(f'{company_name.strip()} {title.strip()} careers apply')}"
 
         provenance = {
             "source_id": source.id,
