@@ -228,4 +228,5 @@ APPLICATION CODE: NOT IMPLEMENTED (Strict Phase 1 Exclusion)
 
 Contributions must adhere to the engineering standards and pull request workflows documented in [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 #   B E T A - 0 8  
+ #   m a n i t - b e t a - 0 8  
  
