@@ -392,33 +392,33 @@ export default function ApplicationsPage() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fade-in">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
               Job Application Tracker
             </h1>
-            <span className="text-xs bg-emerald-950 text-emerald-400 font-mono px-2 py-0.5 rounded border border-emerald-800 flex items-center gap-1">
+            <span className="text-xs neo-inset text-emerald-900 font-mono font-bold px-3 py-1 rounded-xl flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               Live Audit CRM v2.0
             </span>
           </div>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-slate-700 font-semibold text-sm mt-1">
             Real-time auditable tracking with state machines, stage timestamps, interview prep intelligence, and zero fake data.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Link
             href="/calendar"
-            className="px-3.5 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+            className="neo-pill px-4 py-2 text-xs font-bold rounded-xl text-slate-800 hover:text-indigo-600 transition-all"
           >
             📅 Calendar
           </Link>
           <button
             onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow transition"
+            className="neo-btn-primary px-4 py-2 text-xs font-bold rounded-xl shadow-md transition-all"
           >
             + Add Application
           </button>
@@ -426,7 +426,7 @@ export default function ApplicationsPage() {
       </div>
 
       {/* Real-time Sync & Live Polling Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+      <div className="neo-box flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl text-xs font-bold text-slate-800 border border-white/90">
         <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={() => setAutoSync(!autoSync)}
@@ -440,11 +440,11 @@ export default function ApplicationsPage() {
             Auto-Sync: {autoSync ? "LIVE (20s)" : "PAUSED"}
           </button>
 
-          <span className="text-slate-400">
-            Last synced: <span className="text-slate-200 font-mono">{lastSyncTime}</span>
+          <span className="text-slate-700 font-bold">
+            Last synced: <span className="text-slate-900 font-mono font-extrabold">{lastSyncTime}</span>
           </span>
 
-          <span className="hidden lg:inline-flex items-center gap-1.5 text-slate-400 bg-slate-950 px-2.5 py-1 rounded-md border border-slate-800">
+          <span className="hidden lg:inline-flex items-center gap-1.5 text-slate-700 font-bold neo-inset px-3 py-1 rounded-xl">
             <span>✋</span> Drag & drop cards across Kanban stages to shift roles
           </span>
         </div>
@@ -453,7 +453,7 @@ export default function ApplicationsPage() {
           <button
             onClick={() => fetchData(false)}
             disabled={isSyncing}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border border-slate-700 transition disabled:opacity-50"
+            className="neo-pill inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-slate-800 hover:text-indigo-600 font-bold transition-all disabled:opacity-50"
           >
             <span className={isSyncing ? "animate-spin" : ""}>⟳</span>
             {isSyncing ? "Syncing..." : "Sync Applications"}
@@ -477,62 +477,62 @@ export default function ApplicationsPage() {
       {/* Live Pipeline Funnel KPIs */}
       {metrics && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3.5">
+          <div className="neo-card neo-box-hover rounded-2xl p-4 border border-white/90">
             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total</span>
-            <div className="text-2xl font-black text-white mt-0.5">{metrics.total_applications}</div>
+            <div className="text-2xl font-black text-slate-900 mt-0.5">{metrics.total_applications}</div>
             <span className="text-[11px] text-slate-500">Tracked roles</span>
           </div>
 
-          <div className="bg-slate-900 border border-blue-900/50 rounded-xl p-3.5">
+          <div className="neo-card neo-box-hover rounded-2xl p-4 border border-white/90">
             <span className="text-[11px] font-semibold text-blue-400 uppercase tracking-wider">Active Applications</span>
-            <div className="text-2xl font-black text-blue-300 mt-0.5">{metrics.active_pipeline}</div>
+            <div className="text-2xl font-black text-blue-800 mt-0.5">{metrics.active_pipeline}</div>
             <span className="text-[11px] text-blue-400/80">In-flight stages</span>
           </div>
 
-          <div className="bg-slate-900 border border-indigo-900/50 rounded-xl p-3.5">
+          <div className="neo-card neo-box-hover rounded-2xl p-4 border border-white/90">
             <span className="text-[11px] font-semibold text-indigo-400 uppercase tracking-wider">Interviews</span>
-            <div className="text-2xl font-black text-indigo-300 mt-0.5">{metrics.interviews_scheduled}</div>
+            <div className="text-2xl font-black text-indigo-800 mt-0.5">{metrics.interviews_scheduled}</div>
             <span className="text-[11px] text-indigo-400/80">Active rounds</span>
           </div>
 
-          <div className="bg-slate-900 border border-emerald-900/50 rounded-xl p-3.5">
+          <div className="neo-card neo-box-hover rounded-2xl p-4 border border-white/90">
             <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider">Offers</span>
-            <div className="text-2xl font-black text-emerald-300 mt-0.5">{metrics.offers_received}</div>
+            <div className="text-2xl font-black text-emerald-800 mt-0.5">{metrics.offers_received}</div>
             <span className="text-[11px] text-emerald-400/80">Received</span>
           </div>
 
-          <div className="bg-slate-900 border border-orange-900/50 rounded-xl p-3.5">
+          <div className="neo-card neo-box-hover rounded-2xl p-4 border border-white/90">
             <span className="text-[11px] font-semibold text-orange-400 uppercase tracking-wider">Silent / Ghosted</span>
-            <div className="text-2xl font-black text-orange-300 mt-0.5">{metrics.stalled_or_ghosted}</div>
+            <div className="text-2xl font-black text-orange-800 mt-0.5">{metrics.stalled_or_ghosted}</div>
             <span className="text-[11px] text-orange-400/80">&gt; 14 days silent</span>
           </div>
 
-          <div className="bg-slate-900 border border-rose-900/50 rounded-xl p-3.5">
+          <div className="neo-card neo-box-hover rounded-2xl p-4 border border-white/90">
             <span className="text-[11px] font-semibold text-rose-400 uppercase tracking-wider">Rejections</span>
-            <div className="text-2xl font-black text-rose-300 mt-0.5">{metrics.rejections_received}</div>
+            <div className="text-2xl font-black text-rose-800 mt-0.5">{metrics.rejections_received}</div>
             <span className="text-[11px] text-rose-400/80">Archive completed</span>
           </div>
         </div>
       )}
 
       {/* Filter and View Toggle Controls */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+      <div className="neo-box flex flex-col md:flex-row justify-between items-center gap-4 p-4 rounded-2xl border border-white/90">
         <div className="w-full md:w-80">
           <input
             type="text"
             placeholder="Search company, job role, or location..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full neo-inset rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 placeholder:text-slate-500 focus:outline-none"
           />
         </div>
 
         <div className="flex items-center space-x-2 w-full md:w-auto justify-between md:justify-end">
-          <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+          <div className="flex neo-inset p-1 rounded-xl text-xs font-bold">
             <button
               onClick={() => setViewMode("board")}
               className={`px-3 py-1.5 rounded-md font-semibold transition ${
-                viewMode === "board" ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
+                viewMode === "board" ? "neo-pill text-indigo-700 font-black shadow-sm" : "text-slate-700 hover:text-slate-950 font-bold"
               }`}
             >
               Kanban Board
@@ -540,7 +540,7 @@ export default function ApplicationsPage() {
             <button
               onClick={() => setViewMode("list")}
               className={`px-3 py-1.5 rounded-md font-semibold transition ${
-                viewMode === "list" ? "bg-indigo-600 text-white shadow" : "text-slate-400 hover:text-slate-200"
+                viewMode === "list" ? "neo-pill text-indigo-700 font-black shadow-sm" : "text-slate-700 hover:text-slate-950 font-bold"
               }`}
             >
               Table View
@@ -566,10 +566,10 @@ export default function ApplicationsPage() {
             <button
               key={col.key}
               onClick={() => setSelectedStatusTab(col.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-150 ${
                 isSelected
-                  ? "bg-indigo-600 text-white border-indigo-500 shadow"
-                  : "bg-slate-900/80 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200"
+                  ? "neo-inset text-indigo-700 font-black shadow-inner border border-indigo-300"
+                  : "neo-pill text-slate-800 hover:text-indigo-600 font-bold"
               }`}
             >
               {col.label} ({col.count})
@@ -651,7 +651,7 @@ export default function ApplicationsPage() {
                 className={`border rounded-xl p-3 flex flex-col min-h-[520px] transition-colors duration-150 ${
                   isDropActive
                     ? "bg-slate-900 ring-2 ring-indigo-500 border-indigo-500 shadow-xl shadow-indigo-500/10"
-                    : "bg-slate-900/60 border-slate-800 hover:border-slate-700/80"
+                    : "neo-box border border-white/90 hover:border-slate-300/80"
                 }`}
               >
                 {/* Column Header */}
@@ -699,7 +699,7 @@ export default function ApplicationsPage() {
                             setDraggedAppId(null);
                             setDragOverColKey(null);
                           }}
-                          className={`p-3.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 transition shadow-sm space-y-2.5 cursor-grab active:cursor-grabbing select-none ${
+                          className={`neo-card neo-box-hover p-4 rounded-2xl border border-white/90 space-y-2.5 cursor-grab active:cursor-grabbing select-none ${
                             isDragging ? "opacity-40 border-dashed border-indigo-400 ring-2 ring-indigo-500/50" : ""
                           }`}
                         >
@@ -744,22 +744,22 @@ export default function ApplicationsPage() {
                             draggable={false}
                             className="block hover:text-indigo-300 transition"
                           >
-                            <h4 className="font-bold text-white text-sm line-clamp-2 leading-snug">
+                            <h4 className="font-black text-slate-900 text-sm line-clamp-2 leading-snug hover:text-indigo-600 transition-colors">
                               {title}
                             </h4>
-                            <p className="text-xs text-indigo-400 font-medium mt-0.5">
+                            <p className="text-xs text-indigo-700 font-bold mt-0.5">
                               {comp}
                             </p>
                           </Link>
 
                           {app.applied_at && (
-                            <div className="text-[11px] text-slate-400 font-mono">
+                            <div className="text-[11px] text-slate-700 font-mono font-bold">
                               📅 Applied: {new Date(app.applied_at).toLocaleDateString()}
                             </div>
                           )}
 
                           {app.next_interview_at && (
-                            <div className="text-[11px] text-indigo-300 font-semibold flex items-center gap-1">
+                            <div className="text-[11px] text-indigo-800 font-bold flex items-center gap-1">
                               <span>🎯 Round:</span>
                               <span>{new Date(app.next_interview_at).toLocaleDateString()}</span>
                             </div>
@@ -772,7 +772,7 @@ export default function ApplicationsPage() {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleQuickTransition(app, "PLANNING_TO_APPLY"); }} draggable={false}
                                   disabled={isTransitioning}
-                                  className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 hover:bg-amber-900 transition disabled:opacity-50"
+                                  className="neo-pill text-[10px] font-bold px-2.5 py-0.5 text-amber-800 hover:text-amber-950 transition disabled:opacity-50"
                                 >
                                   ⚡ Prepare
                                 </button>
@@ -782,7 +782,7 @@ export default function ApplicationsPage() {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleQuickTransition(app, "APPLIED", "Applied via company portal", true); }} draggable={false}
                                   disabled={isTransitioning}
-                                  className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 hover:bg-blue-900 transition disabled:opacity-50"
+                                  className="neo-pill text-[10px] font-bold px-2.5 py-0.5 text-blue-800 hover:text-blue-950 transition disabled:opacity-50"
                                 >
                                   ✓ Applied
                                 </button>
@@ -792,7 +792,7 @@ export default function ApplicationsPage() {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleQuickTransition(app, "INTERVIEW", "Interview invite received", true); }} draggable={false}
                                   disabled={isTransitioning}
-                                  className="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800 hover:bg-indigo-900 transition disabled:opacity-50"
+                                  className="neo-pill text-[10px] font-bold px-2.5 py-0.5 text-indigo-800 hover:text-indigo-950 transition disabled:opacity-50"
                                 >
                                   🎯 Interview
                                 </button>
@@ -802,7 +802,7 @@ export default function ApplicationsPage() {
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleQuickTransition(app, "OFFER", "Formal offer extended", true); }} draggable={false}
                                   disabled={isTransitioning}
-                                  className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900 transition disabled:opacity-50"
+                                  className="neo-pill text-[10px] font-bold px-2.5 py-0.5 text-emerald-800 hover:text-emerald-950 transition disabled:opacity-50"
                                 >
                                   🎉 Offer
                                 </button>
@@ -811,6 +811,7 @@ export default function ApplicationsPage() {
                               {app.status === "INTERVIEW" && (
                                 <Link
                                   href={`/interview-prep/48-hour?role=${encodeURIComponent(title)}&company=${encodeURIComponent(comp)}`}
+
                                   draggable={false}
                                   className="text-[10px] font-semibold px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800 hover:bg-purple-900 transition"
                                 >
@@ -826,7 +827,7 @@ export default function ApplicationsPage() {
 
                                 draggable={false}
 
-                                className="text-indigo-400 hover:text-indigo-300 font-semibold"
+                                className="text-indigo-700 hover:text-indigo-900 font-bold"
 
                               >
                                 Manage →

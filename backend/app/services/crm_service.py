@@ -298,7 +298,14 @@ class CRMService:
         search: Optional[str] = None,
     ) -> List[ApplicationResponse]:
         """Lists candidate applications with optional status and company/title filtering."""
-        query = select(ApplicationRecord).where(ApplicationRecord.user_id == user_id)
+        query = (
+            select(ApplicationRecord)
+            .options(
+                joinedload(ApplicationRecord.status_history),
+                joinedload(ApplicationRecord.notes),
+            )
+            .where(ApplicationRecord.user_id == user_id)
+        )
 
         if status:
             query = query.where(ApplicationRecord.status == status.upper())
@@ -310,7 +317,7 @@ class CRMService:
             )
 
         query = query.order_by(ApplicationRecord.updated_at.desc())
-        records = session.execute(query).scalars().all()
+        records = session.execute(query).unique().scalars().all()
         return [cls._to_application_response(r) for r in records]
 
     @classmethod

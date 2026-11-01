@@ -62,14 +62,15 @@ export default function Navbar() {
   const isMoreActive = secondaryLinks.some((l) => pathname === l.href);
 
   return (
-    <nav className="bg-slate-900 border-b border-slate-800 text-slate-200 sticky top-0 z-40 backdrop-blur-md bg-slate-900/95">
+    <nav className="neo-box sticky top-0 z-40 backdrop-blur-md border-b border-white/60 text-slate-900 transition-all duration-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           {/* Left: Brand & Desktop Links */}
           <div className="flex items-center space-x-3 lg:space-x-6">
-            <Link href="/profile" className="flex items-center space-x-2 shrink-0">
-              <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                RIGHT FIT
+            <Link href="/dashboard" className="flex items-center space-x-2 shrink-0 group">
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 shadow-sm group-hover:scale-125 transition-transform" />
+              <span className="text-xl font-black tracking-tight text-slate-900">
+                RIGHT <span className="text-indigo-600">FIT</span>
               </span>
             </Link>
 
@@ -81,10 +82,11 @@ export default function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`px-2.5 xl:px-3 py-1.5 rounded-lg text-xs xl:text-sm font-medium transition-colors shrink-0 ${isActive
-                        ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/30"
-                        : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                      }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs xl:text-sm font-bold transition-all duration-150 shrink-0 ${
+                      isActive
+                        ? "neo-inset text-indigo-700 font-black border border-slate-300/80 shadow-inner scale-[1.02]"
+                        : "text-slate-800 hover:text-indigo-600 hover:bg-white/80 font-bold"
+                    }`}
                   >
                     {link.name}
                   </Link>
@@ -96,10 +98,11 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setMoreDropdownOpen((prev) => !prev)}
-                  className={`px-2.5 xl:px-3 py-1.5 rounded-lg text-xs xl:text-sm font-medium transition-colors flex items-center gap-1 shrink-0 ${isMoreActive || moreDropdownOpen
-                      ? "bg-slate-800 text-indigo-400 border border-slate-700"
-                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                    }`}
+                  className={`px-3 py-1.5 rounded-xl text-xs xl:text-sm font-bold transition-all duration-150 flex items-center gap-1 shrink-0 ${
+                    isMoreActive || moreDropdownOpen
+                      ? "neo-inset text-indigo-700 font-black border border-slate-300/80"
+                      : "neo-pill text-slate-800 hover:text-indigo-600 font-bold"
+                  }`}
                   aria-expanded={moreDropdownOpen}
                 >
                   <span>More</span>
@@ -109,7 +112,7 @@ export default function Navbar() {
                 </button>
 
                 {moreDropdownOpen && (
-                  <div className="absolute left-0 mt-2 w-52 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl p-2 space-y-1 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="absolute left-0 mt-2 w-52 neo-box rounded-2xl shadow-xl p-2 space-y-1 z-50 animate-fade-in border border-white/90">
                     {secondaryLinks.map((link) => {
                       const isActive = pathname === link.href;
                       return (
@@ -117,13 +120,14 @@ export default function Navbar() {
                           key={link.href}
                           href={link.href}
                           onClick={() => setMoreDropdownOpen(false)}
-                          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors ${isActive
-                              ? "bg-indigo-600/30 text-indigo-300 font-semibold"
-                              : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                            }`}
+                          className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                            isActive
+                              ? "neo-inset text-indigo-700 font-black"
+                              : "text-slate-800 hover:bg-white/90 hover:text-indigo-600"
+                          }`}
                         >
                           <span className="text-sm">{link.icon}</span>
-                          <span className="font-medium">{link.name}</span>
+                          <span>{link.name}</span>
                         </Link>
                       );
                     })}
@@ -140,10 +144,11 @@ export default function Navbar() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${isActive
-                        ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/30"
-                        : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                      }`}
+                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                      isActive
+                        ? "neo-inset text-indigo-700 font-black"
+                        : "text-slate-800 hover:bg-white/80 hover:text-indigo-600"
+                    }`}
                   >
                     {link.name}
                   </Link>
@@ -155,16 +160,16 @@ export default function Navbar() {
           {/* Right: User Status & Mobile Hamburger Toggle */}
           <div className="flex items-center space-x-3">
             {!mounted ? (
-              <div className="w-16 h-8 rounded-lg bg-slate-800/40 animate-pulse" />
+              <div className="w-16 h-8 rounded-xl bg-slate-300/50 animate-pulse" />
             ) : user ? (
               <div className="flex items-center space-x-3">
                 <div className="text-right hidden sm:block max-w-[150px] md:max-w-xs truncate">
-                  <div className="text-xs font-semibold text-white truncate">{user.full_name}</div>
-                  <div className="text-[11px] text-slate-400 truncate">{user.email}</div>
+                  <div className="text-xs font-black text-slate-900 truncate">{user.full_name}</div>
+                  <div className="text-[11px] font-semibold text-slate-600 truncate">{user.email}</div>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors shrink-0"
+                  className="neo-pill px-3 py-1.5 text-xs font-bold text-rose-700 hover:text-rose-900 transition-all shrink-0"
                 >
                   Sign Out
                 </button>
@@ -172,7 +177,7 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shrink-0"
+                className="neo-btn-primary px-4 py-2 text-xs font-bold rounded-xl transition-all shrink-0 shadow-md"
               >
                 Sign In
               </Link>
@@ -183,13 +188,13 @@ export default function Navbar() {
               type="button"
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               aria-label="Toggle navigation menu"
-              className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 focus:outline-none transition-colors"
+              className="lg:hidden neo-pill p-2 text-slate-800 hover:text-slate-950 focus:outline-none transition-all"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {mobileMenuOpen ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                 ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
                 )}
               </svg>
             </button>
@@ -199,16 +204,16 @@ export default function Navbar() {
 
       {/* Mobile & Tablet Slide-Down Drawer (< 1024px) */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-slate-800 bg-slate-950 px-4 pt-3 pb-8 space-y-5 max-h-[85vh] overflow-y-auto">
+        <div className="lg:hidden border-t border-slate-300/60 neo-box px-4 pt-3 pb-8 space-y-5 max-h-[85vh] overflow-y-auto animate-fade-in">
           {mounted && user && (
-            <div className="p-3 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-between">
+            <div className="p-3 neo-inset rounded-2xl flex items-center justify-between">
               <div>
-                <div className="text-sm font-bold text-white">{user.full_name}</div>
-                <div className="text-xs text-slate-400">{user.email}</div>
+                <div className="text-sm font-black text-slate-900">{user.full_name}</div>
+                <div className="text-xs font-semibold text-slate-600">{user.email}</div>
               </div>
               <button
                 onClick={handleLogout}
-                className="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-800 text-rose-300 border border-rose-900/50"
+                className="neo-pill px-3 py-1 text-xs font-bold text-rose-700"
               >
                 Sign Out
               </button>
@@ -217,10 +222,10 @@ export default function Navbar() {
 
           {/* Primary Quick Links */}
           <div className="space-y-1">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-indigo-400 px-2 pb-1">
+            <div className="text-[11px] font-black uppercase tracking-wider text-indigo-700 px-2 pb-1">
               Core Workflows
             </div>
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-2 gap-2">
               {primaryLinks.map((link) => {
                 const isActive = pathname === link.href;
                 return (
@@ -228,10 +233,11 @@ export default function Navbar() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${isActive
-                        ? "bg-indigo-600 text-white shadow-sm"
-                        : "bg-slate-900 text-slate-300 hover:bg-slate-850 hover:text-white"
-                      }`}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                      isActive
+                        ? "neo-inset text-indigo-700 font-black shadow-inner"
+                        : "neo-card text-slate-800 hover:text-indigo-600"
+                    }`}
                   >
                     {link.name}
                   </Link>
@@ -242,10 +248,10 @@ export default function Navbar() {
 
           {/* Candidate Quick Tools */}
           <div className="space-y-1.5">
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-2 pb-1 border-b border-slate-800/80">
+            <div className="text-[11px] font-black uppercase tracking-wider text-slate-700 px-2 pb-1 border-b border-slate-300/60">
               Candidate Tools
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
               {secondaryLinks.map((link) => {
                 const isActive = pathname === link.href;
                 return (
@@ -253,10 +259,11 @@ export default function Navbar() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-colors ${isActive
-                        ? "bg-indigo-600/30 text-indigo-300 font-bold border border-indigo-500/40"
-                        : "text-slate-300 hover:bg-slate-900 hover:text-white"
-                      }`}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                      isActive
+                        ? "neo-inset text-indigo-700 font-black"
+                        : "neo-card text-slate-800 hover:text-indigo-600"
+                    }`}
                   >
                     <span className="text-sm">{link.icon}</span>
                     <span>{link.name}</span>

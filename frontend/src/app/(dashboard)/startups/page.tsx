@@ -196,7 +196,7 @@ export default function StartupIntelligenceDashboardPage() {
   const perfCount = opportunities.filter((o) => o.category === "Performance").length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fade-in">
       {/* Page Title & Quick Links */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
@@ -232,7 +232,7 @@ export default function StartupIntelligenceDashboardPage() {
       </div>
 
       {/* Live Auto-Refresh & Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+      <div className="neo-box flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl text-xs font-bold text-slate-800 border border-white/90">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setAutoRefresh(!autoRefresh)}
@@ -254,7 +254,7 @@ export default function StartupIntelligenceDashboardPage() {
           <button
             onClick={() => fetchOpportunities(false)}
             disabled={isRefreshing}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border border-slate-700 transition-colors disabled:opacity-50"
+            className="neo-pill inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-slate-800 hover:text-indigo-600 font-bold transition-all disabled:opacity-50"
           >
             <span className={isRefreshing ? "animate-spin" : ""}>⟳</span>
             {isRefreshing ? "Refreshing..." : "Refresh Signals"}
@@ -291,38 +291,38 @@ export default function StartupIntelligenceDashboardPage() {
 
       {/* KPI Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-5 bg-slate-900/80 rounded-xl border border-slate-800 shadow-sm">
+        <div className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             Total Opportunities
           </div>
-          <div className="text-3xl font-extrabold text-white mt-2">{totalCount}</div>
+          <div className="text-3xl font-black text-slate-900 mt-2">{totalCount}</div>
           <div className="text-xs text-slate-500 mt-1">Discovered across tech feeds</div>
         </div>
-        <div className="p-5 bg-slate-900/80 rounded-xl border border-rose-900/40 shadow-sm">
+        <div className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wider text-rose-400">
             High Urgency (8-10)
           </div>
-          <div className="text-3xl font-extrabold text-rose-300 mt-2">{highUrgencyCount}</div>
+          <div className="text-3xl font-black text-rose-800 mt-2">{highUrgencyCount}</div>
           <div className="text-xs text-rose-400/70 mt-1">Active hiring or critical bugs</div>
         </div>
-        <div className="p-5 bg-slate-900/80 rounded-xl border border-indigo-900/40 shadow-sm">
+        <div className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wider text-indigo-400">
             Development Gaps
           </div>
-          <div className="text-3xl font-extrabold text-indigo-300 mt-2">{devCount}</div>
+          <div className="text-3xl font-black text-indigo-800 mt-2">{devCount}</div>
           <div className="text-xs text-indigo-400/70 mt-1">Founders seeking dev capacity</div>
         </div>
-        <div className="p-5 bg-slate-900/80 rounded-xl border border-emerald-900/40 shadow-sm">
+        <div className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
             Performance / Speed
           </div>
-          <div className="text-3xl font-extrabold text-emerald-300 mt-2">{perfCount}</div>
+          <div className="text-3xl font-black text-emerald-800 mt-2">{perfCount}</div>
           <div className="text-xs text-emerald-400/70 mt-1">Latency & SEO vulnerabilities</div>
         </div>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="p-4 bg-slate-900/90 rounded-xl border border-slate-800 shadow-sm space-y-3">
+      <div className="neo-box p-5 rounded-2xl border border-white/90 shadow-sm space-y-3">
         <div className="flex flex-col md:flex-row gap-3">
           <div className="flex-1">
             <input

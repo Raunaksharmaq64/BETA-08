@@ -284,7 +284,7 @@ export default function JobDetailPage() {
   const match = job.match_breakdown;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fade-in">
       {/* Back button */}
       <div>
         <Link
@@ -296,11 +296,11 @@ export default function JobDetailPage() {
       </div>
 
       {/* Main Posting Header Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-6 shadow-xl">
+      <div className="neo-box rounded-3xl p-8 space-y-6 border border-white/90 shadow-md">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{job.title}</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{job.title}</h1>
               {job.is_remote && (
                 <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
                   Remote Eligible

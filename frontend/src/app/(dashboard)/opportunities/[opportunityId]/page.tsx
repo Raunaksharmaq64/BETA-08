@@ -169,7 +169,7 @@ export default function OpportunityVerificationPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fade-in">
       {/* Navigation & Header */}
       <div className="space-y-4">
         <Link href="/opportunities" className="inline-flex items-center text-xs text-slate-400 hover:text-white transition-colors">

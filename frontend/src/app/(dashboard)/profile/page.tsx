@@ -200,7 +200,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8 animate-fade-in">
       {/* Completeness Banner & Section Impact Unlocks */}
       {completeness && (
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm space-y-4">
@@ -270,9 +270,9 @@ export default function ProfilePage() {
       )}
 
       {/* Basic Personal Information */}
-      <section className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm">
+      <section className="neo-box p-6 rounded-2xl border border-white/90 shadow-sm">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold text-white">Basic Information</h2>
+          <h2 className="text-lg font-black text-slate-900">Basic Information</h2>
           <button
             onClick={() => setEditingBasic(!editingBasic)}
             className="text-xs font-semibold px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-slate-700"
@@ -337,9 +337,9 @@ export default function ProfilePage() {
       </section>
 
       {/* Education Credentials */}
-      <section className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm">
+      <section className="neo-box p-6 rounded-2xl border border-white/90 shadow-sm">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold text-white">Education Credentials</h2>
+          <h2 className="text-lg font-black text-slate-900">Education Credentials</h2>
           <button
             onClick={() => setShowEduModal(true)}
             className="text-xs font-semibold px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white"
@@ -374,9 +374,9 @@ export default function ProfilePage() {
       </section>
 
       {/* Skills Section */}
-      <section className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm">
+      <section className="neo-box p-6 rounded-2xl border border-white/90 shadow-sm">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold text-white">Skills & Competencies</h2>
+          <h2 className="text-lg font-black text-slate-900">Skills & Competencies</h2>
           <button
             onClick={() => setShowSkillModal(true)}
             className="text-xs font-semibold px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white"

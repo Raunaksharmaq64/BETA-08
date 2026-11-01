@@ -113,11 +113,11 @@ export default function UnifiedSavedOpportunitiesPage() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
             Saved Opportunities & Bookmarks
           </h1>
           <p className="mt-2 text-sm text-slate-400">
@@ -301,7 +301,7 @@ export default function UnifiedSavedOpportunitiesPage() {
             return (
               <div
                 key={`${item.opportunity_type}-${item.opportunity_id}`}
-                className="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 flex flex-col justify-between transition-all space-y-3"
+                className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 flex flex-col justify-between transition-all duration-200 space-y-3"
               >
                 <div className="space-y-3">
                   {/* Category Folder Badge & Opportunity Type */}
@@ -328,7 +328,7 @@ export default function UnifiedSavedOpportunitiesPage() {
                   </div>
 
                   <div>
-                    <h3 className="text-base font-bold text-white line-clamp-2">
+                    <h3 className="text-base font-black text-slate-900 line-clamp-2 hover:text-indigo-600 transition-colors">
                       {item.title}
                     </h3>
                     <div className="text-xs font-medium text-indigo-400 mt-0.5">
@@ -337,7 +337,7 @@ export default function UnifiedSavedOpportunitiesPage() {
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-700 font-medium line-clamp-2 leading-relaxed">
                     {item.short_description}
                   </p>
 

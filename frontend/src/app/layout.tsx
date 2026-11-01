@@ -13,11 +13,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className="h-full bg-slate-950 text-slate-100">
-      <body suppressHydrationWarning className="min-h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100">
+    <html lang="en" suppressHydrationWarning className="h-full">
+      <body suppressHydrationWarning className="min-h-full flex flex-col font-sans antialiased text-[#171c23]">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
 }
-

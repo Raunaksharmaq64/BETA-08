@@ -83,12 +83,12 @@ export default function ResumeDashboardPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 animate-fade-in">
       {/* Header */}
       <div className="md:flex md:items-center md:justify-between border-b border-slate-800 pb-6 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100">Resume Intelligence</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-3xl font-black text-slate-900">Resume Intelligence</h1>
+          <p className="mt-1 text-sm text-slate-700 font-semibold">
             Upload, parse, review evidence, and optimize your resume versions for applicant tracking systems.
           </p>
         </div>

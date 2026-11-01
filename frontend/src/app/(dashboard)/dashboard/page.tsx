@@ -124,11 +124,11 @@ export default function UnifiedDashboardPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
             Career Intelligence Dashboard
           </h1>
           <p className="mt-2 text-sm text-slate-400">
@@ -139,7 +139,7 @@ export default function UnifiedDashboardPage() {
           <button
             onClick={() => fetchDashboard(true)}
             disabled={isRefreshing}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-semibold text-slate-200 border border-slate-700 transition-colors disabled:opacity-60"
+            className="neo-pill inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-800 hover:text-indigo-600 transition-all duration-200 disabled:opacity-60"
             title="Fetch real-time updates and fresh metrics"
           >
             <span className={isRefreshing ? "animate-spin" : ""}>🔄</span>
@@ -147,13 +147,13 @@ export default function UnifiedDashboardPage() {
           </button>
           <Link
             href="/opportunities"
-            className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white shadow-sm transition-colors"
+            className="neo-btn-primary inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md"
           >
             Explore All Opportunities →
           </Link>
           <Link
             href="/saved-opportunities"
-            className="inline-flex items-center px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-semibold text-slate-200 border border-slate-700 transition-colors"
+            className="neo-pill inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold text-slate-800 hover:text-indigo-600 transition-all duration-200"
           >
             View Bookmarks ({metrics?.total_saved ?? 0})
           </Link>
@@ -163,10 +163,10 @@ export default function UnifiedDashboardPage() {
       {/* System Health Banner */}
       {health && (
         <div
-          className={`rounded-xl border p-4 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${
+          className={`neo-box rounded-2xl p-4 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border ${
             health.all_systems_operational
-              ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-300"
-              : "bg-amber-950/40 border-amber-800/60 text-amber-300"
+              ? "border-emerald-300/80 text-emerald-950"
+              : "border-amber-300/80 text-amber-950"
           }`}
         >
           <div className="flex items-center gap-2">
@@ -182,9 +182,9 @@ export default function UnifiedDashboardPage() {
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono">
-            <span>Core: <strong className="text-white">{health.core_career_engine}</strong></span>
-            <span>LeadHunter: <strong className="text-white">{health.leadhunter_satellite}</strong></span>
-            <span>Startup Intel: <strong className="text-white">{health.startup_intelligence_satellite}</strong></span>
+            <span>Core: <strong className="text-slate-900 font-extrabold">{health.core_career_engine}</strong></span>
+            <span>LeadHunter: <strong className="text-slate-900 font-extrabold">{health.leadhunter_satellite}</strong></span>
+            <span>Startup Intel: <strong className="text-slate-900 font-extrabold">{health.startup_intelligence_satellite}</strong></span>
           </div>
         </div>
       )}
@@ -204,9 +204,9 @@ export default function UnifiedDashboardPage() {
         </div>
       ) : metrics ? (
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-400">
-            <span className="font-semibold tracking-wide uppercase text-slate-300">Live Opportunities Overview</span>
-            <span className="bg-slate-850 px-2.5 py-1 rounded border border-slate-750 text-slate-300 font-mono text-[11px] sm:text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-700 font-bold">
+            <span className="font-black tracking-wide uppercase text-slate-900">Live Opportunities Overview</span>
+            <span className="neo-inset px-3 py-1 rounded-xl text-slate-800 font-mono text-[11px] sm:text-xs font-bold">
               Reconciled: {metrics.total_opportunities} = {metrics.total_jobs} (Jobs) + {metrics.total_freelance} (Freelance) + {metrics.total_startups} (Startups)
             </span>
           </div>
@@ -215,94 +215,94 @@ export default function UnifiedDashboardPage() {
             {/* 1. Total Opportunities */}
             <Link
               href="/opportunities"
-              className="p-5 rounded-xl bg-gradient-to-br from-indigo-900/40 to-slate-900 border border-indigo-700/50 hover:border-indigo-500 transition-all group"
+              className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 group cursor-pointer"
             >
-              <div className="text-xs font-medium text-indigo-300 uppercase tracking-wider">Total Opportunities</div>
-              <div className="mt-2 text-3xl font-black text-white group-hover:text-indigo-400 transition-colors">
+              <div className="text-xs font-medium text-indigo-700 uppercase tracking-wider font-extrabold">Total Opportunities</div>
+              <div className="mt-2 text-3xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors font-black">
                 {metrics.total_opportunities}
               </div>
-              <div className="mt-1 text-xs text-slate-400">Aggregated live openings</div>
+              <div className="mt-1 text-xs text-slate-600 font-semibold">Aggregated live openings</div>
             </Link>
 
             {/* 2. Canonical Jobs */}
             <Link
               href="/opportunities?type=JOB"
-              className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-blue-600 transition-all group"
+              className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 group cursor-pointer"
             >
-              <div className="text-xs font-medium text-blue-400 uppercase tracking-wider">Full-Time Jobs</div>
-              <div className="mt-2 text-3xl font-black text-white group-hover:text-blue-400 transition-colors">
+              <div className="text-xs font-medium text-blue-700 uppercase tracking-wider font-extrabold">Full-Time Jobs</div>
+              <div className="mt-2 text-3xl font-black text-slate-900 group-hover:text-blue-600 transition-colors font-black">
                 {metrics.total_jobs}
               </div>
-              <div className="mt-1 text-xs text-slate-400">Verified canonical openings</div>
+              <div className="mt-1 text-xs text-slate-600 font-semibold">Verified canonical openings</div>
             </Link>
 
             {/* 3. Freelance Leads */}
             <Link
               href="/opportunities?type=FREELANCE"
-              className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-600 transition-all group"
+              className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 group cursor-pointer"
             >
-              <div className="text-xs font-medium text-emerald-400 uppercase tracking-wider">Freelance Projects</div>
-              <div className="mt-2 text-3xl font-black text-white group-hover:text-emerald-400 transition-colors">
+              <div className="text-xs font-medium text-emerald-700 uppercase tracking-wider font-extrabold">Freelance Projects</div>
+              <div className="mt-2 text-3xl font-black text-slate-900 group-hover:text-emerald-600 transition-colors font-black">
                 {metrics.total_freelance}
               </div>
-              <div className="mt-1 text-xs text-slate-400">Direct business outreach</div>
+              <div className="mt-1 text-xs text-slate-600 font-semibold">Direct business outreach</div>
             </Link>
 
             {/* 4. Startup Pain Points */}
             <Link
               href="/opportunities?type=STARTUP_PAIN_POINT"
-              className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-purple-600 transition-all group"
+              className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 group cursor-pointer"
             >
-              <div className="text-xs font-medium text-purple-400 uppercase tracking-wider">Startup Pain Points</div>
-              <div className="mt-2 text-3xl font-black text-white group-hover:text-purple-400 transition-colors">
+              <div className="text-xs font-medium text-purple-700 uppercase tracking-wider font-extrabold">Startup Pain Points</div>
+              <div className="mt-2 text-3xl font-black text-slate-900 group-hover:text-purple-600 transition-colors font-black">
                 {metrics.total_startups}
               </div>
-              <div className="mt-1 text-xs text-slate-400">Technical bottlenecks & demands</div>
+              <div className="mt-1 text-xs text-slate-600 font-semibold">Technical bottlenecks & demands</div>
             </Link>
 
             {/* 5. Total Bookmarks */}
             <Link
               href="/saved-opportunities"
-              className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-600 transition-all group"
+              className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 group cursor-pointer"
             >
-              <div className="text-xs font-medium text-amber-400 uppercase tracking-wider">Saved Bookmarks</div>
-              <div className="mt-2 text-3xl font-black text-white group-hover:text-amber-400 transition-colors">
+              <div className="text-xs font-medium text-amber-700 uppercase tracking-wider font-extrabold">Saved Bookmarks</div>
+              <div className="mt-2 text-3xl font-black text-slate-900 group-hover:text-amber-600 transition-colors font-black">
                 {metrics.total_saved}
               </div>
-              <div className="mt-1 text-xs text-slate-400">Cross-module saved items</div>
+              <div className="mt-1 text-xs text-slate-600 font-semibold">Cross-module saved items</div>
             </Link>
 
             {/* 6. Active CRM Applications */}
             <Link
               href="/applications"
-              className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-600 transition-all group"
+              className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 group cursor-pointer"
             >
-              <div className="text-xs font-medium text-cyan-400 uppercase tracking-wider">Active Applications</div>
-              <div className="mt-2 text-3xl font-black text-white group-hover:text-cyan-400 transition-colors">
+              <div className="text-xs font-medium text-cyan-700 uppercase tracking-wider font-extrabold">Active Applications</div>
+              <div className="mt-2 text-3xl font-black text-slate-900 group-hover:text-cyan-600 transition-colors font-black">
                 {metrics.active_applications}
               </div>
-              <div className="mt-1 text-xs text-slate-400">Tracked in Application CRM</div>
+              <div className="mt-1 text-xs text-slate-600 font-semibold">Tracked in Application CRM</div>
             </Link>
 
             {/* 7. High Urgency Startups */}
             <Link
               href="/opportunities?type=STARTUP_PAIN_POINT"
-              className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-600 transition-all group"
+              className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 group cursor-pointer"
             >
-              <div className="text-xs font-medium text-rose-400 uppercase tracking-wider">High-Urgency Problems (≥8/10)</div>
-              <div className="mt-2 text-3xl font-black text-white group-hover:text-rose-400 transition-colors">
+              <div className="text-xs font-medium text-rose-700 uppercase tracking-wider font-extrabold">High-Urgency Problems (≥8/10)</div>
+              <div className="mt-2 text-3xl font-black text-slate-900 group-hover:text-rose-600 transition-colors font-black">
                 {metrics.high_urgency_signals}
               </div>
-              <div className="mt-1 text-xs text-slate-400">High-conviction founders</div>
+              <div className="mt-1 text-xs text-slate-600 font-semibold">High-conviction founders</div>
             </Link>
 
             {/* 8. New This Week */}
-            <div className="p-5 rounded-xl bg-slate-900 border border-slate-800">
-              <div className="text-xs font-medium text-teal-400 uppercase tracking-wider">Discovered This Week</div>
-              <div className="mt-2 text-3xl font-black text-white">
+            <div className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 group">
+              <div className="text-xs font-medium text-teal-700 uppercase tracking-wider font-extrabold">Discovered This Week</div>
+              <div className="mt-2 text-3xl font-black text-slate-900">
                 +{metrics.new_this_week}
               </div>
-              <div className="mt-1 text-xs text-slate-400">Ingested past 7 days</div>
+              <div className="mt-1 text-xs text-slate-600 font-semibold">Ingested past 7 days</div>
             </div>
           </div>
         </div>
@@ -312,12 +312,12 @@ export default function UnifiedDashboardPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
-            <h2 className="text-xl font-bold text-white">Recent Live Opportunities</h2>
-            <p className="text-xs text-slate-400">Latest discovered positions and pain points across live job boards, freelance leads, and startup intelligence.</p>
+            <h2 className="text-xl font-black text-slate-900">Recent Live Opportunities</h2>
+            <p className="text-xs text-slate-600 font-semibold">Latest discovered positions and pain points across live job boards, freelance leads, and startup intelligence.</p>
           </div>
           <Link
             href="/opportunities"
-            className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
+            className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 font-bold transition-colors"
           >
             View all opportunities →
           </Link>
@@ -351,7 +351,7 @@ export default function UnifiedDashboardPage() {
               return (
                 <div
                   key={`${item.opportunity_type}-${item.opportunity_id}`}
-                  className="p-5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 flex flex-col justify-between transition-all"
+                  className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 flex flex-col justify-between transition-all duration-200"
                 >
                   <div className="space-y-2.5">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -374,27 +374,27 @@ export default function UnifiedDashboardPage() {
                           </span>
                         )}
                       </div>
-                      <span className="text-xs text-slate-400 font-medium">
+                      <span className="text-xs text-slate-600 font-semibold font-medium">
                         {item.source_name}
                       </span>
                     </div>
 
-                    <h3 className="text-base font-semibold text-white line-clamp-1">
+                    <h3 className="text-base font-bold text-slate-900 line-clamp-1 hover:text-indigo-600 transition-colors">
                       {item.title}
                     </h3>
-                    <div className="text-xs text-indigo-400 font-medium">
+                    <div className="text-xs text-indigo-700 font-bold">
                       {item.organization_name}
                       {item.location && <span className="text-slate-400"> • {item.location}</span>}
                     </div>
 
-                    <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-slate-700 font-medium line-clamp-2 leading-relaxed">
                       {item.short_description}
                     </p>
 
                     {/* Dynamic Candidate Fit */}
                     {item.candidate_fit && (
-                      <div className="p-2 rounded-lg bg-slate-950/80 border border-indigo-950/80 text-[11px] space-y-1">
-                        <div className="flex items-center justify-between font-bold text-white">
+                      <div className="neo-inset p-3 rounded-xl text-[11px] space-y-1 text-slate-800 font-medium">
+                        <div className="flex items-center justify-between font-extrabold text-slate-900">
                           <span className="flex items-center gap-1">
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${
@@ -405,14 +405,14 @@ export default function UnifiedDashboardPage() {
                           </span>
                           <span className="text-[10px] text-indigo-300 font-mono">Resume Synergy</span>
                         </div>
-                        <p className="text-slate-300 line-clamp-1 text-[11px]">
+                        <p className="text-slate-700 font-semibold line-clamp-1 text-[11px]">
                           {item.candidate_fit.how_you_fit}
                         </p>
                       </div>
                     )}
 
                     {/* Specific payload badges */}
-                    <div className="text-xs text-slate-400 flex flex-wrap gap-2 pt-1 font-mono">
+                    <div className="text-xs text-slate-600 font-semibold flex flex-wrap gap-2 pt-1 font-mono">
                       {item.opportunity_type === "JOB" && item.type_specific_payload.salary_min && (
                         <span className="bg-slate-800 px-2 py-0.5 rounded text-slate-300">
                           ${item.type_specific_payload.salary_min.toLocaleString()} - ${item.type_specific_payload.salary_max?.toLocaleString()}
@@ -452,7 +452,7 @@ export default function UnifiedDashboardPage() {
                         className={`text-xs font-semibold px-2.5 py-1 rounded transition-colors ${
                           item.is_saved
                             ? "bg-amber-900/60 text-amber-300 border border-amber-700/60"
-                            : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
+                            : "neo-pill text-slate-800 hover:text-indigo-700 font-bold"
                         }`}
                       >
                         {item.is_saved ? "★ Bookmarked" : "☆ Save"}
@@ -485,7 +485,7 @@ export default function UnifiedDashboardPage() {
                         href={item.source_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
+                        className="text-xs font-medium text-indigo-700 hover:text-indigo-900 font-bold transition-colors"
                       >
                         Apply / Source →
                       </a>

@@ -348,19 +348,19 @@ function SearchContent() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       {/* Header & Save Search Action */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Job Discovery & Matching</h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Job Discovery & Matching</h1>
+          <p className="text-sm text-slate-700 font-semibold mt-1">
             Search verified career opportunities evaluated with transparent, evidence-based candidate matching.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsSaveModalOpen(true)}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 text-sm font-medium transition-colors"
+            className="neo-pill inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 hover:text-indigo-900 transition-all"
           >
             <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -389,11 +389,11 @@ function SearchContent() {
       {/* Main Grid: Filters Sidebar + Results */}
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Filters Sidebar */}
-        <div className="lg:col-span-1 space-y-6 bg-slate-900/60 p-5 rounded-2xl border border-slate-800">
+        <div className="lg:col-span-1 space-y-6 neo-box p-6 rounded-2xl border border-white/90 shadow-sm">
           <form onSubmit={handleSearchSubmit} className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold">
                   Smart Keywords Search
                 </label>
                 {query && (
@@ -404,7 +404,7 @@ function SearchContent() {
                       setDebouncedQuery("");
                       setPage(1);
                     }}
-                    className="text-[10px] text-slate-400 hover:text-slate-200"
+                    className="text-[10px] text-slate-700 font-bold hover:text-slate-200"
                   >
                     Clear
                   </button>
@@ -415,7 +415,7 @@ function SearchContent() {
                 placeholder="e.g. React, WebDev, Python, AWS..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-800 text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
               />
               {/* Quick Suggestion Pills */}
               <div className="flex flex-wrap gap-1 mt-2">
@@ -429,7 +429,7 @@ function SearchContent() {
                       className={`text-[11px] px-2 py-0.5 rounded-full border transition-all ${
                         isActive
                           ? "bg-indigo-950 border-indigo-500 text-indigo-300 font-semibold shadow-sm"
-                          : "bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                          : "bg-slate-950/60 border-slate-800 text-slate-700 font-bold hover:text-slate-200 hover:border-slate-700"
                       }`}
                     >
                       {pill.label}
@@ -445,14 +445,14 @@ function SearchContent() {
             {/* Popular Skills Multi-Select Chips */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold">
                   Required Skills
                 </label>
                 {selectedSkills.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setSelectedSkills([])}
-                    className="text-[10px] text-slate-400 hover:text-slate-200"
+                    className="text-[10px] text-slate-700 font-bold hover:text-slate-200"
                   >
                     Clear ({selectedSkills.length})
                   </button>
@@ -480,13 +480,13 @@ function SearchContent() {
 
             {/* Career Stage / Fresher Filter */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
                 Experience / Level
               </label>
               <select
                 value={experienceLevel}
                 onChange={(e) => setExperienceLevel(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-800 text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
               >
                 <option value="">All Experience Levels</option>
                 <option value="FRESHER">🎓 Freshers & Entry Level (0-1 yrs)</option>
@@ -496,7 +496,7 @@ function SearchContent() {
 
             {/* Workplace Mode */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
                 Workplace Mode
               </label>
               <select
@@ -505,7 +505,7 @@ function SearchContent() {
                   setWorkplaceType(e.target.value);
                   if (e.target.value === "REMOTE") setIsRemoteOnly(true);
                 }}
-                className="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-800 text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
               >
                 <option value="">All Workplace Modes</option>
                 <option value="REMOTE">🌐 Remote</option>
@@ -516,13 +516,13 @@ function SearchContent() {
 
             {/* Employment Type */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
                 Employment Type
               </label>
               <select
                 value={employmentType}
                 onChange={(e) => setEmploymentType(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-800 text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
               >
                 <option value="">All Employment Types</option>
                 <option value="FULL_TIME">Full-Time</option>
@@ -534,7 +534,7 @@ function SearchContent() {
 
             {/* Role / Title */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
                 Role / Title
               </label>
               <input
@@ -542,13 +542,13 @@ function SearchContent() {
                 placeholder="e.g. Frontend Engineer"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-800 text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
               />
             </div>
 
             {/* Company */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
                 Company
               </label>
               <input
@@ -556,13 +556,13 @@ function SearchContent() {
                 placeholder="e.g. Stripe, Google, Acme"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-800 text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
               />
             </div>
 
             {/* Location */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
                 Location
               </label>
               <input
@@ -570,19 +570,19 @@ function SearchContent() {
                 placeholder="City, State, or Country"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-800 text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
               />
             </div>
 
             {/* Minimum Salary */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
                 Minimum Compensation
               </label>
               <select
                 value={minSalary}
                 onChange={(e) => setMinSalary(Number(e.target.value))}
-                className="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-800 text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
               >
                 <option value={0}>Any Compensation</option>
                 <option value={50000}>$50,000+ / year</option>
@@ -595,13 +595,13 @@ function SearchContent() {
 
             {/* Verification Status */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
                 Verification Status
               </label>
               <select
                 value={verificationFilter}
                 onChange={(e) => setVerificationFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-800 text-slate-200 text-sm focus:outline-none focus:border-indigo-500"
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
               >
                 <option value="">All Listings</option>
                 <option value="OPEN_CONFIRMED">✓ Open Confirmed (Active ATS)</option>
@@ -633,7 +633,7 @@ function SearchContent() {
           {/* Active Filter Chips Ribbon */}
           {(query || selectedSkills.length > 0 || isRemoteOnly || experienceLevel || workplaceType || employmentType || minSalary > 0 || role || company || city || verificationFilter) && (
             <div className="flex flex-wrap items-center gap-1.5 p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs">
-              <span className="text-slate-400 font-semibold mr-1">Active Filters:</span>
+              <span className="text-slate-700 font-bold font-semibold mr-1">Active Filters:</span>
               {query && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 font-medium">
                   <span>Keyword: {query}</span>
@@ -712,11 +712,11 @@ function SearchContent() {
 
           {/* Controls Bar */}
           <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/60 px-4 py-3 rounded-xl border border-slate-800">
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-slate-700 font-bold">
               Showing <span className="font-semibold text-white">{jobs.length}</span> of{" "}
               <span className="font-semibold text-white">{totalCount}</span> opportunities
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-400">
+            <div className="flex items-center gap-2 text-sm text-slate-700 font-bold">
               <label>Sort by:</label>
               <select
                 value={sortBy}
@@ -782,7 +782,7 @@ function SearchContent() {
                           {job.workplace_type}
                         </span>
                       </div>
-                      <div className="text-sm text-slate-400 mt-1 flex items-center gap-3 flex-wrap">
+                      <div className="text-sm text-slate-700 font-bold mt-1 flex items-center gap-3 flex-wrap">
                         <span className="font-medium text-slate-200">{job.company_name}</span>
                         <span>•</span>
                         <span>{job.city ? `${job.city}, ${job.country || ""}` : job.country || "Worldwide"}</span>
@@ -802,7 +802,7 @@ function SearchContent() {
                         }`}
                     >
                       <svg
-                        className={`w-3.5 h-3.5 ${job.is_saved ? "text-amber-400 fill-current" : "text-slate-400"}`}
+                        className={`w-3.5 h-3.5 ${job.is_saved ? "text-amber-400 fill-current" : "text-slate-700 font-bold"}`}
                         fill={job.is_saved ? "currentColor" : "none"}
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -825,7 +825,7 @@ function SearchContent() {
                       className={`px-2.5 py-1 rounded-md font-medium border ${job.verification_status === "OPEN_CONFIRMED"
                         ? "bg-emerald-950/50 border-emerald-800/70 text-emerald-300"
                         : job.verification_status === "UNVERIFIED"
-                          ? "bg-slate-800/80 border-slate-700 text-slate-400"
+                          ? "bg-slate-800/80 border-slate-700 text-slate-700 font-bold"
                           : "bg-amber-950/50 border-amber-800/70 text-amber-300"
                         }`}
                     >
@@ -838,7 +838,7 @@ function SearchContent() {
                         ? "bg-blue-950/50 border-blue-800/70 text-blue-300"
                         : job.freshness_state === "RECENT"
                           ? "bg-cyan-950/50 border-cyan-800/70 text-cyan-300"
-                          : "bg-slate-800 border-slate-700 text-slate-400"
+                          : "bg-slate-800 border-slate-700 text-slate-700 font-bold"
                         }`}
                     >
                       Freshness: {job.freshness_state}
@@ -864,7 +864,7 @@ function SearchContent() {
                         className={`px-2.5 py-1 rounded-md font-medium border ${job.eligibility_status === "MEETS_REQUIREMENTS"
                           ? "bg-emerald-950/40 border-emerald-700/60 text-emerald-400"
                           : job.eligibility_status === "UNKNOWN"
-                            ? "bg-slate-800 border-slate-700 text-slate-400"
+                            ? "bg-slate-800 border-slate-700 text-slate-700 font-bold"
                             : "bg-rose-950/40 border-rose-800/60 text-rose-400"
                           }`}
                       >
@@ -878,7 +878,7 @@ function SearchContent() {
                     {/* Company Required Skills */}
                     {job.required_skills && job.required_skills.length > 0 && (
                       <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-slate-700 font-bold uppercase tracking-wider">
                           <span>Company Required Skills</span>
                           <span className="text-[10px] text-slate-500 font-normal">
                             {job.required_skills.length} required
@@ -947,7 +947,7 @@ function SearchContent() {
                             {job.missing_skills_preview.map((mis, idx) => (
                               <span
                                 key={idx}
-                                className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono"
+                                className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-700 font-bold border border-slate-700 font-mono"
                               >
                                 {mis}
                               </span>
@@ -965,7 +965,7 @@ function SearchContent() {
                         <>
                           {job.currency || "$"}
                           {job.min_salary?.toLocaleString()} - {job.max_salary?.toLocaleString()}{" "}
-                          <span className="text-xs text-slate-400 font-normal">/ {job.salary_period || "year"}</span>
+                          <span className="text-xs text-slate-700 font-bold font-normal">/ {job.salary_period || "year"}</span>
                         </>
                       ) : (
                         <span className="text-xs text-slate-500 font-normal">Salary not disclosed</span>
@@ -1003,7 +1003,7 @@ function SearchContent() {
               >
                 ← Previous
               </button>
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-slate-700 font-bold">
                 Page <span className="text-white font-semibold">{page}</span> of {totalPages}
               </span>
               <button
@@ -1023,7 +1023,7 @@ function SearchContent() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-white">Save Search & Configure Alerts</h3>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-700 font-bold mt-1">
               Receive automatic notifications when fresh opportunities matching your filters are ingested.
             </p>
 
@@ -1089,7 +1089,7 @@ export default function JobSearchPage() {
   return (
     <React.Suspense
       fallback={
-        <div className="max-w-7xl mx-auto px-4 py-16 text-slate-400 text-sm">
+        <div className="max-w-7xl mx-auto px-4 py-16 text-slate-700 font-bold text-sm">
           Loading Job Discovery & Matching...
         </div>
       }

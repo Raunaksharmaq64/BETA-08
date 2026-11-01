@@ -130,14 +130,14 @@ function InterviewPrepHubContent() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">
             Interview Intelligence Hub
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-slate-700 font-semibold text-sm mt-1">
             End-to-end interview lifecycle: 48-Hour sprint preparation, evidence-grounded STAR
             stories, interactive mock sessions, and debriefs.
           </p>
@@ -154,10 +154,10 @@ function InterviewPrepHubContent() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link
           href="/interview-prep/48-hour"
-          className="bg-slate-900 border border-slate-800 hover:border-amber-500/50 p-5 rounded-2xl group transition shadow-sm"
+          className="neo-card neo-box-hover p-6 rounded-2xl border border-white/90 group transition-all duration-200 shadow-sm"
         >
           <div className="text-2xl mb-2">⚡</div>
-          <h3 className="font-bold text-white group-hover:text-amber-400 transition text-base">
+          <h3 className="font-black text-slate-900 group-hover:text-amber-700 transition text-base">
             48-Hour Sprint Mode
           </h3>
           <p className="text-slate-400 text-xs mt-1 leading-relaxed">
@@ -167,10 +167,10 @@ function InterviewPrepHubContent() {
 
         <Link
           href="/interview-prep/star"
-          className="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-5 rounded-2xl group transition shadow-sm"
+          className="neo-card neo-box-hover p-6 rounded-2xl border border-white/90 group transition-all duration-200 shadow-sm"
         >
           <div className="text-2xl mb-2">⭐</div>
-          <h3 className="font-bold text-white group-hover:text-indigo-400 transition text-base">
+          <h3 className="font-black text-slate-900 group-hover:text-indigo-700 transition text-base">
             STAR Story Builder
           </h3>
           <p className="text-slate-400 text-xs mt-1 leading-relaxed">
@@ -180,10 +180,10 @@ function InterviewPrepHubContent() {
 
         <Link
           href="/interview-prep/mock"
-          className="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 p-5 rounded-2xl group transition shadow-sm"
+          className="neo-card neo-box-hover p-6 rounded-2xl border border-white/90 group transition-all duration-200 shadow-sm"
         >
           <div className="text-2xl mb-2">🎙️</div>
-          <h3 className="font-bold text-white group-hover:text-emerald-400 transition text-base">
+          <h3 className="font-black text-slate-900 group-hover:text-emerald-700 transition text-base">
             Mock Practice & Rubric
           </h3>
           <p className="text-slate-400 text-xs mt-1 leading-relaxed">
@@ -193,10 +193,10 @@ function InterviewPrepHubContent() {
 
         <Link
           href="/interview-prep/debrief"
-          className="bg-slate-900 border border-slate-800 hover:border-purple-500/50 p-5 rounded-2xl group transition shadow-sm"
+          className="neo-card neo-box-hover p-6 rounded-2xl border border-white/90 group transition-all duration-200 shadow-sm"
         >
           <div className="text-2xl mb-2">📝</div>
-          <h3 className="font-bold text-white group-hover:text-purple-400 transition text-base">
+          <h3 className="font-black text-slate-900 group-hover:text-purple-700 transition text-base">
             Post-Interview Debrief
           </h3>
           <p className="text-slate-400 text-xs mt-1 leading-relaxed">
@@ -235,14 +235,14 @@ function InterviewPrepHubContent() {
             {plans.map((plan) => (
               <div
                 key={plan.id}
-                className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-md space-y-4"
+                className="neo-card neo-box-hover rounded-2xl p-6 border border-white/90 shadow-sm transition-all duration-200 space-y-4"
               >
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 uppercase tracking-wide border border-indigo-800/80">
                       Phase: {plan.current_phase}
                     </span>
-                    <h3 className="text-lg font-bold text-white mt-1.5">{plan.target_role}</h3>
+                    <h3 className="text-lg font-black text-slate-900 mt-1.5">{plan.target_role}</h3>
                     <p className="text-sm text-slate-400 font-medium">{plan.target_company}</p>
                   </div>
                   <Link

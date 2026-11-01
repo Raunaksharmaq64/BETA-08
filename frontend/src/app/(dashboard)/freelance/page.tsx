@@ -254,7 +254,7 @@ export default function FreelanceDashboardPage() {
   const brokenWebsitesCount = opportunities.filter((o) => o.is_broken_website).length;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 animate-fade-in text-slate-900">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header & Sub-Navigation */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-6">
@@ -265,10 +265,10 @@ export default function FreelanceDashboardPage() {
               </span>
               <span className="text-xs text-slate-500 font-medium">Native Monolith Integration</span>
             </div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">
               Freelance Intelligence Engine
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-slate-700 font-semibold mt-1">
               Autonomous local business discovery, multi-platform email & social scraping, and candidate-governed outreach pitches.
             </p>
           </div>
@@ -279,7 +279,7 @@ export default function FreelanceDashboardPage() {
               <button
                 onClick={handleExportExcel}
                 disabled={exportingExcel || filtered.length === 0}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition shadow flex items-center space-x-1.5"
+                className="neo-pill px-4 py-2 text-emerald-800 hover:text-emerald-950 text-xs font-bold rounded-xl transition-all shadow flex items-center space-x-1.5"
                 title="Download formatted Excel workbook with formulas protected"
               >
                 <span>📊</span>
@@ -289,7 +289,7 @@ export default function FreelanceDashboardPage() {
               <button
                 onClick={handleExportCsv}
                 disabled={exportingCsv || filtered.length === 0}
-                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition"
+                className="neo-pill px-3.5 py-2 text-slate-800 hover:text-indigo-600 text-xs font-bold rounded-xl transition-all"
                 title="Download clean UTF-8 CSV spreadsheet"
               >
                 <span>{exportingCsv ? "Exporting..." : "CSV"}</span>
@@ -298,7 +298,7 @@ export default function FreelanceDashboardPage() {
 
             <Link
               href="/freelance/saved"
-              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition flex items-center space-x-1"
+              className="neo-pill px-4 py-2 text-slate-800 hover:text-indigo-600 text-xs font-bold rounded-xl transition-all flex items-center space-x-1"
             >
               <span>★</span>
               <span>Saved Leads</span>
@@ -306,7 +306,7 @@ export default function FreelanceDashboardPage() {
 
             <Link
               href="/freelance/outreach"
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg transition shadow-md shadow-indigo-900/30"
+              className="neo-btn-primary px-4 py-2 text-xs font-bold rounded-xl transition-all shadow-md"
             >
               Outreach & Settings →
             </Link>
@@ -329,40 +329,40 @@ export default function FreelanceDashboardPage() {
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-xl shadow">
+          <div className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 shadow-sm">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
               Total Opportunities
             </p>
-            <p className="text-3xl font-bold text-white mt-2">{totalCount}</p>
+            <p className="text-3xl font-black text-slate-900 mt-2">{totalCount}</p>
             <p className="text-xs text-slate-500 mt-1">Cataloged across local target markets</p>
           </div>
-          <div className="bg-slate-900/80 border border-rose-900/40 p-5 rounded-xl shadow">
+          <div className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 shadow-sm">
             <p className="text-xs font-semibold text-rose-400 uppercase tracking-wider flex items-center gap-1">
               <span>⚡ High Priority Leads</span>
             </p>
-            <p className="text-3xl font-bold text-rose-300 mt-2">{highPriorityCount}</p>
+            <p className="text-3xl font-black text-rose-800 mt-2">{highPriorityCount}</p>
             <p className="text-xs text-rose-400/80 mt-1">No site or broken site with under 50 reviews</p>
           </div>
-          <div className="bg-slate-900/80 border border-amber-900/40 p-5 rounded-xl shadow">
+          <div className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 shadow-sm">
             <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider">
               Medium Priority Leads
             </p>
-            <p className="text-3xl font-bold text-amber-300 mt-2">{mediumPriorityCount}</p>
+            <p className="text-3xl font-black text-amber-800 mt-2">{mediumPriorityCount}</p>
             <p className="text-xs text-slate-500 mt-1">No website with 50-200 reviews</p>
           </div>
-          <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-xl shadow">
+          <div className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 shadow-sm">
             <p className="text-xs font-semibold text-rose-400 uppercase tracking-wider">
               Broken Sites Found
             </p>
-            <p className="text-3xl font-bold text-rose-300 mt-2">{brokenWebsitesCount}</p>
+            <p className="text-3xl font-black text-rose-800 mt-2">{brokenWebsitesCount}</p>
             <p className="text-xs text-slate-500 mt-1">Failed DNS, SSL, or HTTP status probes</p>
           </div>
         </div>
 
         {/* Discovery Scan Controller */}
-        <div className="bg-slate-900/90 border border-slate-800 p-6 rounded-xl shadow-lg space-y-4">
+        <div className="neo-box p-6 rounded-2xl border border-white/90 shadow-sm space-y-4">
           <div>
-            <h2 className="text-base font-semibold text-white">
+            <h2 className="text-base font-black text-slate-900">
               Launch Native Local Business Discovery
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
@@ -379,7 +379,7 @@ export default function FreelanceDashboardPage() {
                   value={scanQuery}
                   onChange={(e) => setScanQuery(e.target.value)}
                   placeholder="e.g. Dentists, Bakeries, Plumbers, Accountants"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+                  className="w-full neo-inset rounded-xl px-4 py-2 text-xs font-bold text-slate-900 placeholder:text-slate-500 focus:outline-none"
                   required
                 />
               </div>
@@ -390,7 +390,7 @@ export default function FreelanceDashboardPage() {
                   value={scanCity}
                   onChange={(e) => setScanCity(e.target.value)}
                   placeholder="e.g. Austin, TX or Indore"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+                  className="w-full neo-inset rounded-xl px-4 py-2 text-xs font-bold text-slate-900 placeholder:text-slate-500 focus:outline-none"
                   required
                 />
               </div>
@@ -399,7 +399,7 @@ export default function FreelanceDashboardPage() {
                 <select
                   value={maxResults}
                   onChange={(e) => setMaxResults(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+                  className="w-full neo-inset rounded-xl px-4 py-2 text-xs font-bold text-slate-900 placeholder:text-slate-500 focus:outline-none"
                 >
                   <option value={10}>10 Leads</option>
                   <option value={20}>20 Leads (Standard)</option>

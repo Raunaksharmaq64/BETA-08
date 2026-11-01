@@ -173,12 +173,12 @@ export default function CalendarPage() {
   const hasConflicts = events.some((e) => e.has_conflict);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Calendar & Deadlines</h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Calendar & Deadlines</h1>
+          <p className="text-slate-700 font-semibold text-sm mt-1">
             Aggregated candidate timeline: scheduled interview rounds, deadlines, and smart
             reminders.
           </p>

@@ -49,7 +49,9 @@ startup_adapter = StartupIntelligenceAdapter()
 _PERSONA_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
 _OPPORTUNITY_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
 _DASHBOARD_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+_COUNTS_CACHE: Dict[str, Tuple[float, Any]] = {}
 _CACHE_TTL_SECONDS = 15.0
+_COUNTS_CACHE_TTL = 60.0
 
 _DOMAIN_PATTERNS: Dict[str, Dict[str, Any]] = {
     "MARKETING_GROWTH": {
@@ -1062,38 +1064,52 @@ class UnifiedOpportunityService:
         if min_score:
             count_startups_stmt = count_startups_stmt.where(StartupOpportunityRecord.urgency_score >= min_score)
 
-        # Real-time breakdown of employment types across canonical jobs
-        full_time_cnt = 401
-        internship_cnt = 65
-        contract_cnt = 13
-        try:
-            breakdown_stmt = select(
-                CanonicalOpportunityRecord.employment_type,
-                func.count(CanonicalOpportunityRecord.id)
-            ).group_by(CanonicalOpportunityRecord.employment_type)
-            b_res = await session.execute(breakdown_stmt)
-            b_dict = {row[0]: row[1] for row in b_res.all() if row[0]}
-            if b_dict:
-                full_time_cnt = b_dict.get("FULL_TIME", 0)
-                internship_cnt = b_dict.get("INTERNSHIP", 0)
-                contract_cnt = b_dict.get("CONTRACT", 0)
-        except Exception:
-            pass
+        # Real-time breakdown of employment types across canonical jobs (with 60s memory caching)
+        now_ts = time.time()
+        cached_breakdown = _COUNTS_CACHE.get("breakdown")
+        if cached_breakdown and (now_ts - cached_breakdown[0] < _COUNTS_CACHE_TTL):
+            b_dict = cached_breakdown[1]
+            full_time_cnt = b_dict.get("FULL_TIME", 0)
+            internship_cnt = b_dict.get("INTERNSHIP", 0)
+            contract_cnt = b_dict.get("CONTRACT", 0)
+        else:
+            full_time_cnt = 401
+            internship_cnt = 65
+            contract_cnt = 13
+            try:
+                breakdown_stmt = select(
+                    CanonicalOpportunityRecord.employment_type,
+                    func.count(CanonicalOpportunityRecord.id)
+                ).group_by(CanonicalOpportunityRecord.employment_type)
+                b_res = await session.execute(breakdown_stmt)
+                b_dict = {row[0]: row[1] for row in b_res.all() if row[0]}
+                if b_dict:
+                    full_time_cnt = b_dict.get("FULL_TIME", 0)
+                    internship_cnt = b_dict.get("INTERNSHIP", 0)
+                    contract_cnt = b_dict.get("CONTRACT", 0)
+                    _COUNTS_CACHE["breakdown"] = (now_ts, b_dict)
+            except Exception:
+                pass
 
         if employment_type and employment_type != "ALL":
             clean_et = employment_type.upper().strip()
             count_jobs_stmt = count_jobs_stmt.where(CanonicalOpportunityRecord.employment_type == clean_et)
 
         if not search and (not category or category == "All") and not min_score and (not employment_type or employment_type == "ALL"):
-            global_stmt = select(
-                select(func.count(CanonicalOpportunityRecord.id)).scalar_subquery().label("jobs"),
-                select(func.count(FreelanceOpportunityRecord.id)).scalar_subquery().label("freelance"),
-                select(func.count(StartupOpportunityRecord.id)).scalar_subquery().label("startups"),
-            )
-            g_row = (await session.execute(global_stmt)).one()
-            total_jobs_num = g_row.jobs or 0
-            total_freelance_num = g_row.freelance or 0
-            total_startups_num = g_row.startups or 0
+            cached_global = _COUNTS_CACHE.get("global_counts")
+            if cached_global and (now_ts - cached_global[0] < _COUNTS_CACHE_TTL):
+                total_jobs_num, total_freelance_num, total_startups_num = cached_global[1]
+            else:
+                global_stmt = select(
+                    select(func.count(CanonicalOpportunityRecord.id)).scalar_subquery().label("jobs"),
+                    select(func.count(FreelanceOpportunityRecord.id)).scalar_subquery().label("freelance"),
+                    select(func.count(StartupOpportunityRecord.id)).scalar_subquery().label("startups"),
+                )
+                g_row = (await session.execute(global_stmt)).one()
+                total_jobs_num = g_row.jobs or 0
+                total_freelance_num = g_row.freelance or 0
+                total_startups_num = g_row.startups or 0
+                _COUNTS_CACHE["global_counts"] = (now_ts, (total_jobs_num, total_freelance_num, total_startups_num))
         else:
             total_jobs_num = (await session.execute(count_jobs_stmt)).scalar() or 0
             total_freelance_num = (await session.execute(count_freelance_stmt)).scalar() or 0
@@ -1309,12 +1325,12 @@ class UnifiedOpportunityService:
         _OPPORTUNITY_CACHE[cache_key] = (time.time(), envelope_result)
         return envelope_result
 
-    @staticmethod
     @classmethod
     def clear_caches(cls) -> None:
         """Flushes in-memory opportunity and dashboard caches for live instant reload."""
         _OPPORTUNITY_CACHE.clear()
         _DASHBOARD_CACHE.clear()
+        _COUNTS_CACHE.clear()
 
     @staticmethod
     async def get_unified_dashboard_metrics(
@@ -1486,6 +1502,7 @@ class UnifiedOpportunityService:
         """Polymorphically bookmarks an opportunity of any supported type with custom folder/tag category."""
         _OPPORTUNITY_CACHE.clear()
         _DASHBOARD_CACHE.clear()
+        _COUNTS_CACHE.clear()
         opp_type = opportunity_type.upper()
         clean_cat = category.strip().upper() if category and category.strip() else None
 
@@ -1551,6 +1568,7 @@ class UnifiedOpportunityService:
         """Polymorphically removes bookmark."""
         _OPPORTUNITY_CACHE.clear()
         _DASHBOARD_CACHE.clear()
+        _COUNTS_CACHE.clear()
         opp_type = opportunity_type.upper()
         if opp_type == "JOB":
             res = await session.execute(delete(SavedJobRecord).where(SavedJobRecord.user_id == user_id, SavedJobRecord.opportunity_id == opportunity_id))

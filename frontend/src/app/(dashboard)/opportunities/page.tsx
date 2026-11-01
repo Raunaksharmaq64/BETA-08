@@ -350,12 +350,12 @@ export default function UnifiedOpportunitiesPage() {
 
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fade-in">
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
               Live Opportunities Feed
             </h1>
             <span className="text-xs bg-indigo-950 text-indigo-400 font-mono px-2 py-0.5 rounded border border-indigo-800">
@@ -384,12 +384,12 @@ export default function UnifiedOpportunitiesPage() {
 
       {/* Candidate Profile Calibration Header Banner */}
       {candidatePersona && candidatePersona.has_profile && (
-        <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-950/90 via-slate-900 to-purple-950/70 border border-indigo-700/60 shadow-lg text-white">
+        <div className="neo-box p-5 rounded-2xl border border-white/90 shadow-md text-slate-900">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xl">{candidatePersona.domain_icon || "🎯"}</span>
-                <h2 className="text-sm font-bold tracking-tight text-white">
+                <h2 className="text-sm font-black tracking-tight text-slate-900">
                   Feed Calibrated to Your Resume:
                 </h2>
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/25 border border-indigo-400 text-indigo-200">
@@ -399,7 +399,7 @@ export default function UnifiedOpportunitiesPage() {
                   ✓ Resume Active
                 </span>
               </div>
-              <p className="text-xs text-indigo-200/80">
+              <p className="text-xs text-slate-700 font-semibold">
                 Opportunities and startup pain points are ranked by direct synergy with your extracted competencies.
               </p>
               {candidatePersona.skills && candidatePersona.skills.length > 0 && (
@@ -408,7 +408,7 @@ export default function UnifiedOpportunitiesPage() {
                   {candidatePersona.skills.map((skill: string) => (
                     <span
                       key={skill}
-                      className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-900/50 border border-indigo-700/50 text-indigo-200 font-mono"
+                      className="neo-inset text-[11px] px-2.5 py-0.5 rounded-full text-indigo-800 font-mono font-bold"
                     >
                       {skill}
                     </span>
@@ -418,12 +418,12 @@ export default function UnifiedOpportunitiesPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 bg-slate-900/90 border border-indigo-700/60 rounded-lg px-3 py-1.5">
+              <div className="flex items-center gap-1.5 neo-pill px-3 py-1.5 rounded-xl border border-white/90">
                 <span className="text-xs text-slate-400">Sort:</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-transparent text-xs text-white font-medium focus:outline-none cursor-pointer"
+                  className="bg-transparent text-xs text-slate-900 font-bold focus:outline-none cursor-pointer"
                 >
                   <option value="BEST_FIT" className="bg-slate-900 text-white">🎯 Best Fit (Skills + Live Opportunities)</option>
                   <option value="NEWEST" className="bg-slate-900 text-white">⏱️ Newest First</option>
@@ -452,7 +452,7 @@ export default function UnifiedOpportunitiesPage() {
       )}
 
       {/* Live Auto-Refresh & Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs">
+      <div className="neo-box flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl text-xs font-bold text-slate-800 border border-white/90">
         <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={toggleAutoRefresh}
@@ -465,8 +465,8 @@ export default function UnifiedOpportunitiesPage() {
             Auto-Sync: {autoRefresh ? "LIVE (25s)" : "PAUSED"}
           </button>
 
-          <span className="text-slate-400">
-            Last synced: <span className="text-slate-200 font-mono">{lastRefreshedAt}</span>
+          <span className="text-slate-700 font-bold">
+            Last synced: <span className="text-slate-900 font-mono font-extrabold">{lastRefreshedAt}</span>
           </span>
         </div>
 
@@ -474,7 +474,7 @@ export default function UnifiedOpportunitiesPage() {
           <button
             onClick={handleManualRefresh}
             disabled={isRefreshing}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors shadow disabled:opacity-50"
+            className="neo-btn-primary inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md disabled:opacity-50"
             title="Scan market sources for new job requisitions and startup pain points"
           >
             <span className={isRefreshing ? "animate-spin" : ""}>⟳</span>
