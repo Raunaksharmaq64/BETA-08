@@ -131,11 +131,7 @@ export default function ApplicationDetailPage() {
 
     const title = application.title_display || application.custom_job_title || "Job";
 
-    const safeUrl = application.application_url.toLowerCase().includes("jooble.org")
-
-      ? `https://www.google.com/search?q=${encodeURIComponent(`${comp} ${title} job apply`)}`
-
-      : application.application_url;
+    const safeUrl = application.application_url;
     try {
       // Notify backend to track opening timestamp
       const res = await apiClient<ApplicationDetail>(

@@ -331,14 +331,14 @@ export default function StartupIntelligenceDashboardPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && fetchOpportunities()}
-              className="w-full px-3.5 py-2 text-sm bg-slate-950 border border-slate-800 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="w-full px-4 py-2.5 text-xs sm:text-sm neo-inset rounded-xl text-slate-900 font-bold focus:outline-none"
             />
           </div>
           <div className="flex flex-wrap gap-2">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 text-sm bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+              className="px-3.5 py-2 text-xs sm:text-sm neo-inset rounded-xl text-slate-900 font-bold focus:outline-none"
             >
               <option value="All">All Categories</option>
               <option value="Development">Development</option>
@@ -350,7 +350,7 @@ export default function StartupIntelligenceDashboardPage() {
             <select
               value={minScore}
               onChange={(e) => setMinScore(Number(e.target.value))}
-              className="px-3 py-2 text-sm bg-slate-950 border border-slate-800 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+              className="px-3.5 py-2 text-xs sm:text-sm neo-inset rounded-xl text-slate-900 font-bold focus:outline-none"
             >
               <option value={0}>Any Urgency Score</option>
               <option value={7}>Score 7+ (Urgent)</option>
@@ -359,9 +359,9 @@ export default function StartupIntelligenceDashboardPage() {
             </select>
             <button
               onClick={() => fetchOpportunities(false)}
-              className="neo-pill px-4 py-2 text-xs sm:text-sm font-bold text-slate-900 hover:text-indigo-600 rounded-xl transition-all shadow-sm"
+              className="neo-btn-primary px-5 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md cursor-pointer"
             >
-              Filter
+              Filter Signals
             </button>
           </div>
         </div>
@@ -395,7 +395,7 @@ export default function StartupIntelligenceDashboardPage() {
           {opportunities.map((opp) => (
             <div
               key={opp.id}
-              className="p-5 bg-slate-900/80 rounded-xl border border-slate-800 hover:border-slate-700 shadow-sm flex flex-col justify-between transition-colors"
+              className="p-5 neo-card neo-box-hover rounded-2xl border border-white/90 shadow-sm flex flex-col justify-between transition-all"
             >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-2">

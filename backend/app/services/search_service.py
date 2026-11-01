@@ -681,11 +681,7 @@ class SearchService:
                     currency=opp.currency,
                     salary_period=opp.salary_period,
                     required_skills=opp.required_skills_json or [],
-                    application_url=(
-                        opp.application_url
-                        if opp.application_url and "jooble.org" not in opp.application_url.lower()
-                        else f"https://www.google.com/search?q={urllib.parse.quote_plus(f'{opp.company_name} {opp.title} job apply')}"
-                    ),
+                    application_url=opp.application_url or "",
                     verification_status=opp.verification_status,
                     freshness_state=opp.freshness_state,
                     first_seen_at=opp.first_seen_at,

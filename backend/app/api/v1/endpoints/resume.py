@@ -706,11 +706,7 @@ async def get_suggested_jobs_for_resume(
                     is_remote=opp.is_remote,
                     employment_type=opp.employment_type,
                     salary_display=salary_str,
-                    application_url=(
-                        opp.application_url
-                        if opp.application_url and "jooble.org" not in opp.application_url.lower()
-                        else f"https://www.google.com/search?q={urllib.parse.quote_plus(f'{opp.company_name} {opp.title} job apply')}"
-                    ),
+                    application_url=opp.application_url or "",
                     match_score=overall_score,
                     matched_skills=matched_skills[:8],
                     missing_skills=missing_skills[:5],

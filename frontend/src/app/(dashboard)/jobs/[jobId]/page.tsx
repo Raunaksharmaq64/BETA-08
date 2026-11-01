@@ -357,7 +357,7 @@ export default function JobDetailPage() {
             </button>
 
             <a
-              href={job.application_url && !job.application_url.toLowerCase().includes("jooble.org") ? job.application_url : `https://www.google.com/search?q=${encodeURIComponent(`${job.company_name} ${job.title} job apply`)}`}
+              href={job.application_url}
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shadow-lg shadow-indigo-600/30 inline-flex items-center gap-2"

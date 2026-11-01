@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY", "rightfit_dev_super_secret_signing_key_32bytes_min!")
     JWT_SECRET: str = os.getenv("JWT_SECRET", "rightfit_jwt_signing_secret_key_minimum_32_bytes!")
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # Short-lived access tokens
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24h default in dev
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7    # Rotating refresh tokens
     VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
     RESET_TOKEN_EXPIRE_MINUTES: int = 30

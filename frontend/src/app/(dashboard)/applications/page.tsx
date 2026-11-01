@@ -155,6 +155,9 @@ export default function ApplicationsPage() {
       setLastSyncTime(new Date().toLocaleTimeString());
     } catch (err: any) {
       console.error("Failed to load applications CRM data:", err);
+      if (err?.code === "UNAUTHORIZED" || err?.status === 401 || err?.message?.includes("credentials") || err?.message?.includes("token")) {
+        setAutoSync(false);
+      }
     } finally {
       setLoading(false);
       setIsSyncing(false);
@@ -813,12 +816,11 @@ export default function ApplicationsPage() {
 
                               {app.status === "INTERVIEW" && (
                                 <Link
-                                  href={`/interview-prep/48-hour?role=${encodeURIComponent(title)}&company=${encodeURIComponent(comp)}`}
-
+                                  href={`/interview-prep?role=${encodeURIComponent(title)}&company=${encodeURIComponent(comp)}`}
                                   draggable={false}
-                                  className="text-[10px] font-semibold px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800 hover:bg-purple-900 transition"
+                                  className="neo-pill text-[10px] font-bold px-2 py-0.5 text-indigo-700 hover:text-indigo-900 transition"
                                 >
-                                  🚀 Prep
+                                  🎯 Prep
                                 </Link>
                               )}
                             </div>

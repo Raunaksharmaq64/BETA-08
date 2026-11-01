@@ -75,8 +75,19 @@ async def get_current_user(
         )
 
     query = select(User).where(User.id == user_id)
-    res = await db.execute(query)
-    user = res.scalar_one_or_none()
+    user = None
+    for attempt in range(3):
+        try:
+            res = await db.execute(query)
+            user = res.scalar_one_or_none()
+            break
+        except Exception as e:
+            err_str = str(e).lower()
+            if attempt < 2 and any(k in err_str for k in ("getaddrinfo", "cannotconnectnowerror", "connectionrefused", "timeout", "closed connection", "connection is closed")):
+                import asyncio
+                await asyncio.sleep(0.25 * (attempt + 1))
+                continue
+            raise
 
     if not user:
         raise HTTPException(

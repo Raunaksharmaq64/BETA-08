@@ -519,7 +519,7 @@ export default function FreelanceDashboardPage() {
                 placeholder="Search business, city, niche, or contact..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
+                className="w-full neo-inset rounded-xl px-4 py-2.5 text-xs text-slate-900 font-bold focus:outline-none"
               />
             </div>
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
@@ -749,7 +749,7 @@ export default function FreelanceDashboardPage() {
               return (
                 <div
                   key={opp.id}
-                  className={`bg-slate-900 border transition rounded-xl p-6 flex flex-col justify-between shadow-sm ${opp.priority === "HIGH"
+                  className={`neo-card neo-box-hover border border-white/90 transition rounded-2xl p-6 flex flex-col justify-between shadow-sm ${opp.priority === "HIGH"
                     ? "border-rose-900/60 hover:border-rose-600 ring-1 ring-rose-950/40"
                     : opp.priority === "MEDIUM"
                       ? "border-amber-900/50 hover:border-amber-600"

@@ -151,19 +151,7 @@ function InterviewPrepHubContent() {
       </div>
 
       {/* Quick Access Tools Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Link
-          href="/interview-prep/48-hour"
-          className="neo-card neo-box-hover p-6 rounded-2xl border border-white/90 group transition-all duration-200 shadow-sm"
-        >
-          <div className="text-2xl mb-2">⚡</div>
-          <h3 className="font-black text-slate-900 group-hover:text-amber-700 transition text-base">
-            48-Hour Sprint Mode
-          </h3>
-          <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-            Time-boxed 4-block revision plan leading directly up to your scheduled interview round.
-          </p>
-        </Link>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
         <Link
           href="/interview-prep/star"
@@ -246,10 +234,10 @@ function InterviewPrepHubContent() {
                     <p className="text-sm text-slate-400 font-medium">{plan.target_company}</p>
                   </div>
                   <Link
-                    href={`/interview-prep/48-hour?planId=${plan.id}`}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-950/80 hover:bg-amber-900/80 text-amber-300 border border-amber-700/60 transition"
+                    href={`/interview-prep/mock?planId=${plan.id}`}
+                    className="neo-pill px-3 py-1.5 text-xs font-bold text-slate-900 hover:text-indigo-600 transition"
                   >
-                    ⚡ Sprint 48h
+                    🎙️ Mock Practice
                   </Link>
                 </div>
 

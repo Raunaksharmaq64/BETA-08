@@ -26,18 +26,18 @@ else:
     connect_args["statement_cache_size"] = 0
     connect_args["prepared_statement_cache_size"] = 0
     connect_args["prepared_statement_name_func"] = lambda: ""
-
+    connect_args["command_timeout"] = 30
 
 engine_kwargs = {
     "echo": False,
     "connect_args": connect_args,
     "pool_pre_ping": True,
-    "pool_recycle": 300,
+    "pool_recycle": 120,
     "future": True,
 }
 if "sqlite" not in settings.DATABASE_URL:
-    engine_kwargs["pool_size"] = 15
-    engine_kwargs["max_overflow"] = 25
+    engine_kwargs["pool_size"] = 10
+    engine_kwargs["max_overflow"] = 15
     engine_kwargs["pool_timeout"] = 30
 
 engine = create_async_engine(

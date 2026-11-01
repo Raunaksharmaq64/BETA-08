@@ -1300,11 +1300,7 @@ export default function UnifiedOpportunitiesPage() {
                         </Link>
                         {item.source_url ? (
                           <a
-                            href={
-                              item.source_url && !item.source_url.toLowerCase().includes("jooble.org")
-                                ? item.source_url
-                                : `https://www.google.com/search?q=${encodeURIComponent(`${item.organization_name} ${item.title} job apply`)}`
-                            }
+                            href={item.source_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shadow-sm"
