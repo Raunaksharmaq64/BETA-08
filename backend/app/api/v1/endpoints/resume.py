@@ -403,6 +403,7 @@ async def get_ats_analysis(
 
 
 @router.get("/{resume_id}/quality", response_model=ResumeQualityReportResponse)
+@router.get("/{resume_id}/quality-report", response_model=ResumeQualityReportResponse)
 async def get_resume_quality_report(
     resume_id: str,
     version_id: Optional[str] = Query(None),
@@ -523,10 +524,13 @@ async def list_resume_job_matches(
             version_id=r.resume_version_id,
             target_job_title=r.target_job_title,
             overall_match_score=r.overall_match_score,
+            match_band="STRONG" if (r.overall_match_score or 0) >= 80.0 else ("MODERATE" if (r.overall_match_score or 0) >= 60.0 else "NEEDS_IMPROVEMENT"),
             keyword_coverage_score=r.keyword_coverage_score,
             required_skills_match=r.required_skills_match_json,
             preferred_skills_match=r.preferred_skills_match_json,
             experience_level_match=r.experience_level_match_json,
+            hard_skills_match=r.required_skills_match_json,
+            experience_fit=r.experience_level_match_json,
             project_theme_alignments=r.project_theme_alignments_json,
             unverified_matches=r.unverified_matches_json,
             job_specific_suggestions=r.job_specific_suggestions_json,
@@ -750,10 +754,13 @@ async def get_resume_job_match(
         version_id=r.resume_version_id,
         target_job_title=r.target_job_title,
         overall_match_score=r.overall_match_score,
+        match_band="STRONG" if (r.overall_match_score or 0) >= 80.0 else ("MODERATE" if (r.overall_match_score or 0) >= 60.0 else "NEEDS_IMPROVEMENT"),
         keyword_coverage_score=r.keyword_coverage_score,
         required_skills_match=r.required_skills_match_json,
         preferred_skills_match=r.preferred_skills_match_json,
         experience_level_match=r.experience_level_match_json,
+        hard_skills_match=r.required_skills_match_json,
+        experience_fit=r.experience_level_match_json,
         project_theme_alignments=r.project_theme_alignments_json,
         unverified_matches=r.unverified_matches_json,
         job_specific_suggestions=r.job_specific_suggestions_json,

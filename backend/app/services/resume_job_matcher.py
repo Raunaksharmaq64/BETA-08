@@ -330,34 +330,47 @@ class ResumeJobMatcher:
                 "keywords": missing_pref[:3]
             })
 
+        match_band = "STRONG" if overall_score >= 80.0 else ("MODERATE" if overall_score >= 60.0 else "NEEDS_IMPROVEMENT")
+        req_skills_dict = {
+            "target_count": len(req_keywords),
+            "matched_count": len(matched_req),
+            "match_percentage": req_match_pct,
+            "score": req_match_pct,
+            "matched": matched_req,
+            "missing": missing_req,
+        }
+        pref_skills_dict = {
+            "target_count": len(pref_keywords),
+            "matched_count": len(matched_pref),
+            "match_percentage": pref_match_pct,
+            "score": pref_match_pct,
+            "matched": matched_pref,
+            "missing": missing_pref,
+        }
+        exp_fit_dict = {
+            "required_years": required_years or 0.0,
+            "detected_years": detected_years,
+            "candidate_years": detected_years,
+            "estimated_candidate_years": detected_years,
+            "assessment": exp_assessment,
+            "meets_requirement": exp_score >= 70.0,
+            "explanation": f"{exp_assessment.replace('_', ' ').capitalize()} ({detected_years} yrs detected vs {required_years or 'unspecified'} required)",
+            "score": exp_score,
+        }
+
         return ResumeJobMatchResponse(
             match_id=match_id,
             resume_id=resume_id,
             version_id=version_id,
             target_job_title=target_job_title,
             overall_match_score=overall_score,
+            match_band=match_band,
             keyword_coverage_score=coverage_score,
-            required_skills_match={
-                "target_count": len(req_keywords),
-                "matched_count": len(matched_req),
-                "match_percentage": req_match_pct,
-                "matched": matched_req,
-                "missing": missing_req,
-            },
-            preferred_skills_match={
-                "target_count": len(pref_keywords),
-                "matched_count": len(matched_pref),
-                "match_percentage": pref_match_pct,
-                "matched": matched_pref,
-                "missing": missing_pref,
-            },
-            experience_level_match={
-                "required_years": required_years,
-                "detected_years": detected_years,
-                "estimated_candidate_years": detected_years,
-                "assessment": exp_assessment,
-                "score": exp_score,
-            },
+            required_skills_match=req_skills_dict,
+            preferred_skills_match=pref_skills_dict,
+            experience_level_match=exp_fit_dict,
+            hard_skills_match=req_skills_dict,
+            experience_fit=exp_fit_dict,
             project_theme_alignments=theme_alignments,
             unverified_matches=unverified,
             job_specific_suggestions=suggestions

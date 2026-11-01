@@ -325,15 +325,37 @@ class SearchService:
 
         # 2. Role / Title
         if filters.role:
-            query = query.where(func.lower(CanonicalOpportunityRecord.title).ilike(f"%{filters.role.strip().lower()}%"))
+            r_raw = filters.role.strip().lower()
+            r_tokens = [w for w in re.split(r"[\s,\-/]+", r_raw) if len(w) > 2]
+            if len(r_tokens) > 1:
+                token_clauses = [func.lower(CanonicalOpportunityRecord.title).ilike(f"%{tk}%") for tk in r_tokens]
+                query = query.where(
+                    or_(
+                        func.lower(CanonicalOpportunityRecord.title).ilike(f"%{r_raw}%"),
+                        and_(*token_clauses),
+                    )
+                )
+            else:
+                query = query.where(func.lower(CanonicalOpportunityRecord.title).ilike(f"%{r_raw}%"))
 
         # 3. Company
         if filters.company:
             query = query.where(func.lower(CanonicalOpportunityRecord.company_name).ilike(f"%{filters.company.strip().lower()}%"))
 
-        # 4. Location
+        # 4. Location (Matches City, State, or Country)
         if filters.city:
-            query = query.where(func.lower(CanonicalOpportunityRecord.city).ilike(f"%{filters.city.strip().lower()}%"))
+            loc_term = f"%{filters.city.strip().lower()}%"
+            loc_clauses = [
+                func.lower(CanonicalOpportunityRecord.city).ilike(loc_term),
+                func.lower(CanonicalOpportunityRecord.state).ilike(loc_term),
+                func.lower(CanonicalOpportunityRecord.country).ilike(loc_term),
+            ]
+            if "remote" in filters.city.lower():
+                loc_clauses.extend([
+                    CanonicalOpportunityRecord.is_remote.is_(True),
+                    CanonicalOpportunityRecord.workplace_type == "REMOTE",
+                ])
+            query = query.where(or_(*loc_clauses))
         if filters.state:
             query = query.where(func.lower(CanonicalOpportunityRecord.state).ilike(f"%{filters.state.strip().lower()}%"))
         if filters.country:
@@ -344,7 +366,15 @@ class SearchService:
             query = query.where(CanonicalOpportunityRecord.is_remote == filters.is_remote)
         if filters.workplace_types:
             norm_types = [t.upper() for t in filters.workplace_types]
-            query = query.where(CanonicalOpportunityRecord.workplace_type.in_(norm_types))
+            if "REMOTE" in norm_types:
+                query = query.where(
+                    or_(
+                        CanonicalOpportunityRecord.workplace_type.in_(norm_types),
+                        CanonicalOpportunityRecord.is_remote.is_(True),
+                    )
+                )
+            else:
+                query = query.where(CanonicalOpportunityRecord.workplace_type.in_(norm_types))
 
         # 6. Employment Types & Fresher/Internship Detection
         if filters.is_internship is not None and filters.is_internship:

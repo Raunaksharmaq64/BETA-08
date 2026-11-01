@@ -59,6 +59,57 @@ interface QualityReport {
   methodology: string;
 }
 
+
+function normalizeMatchResult(raw: any): JobMatchResult {
+  if (!raw) return raw;
+  const reqMatch = raw.hard_skills_match || raw.required_skills_match || {};
+  const prefMatch = raw.preferred_skills_match || {};
+  const expMatch = raw.experience_fit || raw.experience_level_match || {};
+
+  const hardMatched = Array.isArray(reqMatch.matched) ? reqMatch.matched : [];
+  const hardMissing = Array.isArray(reqMatch.missing) ? reqMatch.missing : [];
+  const hardScore = Number(reqMatch.score ?? reqMatch.match_percentage ?? 0);
+
+  const prefMatched = Array.isArray(prefMatch.matched) ? prefMatch.matched : [];
+  const prefMissing = Array.isArray(prefMatch.missing) ? prefMatch.missing : [];
+  const prefScore = Number(prefMatch.score ?? prefMatch.match_percentage ?? 0);
+
+  const overallScore = Number(raw.overall_match_score ?? 0);
+  const band = raw.match_band || (overallScore >= 80 ? "STRONG" : overallScore >= 60 ? "MODERATE" : "NEEDS_IMPROVEMENT");
+
+  return {
+    match_id: raw.match_id || raw.id || "",
+    target_job_title: raw.target_job_title || "",
+    overall_match_score: overallScore,
+    match_band: band,
+    hard_skills_match: {
+      matched: hardMatched,
+      missing: hardMissing,
+      score: hardScore,
+    },
+    preferred_skills_match: {
+      matched: prefMatched,
+      missing: prefMissing,
+      score: prefScore,
+    },
+    experience_fit: {
+      required_years: Number(expMatch.required_years || 0),
+      candidate_years: Number(expMatch.candidate_years ?? expMatch.detected_years ?? 0),
+      meets_requirement: Boolean(expMatch.meets_requirement ?? ((expMatch.score ?? 0) >= 70)),
+      explanation: expMatch.explanation || expMatch.assessment || "Experience level evaluated",
+    },
+    semantic_match_score: Number(raw.semantic_match_score ?? (raw.keyword_coverage_score ? Math.round(raw.keyword_coverage_score * 100) : 0)),
+    job_specific_suggestions: Array.isArray(raw.job_specific_suggestions) ? raw.job_specific_suggestions : [],
+    evidence_citations: Array.isArray(raw.project_theme_alignments)
+      ? raw.project_theme_alignments.map((pt: any) => ({
+          domain: pt.jd_theme || "Project Evidence",
+          resume_section: "Experience/Projects",
+          excerpt: Array.isArray(pt.matched_bullets) ? pt.matched_bullets.join(" • ") : String(pt.matched_bullets || ""),
+        }))
+      : (Array.isArray(raw.evidence_citations) ? raw.evidence_citations : []),
+  };
+}
+
 export default function ResumeATSPage() {
   const params = useParams();
   const resumeId = params?.resumeId as string;
@@ -84,7 +135,7 @@ export default function ResumeATSPage() {
         setError(null);
         // Load quality report
         setLoadingQuality(true);
-        const qRes = await apiClient.get<QualityReport>(`/api/v1/resumes/${resumeId}/quality-report`);
+        const qRes = await apiClient.get<QualityReport>(`/api/v1/resumes/${resumeId}/quality`);
         if (qRes.success && qRes.data) {
           setQualityReport(qRes.data);
         }
@@ -113,9 +164,9 @@ export default function ResumeATSPage() {
     try {
       setMatchingLoading(true);
       setError(null);
-      const res = await apiClient.get<JobMatchResult>(`/api/v1/resumes/${resumeId}/job-matches/${matchId}`);
+      const res = await apiClient.get<any>(`/api/v1/resumes/${resumeId}/job-matches/${matchId}`);
       if (res.success && res.data) {
-        setMatchResult(res.data);
+        setMatchResult(normalizeMatchResult(res.data));
         setJobTitle(res.data.target_job_title);
       }
     } catch (err: any) {
@@ -135,12 +186,12 @@ export default function ResumeATSPage() {
     try {
       setMatchingLoading(true);
       setError(null);
-      const res = await apiClient.post<JobMatchResult>(`/api/v1/resumes/${resumeId}/job-match`, {
+      const res = await apiClient.post<any>(`/api/v1/resumes/${resumeId}/job-match`, {
         target_job_title: jobTitle,
         target_job_description: jobDescription
       });
       if (res.success && res.data) {
-        setMatchResult(res.data);
+        setMatchResult(normalizeMatchResult(res.data));
         // Refresh saved matches list
         const refreshed = await apiClient.get<SavedMatchSummary[]>(`/api/v1/resumes/${resumeId}/job-matches`);
         if (refreshed.success && refreshed.data) {
@@ -382,10 +433,10 @@ export default function ResumeATSPage() {
                 <div className="neo-card neo-box-hover p-6 rounded-2xl border border-white/90 text-center">
                   <p className="text-xs font-black uppercase tracking-wider text-slate-700">Hard Skills Coverage</p>
                   <p className="text-4xl font-black text-emerald-700 mt-2 font-mono">
-                    {Math.round(matchResult.hard_skills_match.score)}%
+                    {Math.round((matchResult.hard_skills_match?.score ?? 0))}%
                   </p>
                   <p className="text-xs text-slate-600 font-bold mt-2">
-                    {matchResult.hard_skills_match.matched.length} matched / {matchResult.hard_skills_match.missing.length} missing
+                    {(matchResult.hard_skills_match?.matched?.length ?? 0)} matched / {(matchResult.hard_skills_match?.missing?.length ?? 0)} missing
                   </p>
                 </div>
 
@@ -393,10 +444,10 @@ export default function ResumeATSPage() {
                 <div className="neo-card neo-box-hover p-6 rounded-2xl border border-white/90 text-center">
                   <p className="text-xs font-black uppercase tracking-wider text-slate-700">Preferred Skills</p>
                   <p className="text-4xl font-black text-blue-700 mt-2 font-mono">
-                    {Math.round(matchResult.preferred_skills_match.score)}%
+                    {Math.round((matchResult.preferred_skills_match?.score ?? 0))}%
                   </p>
                   <p className="text-xs text-slate-600 font-bold mt-2">
-                    {matchResult.preferred_skills_match.matched.length} matched / {matchResult.preferred_skills_match.missing.length} missing
+                    {(matchResult.preferred_skills_match?.matched?.length ?? 0)} matched / {(matchResult.preferred_skills_match?.missing?.length ?? 0)} missing
                   </p>
                 </div>
               </div>
@@ -411,13 +462,13 @@ export default function ResumeATSPage() {
 
                   <div>
                     <p className="text-xs font-bold text-emerald-800 mb-2">
-                      ✓ Documented in Resume ({matchResult.hard_skills_match.matched.length})
+                      ✓ Documented in Resume ({(matchResult.hard_skills_match?.matched?.length ?? 0)})
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {matchResult.hard_skills_match.matched.length === 0 ? (
+                      {(matchResult.hard_skills_match?.matched?.length ?? 0) === 0 ? (
                         <span className="text-xs text-slate-600 italic">None detected</span>
                       ) : (
-                        matchResult.hard_skills_match.matched.map((sk, idx) => (
+                        (matchResult.hard_skills_match?.matched || []).map((sk, idx) => (
                           <span key={idx} className="neo-pill px-3 py-1 rounded-xl bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-bold">
                             ✓ {sk}
                           </span>
@@ -428,13 +479,13 @@ export default function ResumeATSPage() {
 
                   <div>
                     <p className="text-xs font-bold text-rose-800 mb-2">
-                      ✕ Missing from Resume ({matchResult.hard_skills_match.missing.length})
+                      ✕ Missing from Resume ({(matchResult.hard_skills_match?.missing?.length ?? 0)})
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {matchResult.hard_skills_match.missing.length === 0 ? (
+                      {(matchResult.hard_skills_match?.missing?.length ?? 0) === 0 ? (
                         <span className="text-xs text-slate-600 italic">No missing requirements</span>
                       ) : (
-                        matchResult.hard_skills_match.missing.map((sk, idx) => (
+                        (matchResult.hard_skills_match?.missing || []).map((sk, idx) => (
                           <span key={idx} className="neo-inset px-3 py-1 rounded-xl text-rose-950 border border-rose-300 text-xs font-bold shadow-inner">
                             + {sk}
                           </span>
@@ -452,13 +503,13 @@ export default function ResumeATSPage() {
 
                   <div>
                     <p className="text-xs font-bold text-blue-800 mb-2">
-                      ✓ Bonus Qualifications Found ({matchResult.preferred_skills_match.matched.length})
+                      ✓ Bonus Qualifications Found ({(matchResult.preferred_skills_match?.matched?.length ?? 0)})
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {matchResult.preferred_skills_match.matched.length === 0 ? (
+                      {(matchResult.preferred_skills_match?.matched?.length ?? 0) === 0 ? (
                         <span className="text-xs text-slate-600 italic">None detected</span>
                       ) : (
-                        matchResult.preferred_skills_match.matched.map((sk, idx) => (
+                        (matchResult.preferred_skills_match?.matched || []).map((sk, idx) => (
                           <span key={idx} className="neo-pill px-3 py-1 rounded-xl bg-blue-100 text-blue-900 border border-blue-300 text-xs font-bold">
                             ✓ {sk}
                           </span>
@@ -469,13 +520,13 @@ export default function ResumeATSPage() {
 
                   <div>
                     <p className="text-xs font-bold text-slate-700 mb-2">
-                      Optional Additions ({matchResult.preferred_skills_match.missing.length})
+                      Optional Additions ({(matchResult.preferred_skills_match?.missing?.length ?? 0)})
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {matchResult.preferred_skills_match.missing.length === 0 ? (
+                      {(matchResult.preferred_skills_match?.missing?.length ?? 0) === 0 ? (
                         <span className="text-xs text-slate-600 italic">All preferred skills present</span>
                       ) : (
-                        matchResult.preferred_skills_match.missing.map((sk, idx) => (
+                        (matchResult.preferred_skills_match?.missing || []).map((sk, idx) => (
                           <span key={idx} className="neo-inset px-3 py-1 rounded-xl text-slate-800 border border-slate-300 text-xs font-bold shadow-inner">
                             {sk}
                           </span>
@@ -631,7 +682,7 @@ export default function ResumeATSPage() {
                     <span>✓</span> Key Structural Strengths
                   </h3>
                   <ul className="space-y-2 text-xs text-slate-700 font-semibold">
-                    {qualityReport.strengths.map((str, idx) => (
+                    {(qualityReport.strengths || []).map((str, idx) => (
                       <li key={idx} className="flex items-start">
                         <span className="text-emerald-600 mr-2 font-bold">•</span>
                         <span>{str}</span>
@@ -645,7 +696,7 @@ export default function ResumeATSPage() {
                     <span>!</span> Areas for Improvement
                   </h3>
                   <ul className="space-y-2 text-xs text-slate-700 font-semibold">
-                    {qualityReport.weaknesses.map((wk, idx) => (
+                    {(qualityReport.weaknesses || []).map((wk, idx) => (
                       <li key={idx} className="flex items-start">
                         <span className="text-amber-600 mr-2 font-bold">•</span>
                         <span>{wk}</span>
@@ -662,7 +713,7 @@ export default function ResumeATSPage() {
                     Recommended Action Priorities
                   </h3>
                   <ol className="list-decimal list-inside space-y-2 text-xs text-slate-700 font-semibold">
-                    {qualityReport.improvement_priorities.map((item, idx) => (
+                    {(qualityReport.improvement_priorities || []).map((item, idx) => (
                       <li key={idx} className="leading-relaxed">
                         <span className="font-bold text-slate-900">{item}</span>
                       </li>

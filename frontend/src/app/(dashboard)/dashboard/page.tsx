@@ -207,8 +207,9 @@ export default function UnifiedDashboardPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-700 font-bold">
 
             <span className="font-black tracking-wide uppercase text-slate-900">Live Opportunities Overview</span>
-            <span className="neo-inset px-3 py-1 rounded-xl text-slate-800 font-mono text-[11px] sm:text-xs font-bold">
-              Reconciled: {metrics.total_opportunities} = {metrics.total_jobs} (Jobs) + {metrics.total_freelance} (Freelance) + {metrics.total_startups} (Startups)
+            <span className="neo-pill px-3 py-1 rounded-xl text-emerald-800 font-bold text-xs flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Live Synchronized Pipeline
             </span>
           </div>
 
@@ -290,7 +291,7 @@ export default function UnifiedDashboardPage() {
               href="/opportunities?type=STARTUP_PAIN_POINT"
               className="neo-card neo-box-hover p-5 rounded-2xl border border-white/90 group cursor-pointer"
             >
-              <div className="text-xs font-medium text-rose-700 uppercase tracking-wider font-extrabold">High-Urgency Problems (≥8/10)</div>
+              <div className="text-xs font-medium text-rose-700 uppercase tracking-wider font-extrabold">High-Urgency Problems</div>
               <div className="mt-2 text-3xl font-black text-slate-900 group-hover:text-rose-600 transition-colors font-black">
                 {metrics.high_urgency_signals}
               </div>

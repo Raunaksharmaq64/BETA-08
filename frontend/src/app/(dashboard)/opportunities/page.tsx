@@ -532,7 +532,7 @@ export default function UnifiedOpportunitiesPage() {
             icon: "💼",
             subBadge: counts?.jobs_breakdown
               ? `${counts.jobs_breakdown.full_time} Full-Time · ${counts.jobs_breakdown.internship} Intern · ${counts.jobs_breakdown.contract} Contract`
-              : "401 Full-Time · 65 Intern · 13 Contract",
+              : "Full-Time · Internships · Contract Roles",
           },
           {
             id: "FREELANCE",
@@ -600,18 +600,18 @@ export default function UnifiedOpportunitiesPage() {
                 <span>🌐</span> Active View: All Opportunities ({counts?.total || opportunities.length} Signals)
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Reconciled real-time opportunities: 479 Direct Company Jobs, 74 Freelance Leads, and 131 Startup Pain Points.
+                Reconciled real-time opportunities across verified company job portals, freelance projects, and startup intelligence.
               </p>
             </div>
             <div className="flex items-center gap-1.5 flex-wrap text-xs">
               <span className="px-2.5 py-1 rounded-lg bg-blue-950/70 border border-blue-800 text-blue-300 font-mono">
-                💼 {counts?.jobs || 479} Jobs
+                💼 {counts?.jobs ?? opportunities.length} Jobs
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-emerald-950/70 border border-emerald-800 text-emerald-300 font-mono">
-                ⚡ {counts?.freelance || 74} Freelance
+                ⚡ {counts?.freelance ?? opportunities.length} Freelance
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-purple-950/70 border border-purple-800 text-purple-300 font-mono">
-                💡 {counts?.startup_pain_points || 131} Startups
+                💡 {counts?.startup_pain_points ?? opportunities.length} Startups
               </span>
             </div>
           </div>
@@ -622,10 +622,10 @@ export default function UnifiedOpportunitiesPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
               <div>
                 <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                  <span>💼</span> Active View: Direct Job Openings ({counts?.jobs || 479} Positions)
+                  <span>💼</span> Active View: Direct Job Openings ({counts?.jobs ?? opportunities.length} Positions)
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Verified listings from company career portals (401 Full-Time, 65 Internships, 13 Contract). Select an employment arrangement below:
+                  Verified listings from company career portals. Select an employment arrangement below:
                 </p>
               </div>
             </div>
@@ -634,10 +634,10 @@ export default function UnifiedOpportunitiesPage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-slate-400 font-medium mr-1">Employment Type:</span>
               {[
-                { id: "ALL", label: "⚡ All Jobs", count: counts?.jobs || 479 },
-                { id: "FULL_TIME", label: "💼 Full-Time Only", count: counts?.jobs_breakdown?.full_time || 401 },
-                { id: "INTERNSHIP", label: "🎓 Internships", count: counts?.jobs_breakdown?.internship || 65 },
-                { id: "CONTRACT", label: "📄 Contract Roles", count: counts?.jobs_breakdown?.contract || 13 },
+                { id: "ALL", label: "⚡ All Jobs", count: counts?.jobs ?? opportunities.length },
+                { id: "FULL_TIME", label: "💼 Full-Time Only", count: counts?.jobs_breakdown?.full_time ?? 0 },
+                { id: "INTERNSHIP", label: "🎓 Internships", count: counts?.jobs_breakdown?.internship ?? 0 },
+                { id: "CONTRACT", label: "📄 Contract Roles", count: counts?.jobs_breakdown?.contract ?? 0 },
               ].map((et) => {
                 const isSelected = selectedEmploymentType === et.id;
                 return (
@@ -671,7 +671,7 @@ export default function UnifiedOpportunitiesPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
               <div>
                 <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                  <span>🚀</span> Active View: High-Value Freelance Leads ({counts?.freelance || 74} Discovered Leads)
+                  <span>🚀</span> Active View: High-Value Freelance Leads ({counts?.freelance ?? opportunities.length} Discovered Leads)
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5">
                   Direct client contracts with verified contact channels, business phone numbers, and web infrastructure audits:
@@ -715,7 +715,7 @@ export default function UnifiedOpportunitiesPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
               <div>
                 <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                  <span>💡</span> Active View: Startup Pain Points & Bottlenecks ({counts?.startup_pain_points || 131} Signals)
+                  <span>💡</span> Active View: Startup Pain Points & Bottlenecks ({counts?.startup_pain_points ?? opportunities.length} Signals)
                 </h2>
                 <p className="text-xs text-slate-400 mt-0.5">
                   Verified startup friction points synthesized with Gemini AI root cause analysis, actionable solve plans, and direct founder outreach:
@@ -727,7 +727,7 @@ export default function UnifiedOpportunitiesPage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-slate-400 font-medium mr-1">Urgency Score:</span>
               {[
-                { score: 0, label: "All Pain Points (131)" },
+                { score: 0, label: "All Pain Points" },
                 { score: 8, label: "🔥 Critical Urgency (Score ≥ 8)" },
                 { score: 7, label: "⚡ High Urgency (Score ≥ 7)" },
                 { score: 6, label: "Moderate Friction (Score ≥ 6)" },
@@ -895,7 +895,7 @@ export default function UnifiedOpportunitiesPage() {
             return (
               <div
                 key={`${item.opportunity_type}-${item.opportunity_id}`}
-                className="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 flex flex-col justify-between transition-all space-y-4"
+                className="p-5 rounded-2xl neo-card neo-box-hover flex flex-col justify-between transition-all space-y-4"
               >
                 <div className="space-y-3">
                   {/* Top Badges & Domain Pill */}
@@ -923,7 +923,7 @@ export default function UnifiedOpportunitiesPage() {
 
                   {/* Title & Organization */}
                   <div>
-                    <h3 className="text-base font-bold text-white line-clamp-2 hover:text-indigo-300 transition-colors">
+                    <h3 className="text-base font-black text-slate-900 line-clamp-2 hover:text-indigo-600 transition-colors">
                       {item.title}
                     </h3>
                     <div className="text-xs font-medium text-indigo-400 mt-1">
@@ -939,13 +939,13 @@ export default function UnifiedOpportunitiesPage() {
 
                   {/* Company Requirements & Skills Alignment */}
                   {(requiredSkills.length > 0 || matchedSkills.length > 0) && (
-                    <div className="p-3 rounded-lg bg-slate-950/70 border border-slate-800 space-y-2">
+                    <div className="p-3.5 rounded-xl neo-inset space-y-2.5">
                       {/* Company Required Skills */}
                       {requiredSkills.length > 0 && (
                         <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                             <span>Company Required Skills</span>
-                            <span className="text-[10px] text-slate-500 font-normal">
+                            <span className="text-[10px] text-slate-600 font-bold">
                               {requiredSkills.length} required
                             </span>
                           </div>
@@ -957,13 +957,13 @@ export default function UnifiedOpportunitiesPage() {
                               return (
                                 <span
                                   key={sIdx}
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border transition-colors ${isMatched
-                                    ? "bg-emerald-950/70 border-emerald-700/60 text-emerald-300"
-                                    : "bg-slate-800/80 border-slate-700 text-slate-300"
+                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${isMatched
+                                    ? "bg-emerald-100 border-emerald-300 text-emerald-900 shadow-sm"
+                                    : "neo-pill text-slate-800 border-slate-200"
                                     }`}
                                   title={isMatched ? "Matched in your resume" : "Company required skill"}
                                 >
-                                  {isMatched && <span className="text-emerald-400 font-bold">✓</span>}
+                                  {isMatched && <span className="text-emerald-700 font-black">✓</span>}
                                   <span>{skill}</span>
                                 </span>
                               );
@@ -973,39 +973,39 @@ export default function UnifiedOpportunitiesPage() {
                       )}
 
                       {/* Matched & Missing Skills Summary */}
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 border-t border-slate-800/80 text-xs">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2 border-t border-slate-200/80 text-xs">
                         {matchedSkills.length > 0 && (
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11px] font-semibold text-emerald-400">Matched in Resume:</span>
+                            <span className="text-[11px] font-bold text-emerald-800">Matched in Resume:</span>
                             <div className="flex items-center gap-1 flex-wrap">
                               {matchedSkills.slice(0, 4).map((ms, idx) => (
                                 <span
                                   key={idx}
-                                  className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 font-mono"
+                                  className="text-[10px] px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono font-bold"
                                 >
                                   ✓ {ms}
                                 </span>
                               ))}
                               {matchedSkills.length > 4 && (
-                                <span className="text-[10px] text-slate-400 font-mono">+{matchedSkills.length - 4} more</span>
+                                <span className="text-[10px] text-slate-600 font-mono font-bold">+{matchedSkills.length - 4} more</span>
                               )}
                             </div>
                           </div>
                         )}
                         {missingSkills.length > 0 && (
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11px] font-semibold text-amber-400">Add to Resume:</span>
+                            <span className="text-[11px] font-bold text-amber-800">Add to Resume:</span>
                             <div className="flex items-center gap-1 flex-wrap">
                               {missingSkills.slice(0, 3).map((mis, idx) => (
                                 <span
                                   key={idx}
-                                  className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-300 border border-amber-800/50 font-mono"
+                                  className="text-[10px] px-2 py-0.5 rounded-lg bg-amber-100 text-amber-900 border border-amber-300 font-mono font-bold"
                                 >
                                   + {mis}
                                 </span>
                               ))}
                               {missingSkills.length > 3 && (
-                                <span className="text-[10px] text-slate-400 font-mono">+{missingSkills.length - 3} more</span>
+                                <span className="text-[10px] text-slate-600 font-mono font-bold">+{missingSkills.length - 3} more</span>
                               )}
                             </div>
                           </div>
@@ -1016,9 +1016,9 @@ export default function UnifiedOpportunitiesPage() {
 
                   {/* Dynamic Candidate Fit & "Why You Fit" Section */}
                   {fit && (
-                    <div className="p-3 rounded-lg bg-slate-950/80 border border-indigo-950 space-y-1.5">
+                    <div className="p-3.5 rounded-xl neo-inset space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                        <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
                           <span
                             className={`w-2 h-2 rounded-full ${fit.fit_percentage >= 80
                               ? "bg-emerald-400"
@@ -1029,12 +1029,12 @@ export default function UnifiedOpportunitiesPage() {
                           />
                           Fit: {fit.fit_percentage}% ({fit.fit_rating})
                         </span>
-                        <span className="text-[10px] text-indigo-300 font-mono">
+                        <span className="text-[10px] text-indigo-700 font-mono font-bold">
                           Verified Synergy
                         </span>
                       </div>
 
-                      <p className="text-[11px] text-slate-300 leading-snug">
+                      <p className="text-xs text-slate-700 leading-relaxed font-medium">
                         {fit.how_you_fit}
                       </p>
 
@@ -1054,7 +1054,7 @@ export default function UnifiedOpportunitiesPage() {
                               <span>📝</span>
                               <span>Tailor Resume for this Role</span>
                               {fit.resume_action_plan?.ats_boost_percentage ? (
-                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-900/60 text-indigo-300 border border-indigo-700 font-mono">
+                                <span className="text-[10px] px-2 py-0.5 rounded-lg bg-indigo-100 text-indigo-900 border border-indigo-300 font-mono font-bold">
                                   +{fit.resume_action_plan.ats_boost_percentage}% ATS Boost
                                 </span>
                               ) : null}
@@ -1266,10 +1266,7 @@ export default function UnifiedOpportunitiesPage() {
                     type="button"
                     onClick={() => handleOpenSaveModal(item)}
                     disabled={savingId === item.opportunity_id}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${item.is_saved
-                      ? "bg-amber-950/60 border-amber-600/70 text-amber-300 hover:bg-amber-900/60 shadow-sm"
-                      : "bg-slate-800/90 hover:bg-slate-750 text-slate-200 border-slate-700 hover:border-slate-600"
-                      }`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${item.is_saved ? "bg-amber-100 border-amber-300 text-amber-900 shadow-sm" : "neo-pill text-slate-800 border-slate-200 hover:text-indigo-600"}`}
                     title={item.is_saved ? "Bookmarked in folder" : "Bookmark this opportunity"}
                   >
                     <svg

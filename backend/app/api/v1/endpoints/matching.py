@@ -69,7 +69,7 @@ async def search_jobs(
     skills: Optional[List[str]] = Query(None, description="Specific skills filter"),
     min_salary: Optional[float] = Query(None, description="Minimum compensation threshold"),
     max_salary: Optional[float] = Query(None, description="Maximum compensation filter"),
-    currency: Optional[str] = Query("USD", description="Salary ISO currency code"),
+    currency: Optional[str] = Query(None, description="Salary ISO currency code"),
     sources: Optional[List[str]] = Query(None, description="Specific source keys"),
     verification_statuses: Optional[List[str]] = Query(None, description="Verification status filters"),
     freshness_states: Optional[List[str]] = Query(None, description="Freshness state filters"),

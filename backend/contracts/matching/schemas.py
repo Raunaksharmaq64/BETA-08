@@ -181,7 +181,7 @@ class JobSearchFilters(BaseModel):
     skills: Optional[List[str]] = None
     min_salary: Optional[float] = None
     max_salary: Optional[float] = None
-    currency: Optional[str] = "USD"
+    currency: Optional[str] = None
     sources: Optional[List[str]] = None
     verification_statuses: Optional[List[str]] = None
     freshness_states: Optional[List[str]] = None

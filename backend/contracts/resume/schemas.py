@@ -228,6 +228,7 @@ class ResumeJobMatchResponse(BaseModel):
     version_id: str
     target_job_title: str
     overall_match_score: float = Field(ge=0.0, le=100.0)
+    match_band: Optional[str] = Field(default="MODERATE", description="STRONG, MODERATE, NEEDS_IMPROVEMENT")
     keyword_coverage_score: float = Field(ge=0.0, le=1.0)
     required_skills_match: Dict[str, Any] = Field(
         description="Matched and missing hard-requirement skills"
@@ -237,6 +238,14 @@ class ResumeJobMatchResponse(BaseModel):
     )
     experience_level_match: Dict[str, Any] = Field(
         description="Detected experience years vs required experience"
+    )
+    hard_skills_match: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Backward-compatible alias for required_skills_match"
+    )
+    experience_fit: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Backward-compatible alias for experience_level_match"
     )
     project_theme_alignments: List[Dict[str, Any]] = Field(
         default_factory=list,

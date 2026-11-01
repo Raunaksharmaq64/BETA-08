@@ -343,13 +343,13 @@ export default function UnifiedSavedOpportunitiesPage() {
 
                   {/* Company Requirements & Skills Alignment */}
                   {(requiredSkills.length > 0 || matchedSkills.length > 0) && (
-                    <div className="p-3 rounded-lg bg-slate-950/70 border border-slate-800 space-y-2">
+                    <div className="p-3.5 rounded-xl neo-inset space-y-2.5">
                       {/* Company Required Skills */}
                       {requiredSkills.length > 0 && (
                         <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                             <span>Company Required Skills</span>
-                            <span className="text-[10px] text-slate-500 font-normal">
+                            <span className="text-[10px] text-slate-600 font-bold">
                               {requiredSkills.length} required
                             </span>
                           </div>
@@ -361,13 +361,13 @@ export default function UnifiedSavedOpportunitiesPage() {
                               return (
                                 <span
                                   key={sIdx}
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border transition-colors ${isMatched
-                                      ? "bg-emerald-950/70 border-emerald-700/60 text-emerald-300"
-                                      : "bg-slate-800/80 border-slate-700 text-slate-300"
+                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${isMatched
+                                      ? "bg-emerald-100 border-emerald-300 text-emerald-900 shadow-sm"
+                                      : "neo-pill text-slate-800 border-slate-200"
                                     }`}
                                   title={isMatched ? "Matched in your resume" : "Company required skill"}
                                 >
-                                  {isMatched && <span className="text-emerald-400 font-bold">✓</span>}
+                                  {isMatched && <span className="text-emerald-700 font-black">✓</span>}
                                   <span>{skill}</span>
                                 </span>
                               );
@@ -377,39 +377,39 @@ export default function UnifiedSavedOpportunitiesPage() {
                       )}
 
                       {/* Matched & Missing Skills Summary */}
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 border-t border-slate-800/80 text-xs">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2 border-t border-slate-200/80 text-xs">
                         {matchedSkills.length > 0 && (
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11px] font-semibold text-emerald-400">Matched in Resume:</span>
+                            <span className="text-[11px] font-bold text-emerald-800">Matched in Resume:</span>
                             <div className="flex items-center gap-1 flex-wrap">
                               {matchedSkills.slice(0, 4).map((ms, idx) => (
                                 <span
                                   key={idx}
-                                  className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 font-mono"
+                                  className="text-[10px] px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono font-bold"
                                 >
                                   ✓ {ms}
                                 </span>
                               ))}
                               {matchedSkills.length > 4 && (
-                                <span className="text-[10px] text-slate-400 font-mono">+{matchedSkills.length - 4} more</span>
+                                <span className="text-[10px] text-slate-600 font-mono font-bold">+{matchedSkills.length - 4} more</span>
                               )}
                             </div>
                           </div>
                         )}
                         {missingSkills.length > 0 && (
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11px] font-semibold text-amber-400">Missing from Resume:</span>
+                            <span className="text-[11px] font-bold text-amber-800">Missing from Resume:</span>
                             <div className="flex items-center gap-1 flex-wrap">
                               {missingSkills.slice(0, 3).map((mis, idx) => (
                                 <span
                                   key={idx}
-                                  className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-300 border border-amber-800/50 font-mono"
+                                  className="text-[10px] px-2 py-0.5 rounded-lg bg-amber-100 text-amber-900 border border-amber-300 font-mono font-bold"
                                 >
                                   + {mis}
                                 </span>
                               ))}
                               {missingSkills.length > 3 && (
-                                <span className="text-[10px] text-slate-400 font-mono">+{missingSkills.length - 3} more</span>
+                                <span className="text-[10px] text-slate-600 font-mono font-bold">+{missingSkills.length - 3} more</span>
                               )}
                             </div>
                           </div>
@@ -423,9 +423,9 @@ export default function UnifiedSavedOpportunitiesPage() {
                     <div className="p-2.5 rounded-lg bg-slate-950/80 border border-indigo-950 text-xs space-y-1">
                       <div className="flex items-center justify-between text-[11px] font-bold text-white">
                         <span>Synergy: {fit.fit_percentage}% ({fit.fit_rating})</span>
-                        <span className="text-[10px] text-indigo-300 font-mono">Calibrated</span>
+                        <span className="text-[10px] text-indigo-700 font-mono font-bold">Calibrated</span>
                       </div>
-                      <p className="text-[11px] text-slate-300 leading-snug">
+                      <p className="text-xs text-slate-700 leading-relaxed font-medium">
                         {fit.how_you_fit}
                       </p>
                     </div>
