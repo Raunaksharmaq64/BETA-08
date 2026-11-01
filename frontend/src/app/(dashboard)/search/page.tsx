@@ -677,25 +677,25 @@ function SearchContent() {
                 </span>
               )}
               {role && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-medium">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-slate-900 font-bold border border-white/90 shadow-sm">
                   <span>Role: {role}</span>
                   <button type="button" onClick={() => setRole("")} className="hover:text-white ml-0.5">✕</button>
                 </span>
               )}
               {company && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-medium">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-slate-900 font-bold border border-white/90 shadow-sm">
                   <span>Company: {company}</span>
                   <button type="button" onClick={() => setCompany("")} className="hover:text-white ml-0.5">✕</button>
                 </span>
               )}
               {city && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-medium">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-slate-900 font-bold border border-white/90 shadow-sm">
                   <span>Location: {city}</span>
                   <button type="button" onClick={() => setCity("")} className="hover:text-white ml-0.5">✕</button>
                 </span>
               )}
               {verificationFilter && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-medium">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-slate-900 font-bold border border-white/90 shadow-sm">
                   <span>Status: {verificationFilter === "OPEN_CONFIRMED" ? "Open Confirmed" : verificationFilter}</span>
                   <button type="button" onClick={() => setVerificationFilter("")} className="hover:text-white ml-0.5">✕</button>
                 </span>
@@ -778,7 +778,7 @@ function SearchContent() {
                             Remote
                           </span>
                         )}
-                        <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                        <span className="px-2.5 py-0.5 text-xs font-bold rounded-full neo-pill text-slate-900 border border-white/90">
                           {job.workplace_type}
                         </span>
                       </div>
@@ -974,7 +974,7 @@ function SearchContent() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <Link
                         href={`/jobs/${job.id}`}
-                        className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 hover:border-indigo-500/50 transition-colors"
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold neo-pill text-indigo-900 hover:text-indigo-600 border border-indigo-200 transition-all"
                       >
                         View Details →
                       </Link>
@@ -999,7 +999,7 @@ function SearchContent() {
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="px-4 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs font-medium text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl neo-pill text-xs font-bold text-slate-900 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
                 ← Previous
               </button>
@@ -1009,7 +1009,7 @@ function SearchContent() {
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="px-4 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs font-medium text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl neo-pill text-xs font-bold text-slate-900 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
                 Next →
               </button>

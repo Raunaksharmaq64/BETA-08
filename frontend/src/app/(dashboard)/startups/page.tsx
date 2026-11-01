@@ -210,7 +210,7 @@ export default function StartupIntelligenceDashboardPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/startups/saved"
-            className="px-4 py-2 text-sm font-semibold text-slate-200 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 shadow-sm transition-colors"
+            className="neo-pill px-4 py-2 text-xs sm:text-sm font-bold text-slate-900 hover:text-indigo-600 rounded-xl transition-all shadow-sm"
           >
             Saved Bookmarks ★
           </Link>
@@ -359,7 +359,7 @@ export default function StartupIntelligenceDashboardPage() {
             </select>
             <button
               onClick={() => fetchOpportunities(false)}
-              className="px-4 py-2 text-sm font-semibold text-slate-200 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 transition-colors"
+              className="neo-pill px-4 py-2 text-xs sm:text-sm font-bold text-slate-900 hover:text-indigo-600 rounded-xl transition-all shadow-sm"
             >
               Filter
             </button>
@@ -533,7 +533,7 @@ export default function StartupIntelligenceDashboardPage() {
                 <button
                   onClick={() => handleSave(opp.id)}
                   title="Bookmark opportunity"
-                  className="px-3 py-2 text-xs text-slate-300 bg-slate-800 border border-slate-700 rounded-lg hover:bg-slate-700 transition-colors"
+                  className="neo-pill px-3.5 py-1.5 text-xs font-bold text-slate-900 hover:text-indigo-600 rounded-xl transition-all"
                 >
                   ★ Save
                 </button>

@@ -127,7 +127,7 @@ export default function UnifiedSavedOpportunitiesPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard"
-            className="inline-flex items-center px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-semibold text-slate-200 border border-slate-700 transition-colors"
+            className="inline-flex items-center px-4 py-2 rounded-xl neo-pill text-xs sm:text-sm font-bold text-slate-900 hover:text-indigo-600 transition-all shadow-sm"
           >
             ← Back to Dashboard
           </Link>
@@ -506,7 +506,7 @@ export default function UnifiedSavedOpportunitiesPage() {
                       <>
                         <Link
                           href={`/jobs/${item.opportunity_id}`}
-                          className="text-xs font-semibold px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 transition-colors"
+                          className="text-xs font-bold px-3 py-1.5 rounded-xl neo-pill text-indigo-900 hover:text-indigo-600 border border-indigo-200 transition-all"
                         >
                           View Details →
                         </Link>
@@ -536,7 +536,7 @@ export default function UnifiedSavedOpportunitiesPage() {
                             href={item.source_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs font-semibold px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                            className="text-xs font-bold px-3 py-1.5 rounded-xl neo-pill text-slate-900 hover:text-indigo-600 transition-all"
                           >
                             Client Website ↗
                           </a>
@@ -557,7 +557,7 @@ export default function UnifiedSavedOpportunitiesPage() {
                             href={item.source_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs font-semibold px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                            className="text-xs font-bold px-3 py-1.5 rounded-xl neo-pill text-slate-900 hover:text-indigo-600 transition-all"
                           >
                             Product Site ↗
                           </a>

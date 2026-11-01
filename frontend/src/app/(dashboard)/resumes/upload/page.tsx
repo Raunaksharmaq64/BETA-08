@@ -92,33 +92,33 @@ export default function ResumeUploadPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <Link href="/resumes" className="text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center mb-2">
+    <div className="max-w-3xl mx-auto px-4 py-10 sm:px-6 lg:px-8 space-y-6 animate-fade-in">
+      <div className="border-b border-slate-300/80 pb-5">
+        <Link href="/resumes" className="text-xs font-bold text-indigo-700 hover:text-indigo-900 flex items-center gap-1 mb-2 transition-colors">
           ← Back to Resumes
         </Link>
-        <h1 className="text-2xl font-bold text-slate-100">Upload Resume Document</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Upload Resume Document</h1>
+        <p className="mt-1 text-sm text-slate-600 font-semibold">
           Upload your resume in PDF or DOCX format to initiate privacy-preserving entity extraction and evidence citation.
         </p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 rounded-lg bg-rose-900/40 border border-rose-700 text-rose-300 text-sm">
+        <div className="p-4 rounded-2xl neo-inset border border-rose-300 text-rose-950 text-sm font-bold">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-slate-900/60 border border-slate-800 rounded-xl p-8 shadow-sm">
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-slate-300 mb-2">Resume Title / Version Label</label>
+      <form onSubmit={handleSubmit} className="neo-box p-8 rounded-2xl border border-white/95 space-y-6 shadow-md">
+        <div>
+          <label className="block text-xs font-black text-slate-900 uppercase tracking-wider mb-2">Resume Title / Version Label</label>
           <input
             type="text"
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-            placeholder="e.g. Senior Backend Developer Resume"
+            className="w-full px-4 py-3 rounded-xl neo-inset text-slate-900 font-semibold focus:outline-none text-sm border border-slate-300/80"
+            placeholder="e.g. Senior Full Stack Developer Resume"
           />
         </div>
 
@@ -128,12 +128,12 @@ export default function ResumeUploadPage() {
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-xl p-10 text-center transition-colors cursor-pointer ${
+          className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all cursor-pointer ${
             dragActive
-              ? "border-indigo-500 bg-indigo-950/20"
+              ? "border-indigo-600 neo-inset"
               : file
-              ? "border-emerald-600/70 bg-emerald-950/10"
-              : "border-slate-700 hover:border-slate-600 bg-slate-800/40"
+              ? "border-emerald-500 neo-inset"
+              : "border-slate-300 hover:border-indigo-500 neo-card neo-box-hover"
           }`}
           onClick={() => document.getElementById("fileInput")?.click()}
         >
@@ -145,56 +145,54 @@ export default function ResumeUploadPage() {
             className="hidden"
           />
 
-          <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-400">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>
+          <div className="w-14 h-14 neo-pill rounded-2xl flex items-center justify-center mx-auto mb-3 text-indigo-700 text-2xl shadow-sm">
+            📄
           </div>
 
           {file ? (
-            <div>
-              <p className="text-sm font-semibold text-emerald-400">{file.name}</p>
-              <p className="text-xs text-slate-400 mt-1">{(file.size / (1024 * 1024)).toFixed(2)} MB • Ready to upload</p>
-              <span className="mt-3 inline-block text-xs text-indigo-400 hover:underline">Click to choose different file</span>
+            <div className="space-y-1">
+              <p className="text-sm font-black text-emerald-800">{file.name}</p>
+              <p className="text-xs text-slate-600 font-bold">{(file.size / (1024 * 1024)).toFixed(2)} MB • Ready to upload</p>
+              <span className="mt-2 inline-block text-xs text-indigo-700 font-bold hover:underline">Click to change file</span>
             </div>
           ) : (
-            <div>
-              <p className="text-sm font-medium text-slate-300">
-                Drag and drop your resume here, or <span className="text-indigo-400 font-semibold">browse files</span>
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-slate-900">
+                Drag and drop your resume here, or <span className="text-indigo-700 font-black">browse files</span>
               </p>
-              <p className="text-xs text-slate-400 mt-1">Supports PDF (.pdf) or Word (.docx) up to 10 MB</p>
+              <p className="text-xs text-slate-600 font-semibold">Supports PDF (.pdf) or Word (.docx) up to 10 MB</p>
             </div>
           )}
         </div>
 
         {/* Security Notice */}
-        <div className="mt-6 p-4 rounded-lg bg-slate-800/60 border border-slate-700/60 text-xs text-slate-400">
-          <p className="font-semibold text-slate-300 mb-1">Privacy & Evidence Notice:</p>
+        <div className="p-4 rounded-xl neo-inset border border-slate-300/70 text-xs text-slate-700 font-medium">
+          <p className="font-black text-slate-900 mb-1">Privacy &amp; Evidence Notice:</p>
           <p>
             Files are stored in private isolated storage and are never publicly accessible. Information extracted from
             this document will remain pending candidate review and will not overwrite your profile facts without explicit confirmation.
           </p>
         </div>
 
-        <div className="mt-8 flex justify-end space-x-3">
+        <div className="flex justify-end items-center gap-3 pt-2">
           <Link
             href="/resumes"
-            className="px-4 py-2 border border-slate-700 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 transition-colors"
+            className="neo-pill px-4 py-2.5 rounded-xl text-xs font-bold text-slate-800 hover:text-indigo-600 transition-all"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={!file || uploading}
-            className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center"
+            className="neo-btn-primary px-6 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center disabled:opacity-50"
           >
             {uploading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Uploading & Validating...
+                Uploading &amp; Extracting Skills...
               </>
             ) : (
-              "Upload and Continue"
+              "Upload and Extract Skills →"
             )}
           </button>
         </div>
@@ -202,4 +200,3 @@ export default function ResumeUploadPage() {
     </div>
   );
 }
-

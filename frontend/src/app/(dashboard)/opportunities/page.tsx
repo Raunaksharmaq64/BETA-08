@@ -458,7 +458,7 @@ export default function UnifiedOpportunitiesPage() {
             onClick={toggleAutoRefresh}
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold transition-colors border ${autoRefresh
               ? "bg-emerald-950/60 border-emerald-800 text-emerald-400"
-              : "bg-slate-800 border-slate-700 text-slate-400"
+              : "neo-pill text-slate-800 font-bold"
               }`}
           >
             <span className={`w-2 h-2 rounded-full ${autoRefresh ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`} />
@@ -466,6 +466,7 @@ export default function UnifiedOpportunitiesPage() {
           </button>
 
           <span className="text-slate-700 font-bold">
+
             Last synced: <span className="text-slate-900 font-mono font-extrabold">{lastRefreshedAt}</span>
           </span>
         </div>
@@ -560,7 +561,7 @@ export default function UnifiedOpportunitiesPage() {
               className={`p-3.5 rounded-xl text-left transition-all flex flex-col justify-between gap-1.5 border cursor-pointer ${
                 isActive
                   ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30"
-                  : "bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white border-slate-800"
+                  : "neo-pill text-slate-900 hover:text-indigo-600 font-bold"
               }`}
             >
               <div className="flex items-center justify-between w-full">
@@ -571,7 +572,7 @@ export default function UnifiedOpportunitiesPage() {
                 {tab.count !== undefined && (
                   <span
                     className={`text-xs px-2 py-0.5 rounded-full font-mono font-bold ${
-                      isActive ? "bg-indigo-950 text-indigo-200 border border-indigo-700" : "bg-slate-800 text-slate-400 border border-slate-700"
+                      isActive ? "bg-indigo-950 text-indigo-200 border border-indigo-700" : "neo-pill text-slate-800 font-bold"
                     }`}
                   >
                     {tab.count}
@@ -649,7 +650,7 @@ export default function UnifiedOpportunitiesPage() {
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
                       isSelected
                         ? "bg-indigo-600 text-white shadow-sm"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700"
+                        : "neo-pill text-slate-900 hover:text-indigo-600 font-bold"
                     }`}
                   >
                     <span>{et.label}</span>
@@ -698,7 +699,7 @@ export default function UnifiedOpportunitiesPage() {
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                       isSelected
                         ? "bg-emerald-600 text-white shadow-sm"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700"
+                        : "neo-pill text-slate-900 hover:text-indigo-600 font-bold"
                     }`}
                   >
                     {cat.label}
@@ -742,7 +743,7 @@ export default function UnifiedOpportunitiesPage() {
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                       isSelected
                         ? "bg-purple-600 text-white shadow-sm"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700"
+                        : "neo-pill text-slate-900 hover:text-indigo-600 font-bold"
                     }`}
                   >
                     {urg.label}
@@ -1293,7 +1294,7 @@ export default function UnifiedOpportunitiesPage() {
                       <>
                         <Link
                           href={`/jobs/${item.opportunity_id}`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 hover:border-indigo-500/50 transition-colors"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold neo-pill text-indigo-900 hover:text-indigo-600 border border-indigo-200 transition-all"
                         >
                           View Details →
                         </Link>
@@ -1327,7 +1328,7 @@ export default function UnifiedOpportunitiesPage() {
                             href={item.source_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold neo-pill text-slate-900 hover:text-indigo-600 transition-all"
                           >
                             Client Website ↗
                           </a>
@@ -1348,7 +1349,7 @@ export default function UnifiedOpportunitiesPage() {
                             href={item.source_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold neo-pill text-slate-900 hover:text-indigo-600 transition-all"
                           >
                             Product Site ↗
                           </a>

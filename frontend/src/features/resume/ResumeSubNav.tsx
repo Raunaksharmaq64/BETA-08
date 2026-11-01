@@ -17,17 +17,18 @@ export function ResumeSubNav({ resumeId }: ResumeSubNavProps) {
   ];
 
   return (
-    <nav className="flex border-b border-slate-800 mb-8 overflow-x-auto scrollbar-none gap-1 sm:gap-2 text-xs font-medium text-slate-400 -mx-4 px-4 sm:mx-0 sm:px-0" aria-label="Resume Sub-Navigation">
+    <nav className="flex items-center gap-2 mb-8 overflow-x-auto no-scrollbar py-1" aria-label="Resume Sub-Navigation">
       {links.map((link) => {
         const isActive = pathname === link.href;
         return (
           <Link
             key={link.href}
             href={link.href}
-            className={`pb-3 px-3 transition-colors border-b-2 whitespace-nowrap ${isActive
-              ? "border-indigo-500 text-indigo-400 font-semibold"
-              : "border-transparent hover:text-slate-200 hover:border-slate-700"
-              }`}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
+              isActive
+                ? "neo-inset text-indigo-700 font-black border border-slate-300 shadow-inner scale-[1.02]"
+                : "neo-pill text-slate-800 hover:text-indigo-600 font-bold"
+            }`}
           >
             {link.label}
           </Link>

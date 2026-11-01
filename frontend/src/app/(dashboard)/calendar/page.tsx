@@ -209,7 +209,7 @@ export default function CalendarPage() {
           <a
             href="/api/v1/calendar/export.ics"
             download="rightfit-schedule.ics"
-            className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center space-x-1.5 shadow-sm"
+            className="neo-pill px-3.5 py-1.5 text-xs font-bold text-slate-900 hover:text-indigo-600 rounded-xl transition-all shadow-sm flex items-center space-x-1.5"
             title="Download standard .ics file for Google Calendar, Apple Calendar, and Outlook"
           >
             <span>📅 Export (.ics)</span>

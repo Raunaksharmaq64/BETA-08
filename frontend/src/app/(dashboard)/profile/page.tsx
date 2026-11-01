@@ -275,7 +275,7 @@ export default function ProfilePage() {
           <h2 className="text-lg font-black text-slate-900">Basic Information</h2>
           <button
             onClick={() => setEditingBasic(!editingBasic)}
-            className="text-xs font-semibold px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-slate-700"
+            className="text-xs font-bold px-3.5 py-1.5 rounded-xl neo-pill text-indigo-900 hover:text-indigo-600 transition-all"
           >
             {editingBasic ? "Cancel" : "Edit Profile"}
           </button>
@@ -289,7 +289,7 @@ export default function ProfilePage() {
                 type="text"
                 value={headline}
                 onChange={(e) => setHeadline(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
+                className="w-full px-3 py-2 neo-inset rounded-xl text-slate-900 font-semibold"
               />
             </div>
             <div>
@@ -298,7 +298,7 @@ export default function ProfilePage() {
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
+                className="w-full px-3 py-2 neo-inset rounded-xl text-slate-900 font-semibold"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -308,7 +308,7 @@ export default function ProfilePage() {
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
+                  className="w-full px-3 py-2 neo-inset rounded-xl text-slate-900 font-semibold"
                 />
               </div>
               <div>
@@ -317,7 +317,7 @@ export default function ProfilePage() {
                   type="text"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
+                  className="w-full px-3 py-2 neo-inset rounded-xl text-slate-900 font-semibold"
                 />
               </div>
             </div>
@@ -390,7 +390,7 @@ export default function ProfilePage() {
             profile.skills.map((skill) => (
               <span
                 key={skill.id}
-                className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 flex items-center space-x-2"
+                className="px-3.5 py-1.5 neo-pill rounded-xl text-xs sm:text-sm font-bold text-slate-900 border border-white/90 shadow-sm flex items-center space-x-2"
               >
                 <span className="font-medium">{skill.skill_name}</span>
                 <span className="text-xs text-indigo-400">({skill.proficiency})</span>
@@ -422,7 +422,7 @@ export default function ProfilePage() {
                   value={eduInst}
                   onChange={(e) => setEduInst(e.target.value)}
                   placeholder="e.g. Stanford University"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
+                  className="w-full px-3 py-2 neo-inset rounded-xl text-slate-900 font-semibold"
                 />
               </div>
               <div>
@@ -433,7 +433,7 @@ export default function ProfilePage() {
                   value={eduDegree}
                   onChange={(e) => setEduDegree(e.target.value)}
                   placeholder="e.g. B.S."
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
+                  className="w-full px-3 py-2 neo-inset rounded-xl text-slate-900 font-semibold"
                 />
               </div>
               <div>
@@ -444,7 +444,7 @@ export default function ProfilePage() {
                   value={eduField}
                   onChange={(e) => setEduField(e.target.value)}
                   placeholder="e.g. Computer Science"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
+                  className="w-full px-3 py-2 neo-inset rounded-xl text-slate-900 font-semibold"
                 />
               </div>
               <div className="flex justify-end space-x-3 mt-6">
@@ -481,7 +481,7 @@ export default function ProfilePage() {
                   value={skillName}
                   onChange={(e) => setSkillName(e.target.value)}
                   placeholder="e.g. TypeScript"
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
+                  className="w-full px-3 py-2 neo-inset rounded-xl text-slate-900 font-semibold"
                 />
               </div>
               <div>
@@ -489,7 +489,7 @@ export default function ProfilePage() {
                 <select
                   value={skillProf}
                   onChange={(e) => setSkillProf(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
+                  className="w-full px-3 py-2 neo-inset rounded-xl text-slate-900 font-semibold"
                 >
                   <option value="Beginner">Beginner</option>
                   <option value="Intermediate">Intermediate</option>

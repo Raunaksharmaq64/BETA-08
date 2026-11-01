@@ -300,14 +300,14 @@ export default function ResumeATSAnalysisPage() {
                 <button
                   type="button"
                   onClick={() => loadSample("tech")}
-                  className="px-2 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition-colors"
+                  className="neo-pill px-3 py-1 text-[11px] text-slate-900 font-bold rounded-lg border border-white/90 hover:text-indigo-600 transition-all"
                 >
                   Tech Role
                 </button>
                 <button
                   type="button"
                   onClick={() => loadSample("product")}
-                  className="px-2 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition-colors"
+                  className="neo-pill px-3 py-1 text-[11px] text-slate-900 font-bold rounded-lg border border-white/90 hover:text-indigo-600 transition-all"
                 >
                   Product Role
                 </button>
@@ -331,7 +331,7 @@ export default function ResumeATSAnalysisPage() {
                   required
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder-slate-500"
+                  className="w-full px-4 py-2.5 rounded-xl neo-inset text-xs font-semibold text-slate-900 focus:outline-none border border-slate-300/80"
                   placeholder="e.g. Senior Software Engineer, Product Manager, Data Analyst..."
                 />
               </div>
@@ -343,7 +343,7 @@ export default function ResumeATSAnalysisPage() {
                   required
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono text-[12px] placeholder-slate-500"
+                  className="w-full px-4 py-2.5 rounded-xl neo-inset text-xs font-semibold text-slate-900 focus:outline-none font-mono text-[12px] border border-slate-300/80"
                   placeholder="Paste the complete job description, required qualifications, and responsibilities here..."
                 />
               </div>
@@ -498,7 +498,7 @@ export default function ResumeATSAnalysisPage() {
                           <span className="text-xs text-indigo-400 font-medium">All preferred skills present!</span>
                         ) : (
                           matchResult.preferred_skills_match.missing.map((sk, idx) => (
-                            <span key={idx} className="px-2.5 py-1 rounded bg-slate-800 text-slate-400 border border-slate-700 text-xs font-medium">
+                            <span key={idx} className="neo-inset px-3 py-1 rounded-xl text-slate-800 border border-slate-300 text-xs font-bold shadow-inner">
                               {sk}
                             </span>
                           ))
@@ -652,7 +652,7 @@ export default function ResumeATSAnalysisPage() {
                     <span className="font-semibold text-slate-300">Structure & Completeness (25%)</span>
                     <span className="font-bold text-slate-100">{qualityReport.section_scores.structure_and_completeness}/25</span>
                   </div>
-                  <div className="w-full bg-slate-800 rounded-full h-2">
+                  <div className="w-full neo-inset rounded-full h-2.5 overflow-hidden">
                     <div
                       className="bg-indigo-500 h-2 rounded-full"
                       style={{ width: `${(qualityReport.section_scores.structure_and_completeness / 25) * 100}%` }}
@@ -665,7 +665,7 @@ export default function ResumeATSAnalysisPage() {
                     <span className="font-semibold text-slate-300">Quantified Impact & Action Verbs (35%)</span>
                     <span className="font-bold text-slate-100">{qualityReport.section_scores.quantified_impact_and_bullets}/35</span>
                   </div>
-                  <div className="w-full bg-slate-800 rounded-full h-2">
+                  <div className="w-full neo-inset rounded-full h-2.5 overflow-hidden">
                     <div
                       className="bg-emerald-500 h-2 rounded-full"
                       style={{ width: `${(qualityReport.section_scores.quantified_impact_and_bullets / 35) * 100}%` }}
@@ -678,7 +678,7 @@ export default function ResumeATSAnalysisPage() {
                     <span className="font-semibold text-slate-300">Skills Depth & Organization (20%)</span>
                     <span className="font-bold text-slate-100">{qualityReport.section_scores.skills_depth_and_relevance}/20</span>
                   </div>
-                  <div className="w-full bg-slate-800 rounded-full h-2">
+                  <div className="w-full neo-inset rounded-full h-2.5 overflow-hidden">
                     <div
                       className="bg-purple-500 h-2 rounded-full"
                       style={{ width: `${(qualityReport.section_scores.skills_depth_and_relevance / 20) * 100}%` }}
@@ -691,7 +691,7 @@ export default function ResumeATSAnalysisPage() {
                     <span className="font-semibold text-slate-300">Formatting, Clarity & Length (20%)</span>
                     <span className="font-bold text-slate-100">{qualityReport.section_scores.formatting_and_length}/20</span>
                   </div>
-                  <div className="w-full bg-slate-800 rounded-full h-2">
+                  <div className="w-full neo-inset rounded-full h-2.5 overflow-hidden">
                     <div
                       className="bg-amber-500 h-2 rounded-full"
                       style={{ width: `${(qualityReport.section_scores.formatting_and_length / 20) * 100}%` }}

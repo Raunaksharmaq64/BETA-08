@@ -468,10 +468,10 @@ export default function FreelanceDashboardPage() {
                 Priority:
               </span>
               {[
-                { id: "ALL", label: "All Priorities", color: "bg-slate-800 text-slate-200" },
+                { id: "ALL", label: "All Priorities", color: "neo-pill text-slate-900 font-bold" },
                 { id: "HIGH", label: "⚡ High Priority", color: "bg-rose-950 text-rose-300 border border-rose-700 font-bold" },
                 { id: "MEDIUM", label: "Medium Priority", color: "bg-amber-950 text-amber-300 border border-amber-700" },
-                { id: "LOW", label: "Low Priority", color: "bg-slate-900 text-slate-400 border border-slate-700" },
+                { id: "LOW", label: "Low Priority", color: "neo-inset text-slate-700 font-bold" },
               ].map((p) => (
                 <button
                   key={p.id}
@@ -554,7 +554,7 @@ export default function FreelanceDashboardPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-slate-950 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+                  <tr className="neo-box border-b border-slate-300/80 text-slate-900 font-black uppercase tracking-wider">
                     <th className="py-3 px-4">Business / Niche</th>
                     <th className="py-3 px-4">City</th>
                     <th className="py-3 px-4">Website Gap</th>
@@ -801,7 +801,7 @@ export default function FreelanceDashboardPage() {
                       {opp.required_skills?.map((sk, idx) => (
                         <span
                           key={idx}
-                          className="text-[11px] px-2 py-0.5 bg-slate-800/80 text-slate-300 rounded border border-slate-700"
+                          className="text-[11px] px-2.5 py-0.5 neo-pill text-slate-900 font-bold rounded-lg border border-white/90"
                         >
                           {sk}
                         </span>

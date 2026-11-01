@@ -205,6 +205,7 @@ export default function UnifiedDashboardPage() {
       ) : metrics ? (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-700 font-bold">
+
             <span className="font-black tracking-wide uppercase text-slate-900">Live Opportunities Overview</span>
             <span className="neo-inset px-3 py-1 rounded-xl text-slate-800 font-mono text-[11px] sm:text-xs font-bold">
               Reconciled: {metrics.total_opportunities} = {metrics.total_jobs} (Jobs) + {metrics.total_freelance} (Freelance) + {metrics.total_startups} (Startups)
@@ -337,9 +338,9 @@ export default function UnifiedDashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {recentOpportunities.map((item) => {
               const typeBadgeColors = {
-                JOB: "bg-blue-900/60 text-blue-300 border-blue-700/60",
-                FREELANCE: "bg-emerald-900/60 text-emerald-300 border-emerald-700/60",
-                STARTUP_PAIN_POINT: "bg-purple-900/60 text-purple-300 border-purple-700/60",
+                JOB: "bg-blue-100 text-blue-900 border-blue-300",
+                FREELANCE: "bg-emerald-100 text-emerald-900 border-emerald-300",
+                STARTUP_PAIN_POINT: "bg-purple-100 text-purple-900 border-purple-300",
               };
 
               const typeLabels = {
@@ -414,17 +415,17 @@ export default function UnifiedDashboardPage() {
                     {/* Specific payload badges */}
                     <div className="text-xs text-slate-600 font-semibold flex flex-wrap gap-2 pt-1 font-mono">
                       {item.opportunity_type === "JOB" && item.type_specific_payload.salary_min && (
-                        <span className="bg-slate-800 px-2 py-0.5 rounded text-slate-300">
+                        <span className="neo-pill px-2.5 py-0.5 rounded-lg text-slate-900 font-bold">
                           ${item.type_specific_payload.salary_min.toLocaleString()} - ${item.type_specific_payload.salary_max?.toLocaleString()}
                         </span>
                       )}
                       {item.opportunity_type === "FREELANCE" && (
-                        <span className="bg-slate-800 px-2 py-0.5 rounded text-emerald-300">
+                        <span className="neo-pill px-2.5 py-0.5 rounded-lg text-emerald-900 font-bold">
                           {item.type_specific_payload.service_category}
                         </span>
                       )}
                       {item.opportunity_type === "STARTUP_PAIN_POINT" && (
-                        <span className="bg-slate-800 px-2 py-0.5 rounded text-rose-300">
+                        <span className="neo-pill px-2.5 py-0.5 rounded-lg text-rose-900 font-bold">
                           Urgency: {item.type_specific_payload.urgency_score}/10
                         </span>
                       )}
@@ -461,7 +462,7 @@ export default function UnifiedDashboardPage() {
                       <button
                         type="button"
                         onClick={() => setProofItem(item as any)}
-                        className="text-xs font-semibold px-2 py-1 rounded bg-slate-800 hover:bg-slate-750 text-indigo-300 border border-indigo-700/50 hover:border-indigo-400 transition-colors flex items-center gap-1"
+                        className="text-xs font-bold px-2.5 py-1.5 rounded-xl neo-pill text-indigo-900 border border-indigo-200 hover:text-indigo-600 transition-all flex items-center gap-1"
                         title="Inspect verifiable proof and ATS handshake"
                       >
                         <span>🛡️</span>
@@ -471,7 +472,7 @@ export default function UnifiedDashboardPage() {
                       {item.opportunity_type === "JOB" && (
                         <Link
                           href={`/jobs/${item.opportunity_id}`}
-                          className="text-xs font-semibold px-2 py-1 rounded bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 border border-indigo-700/60 transition-colors flex items-center gap-1"
+                          className="text-xs font-bold px-2.5 py-1.5 rounded-xl neo-pill text-indigo-900 border border-indigo-200 hover:text-indigo-600 transition-all flex items-center gap-1"
                           title="View match breakdown and missing skills for your resume"
                         >
                           <span>🎯</span>

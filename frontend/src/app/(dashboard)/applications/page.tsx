@@ -441,6 +441,7 @@ export default function ApplicationsPage() {
           </button>
 
           <span className="text-slate-700 font-bold">
+
             Last synced: <span className="text-slate-900 font-mono font-extrabold">{lastSyncTime}</span>
           </span>
 
@@ -568,7 +569,9 @@ export default function ApplicationsPage() {
               onClick={() => setSelectedStatusTab(col.key)}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-150 ${
                 isSelected
+
                   ? "neo-inset text-indigo-700 font-black shadow-inner border border-indigo-300"
+
                   : "neo-pill text-slate-800 hover:text-indigo-600 font-bold"
               }`}
             >
@@ -606,7 +609,7 @@ export default function ApplicationsPage() {
             </button>
             <Link
               href="/opportunities"
-              className="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+              className="neo-btn-primary px-4 py-2 text-xs font-bold rounded-xl transition-all shadow-md"
             >
               Browse Opportunities →
             </Link>
@@ -854,7 +857,7 @@ export default function ApplicationsPage() {
         /* Dense Table View */
         <div className="overflow-x-auto bg-slate-900/80 border border-slate-800 rounded-xl">
           <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950/80 uppercase text-[10px] text-slate-400 border-b border-slate-800">
+            <thead className="neo-box uppercase text-[10px] text-slate-900 font-black border-b border-slate-300/80">
               <tr>
                 <th className="px-4 py-3">Role & Employer</th>
                 <th className="px-4 py-3">Current Status</th>
@@ -980,7 +983,7 @@ export default function ApplicationsPage() {
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           href={`/applications/${app.id}`}
-                          className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 inline-block transition"
+                          className="text-xs text-indigo-900 hover:text-indigo-600 font-bold px-3 py-1.5 rounded-xl neo-pill border border-indigo-200 inline-block transition-all"
                         >
                           Manage →
                         </Link>
