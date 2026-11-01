@@ -84,6 +84,16 @@ class DirectLocalDiscoveryCollector(BaseCollector):
                 rating = round(3.8 + (seed_val % 12) * 0.1, 1)
                 reviews = 8 + (seed_val % 45)
 
+                slug = re.sub(r"[^a-z0-9]", "", name.lower())[:16]
+                city_clean = re.sub(r"[^a-z0-9]", "", city.lower())[:8]
+
+                instagram = extratags.get("contact:instagram") or extratags.get("instagram") or ""
+                facebook = extratags.get("contact:facebook") or extratags.get("facebook") or ""
+                linkedin = extratags.get("contact:linkedin") or extratags.get("linkedin") or ""
+                twitter = extratags.get("contact:twitter") or extratags.get("twitter") or ""
+                if not email:
+                    email = extratags.get("contact:email") or extratags.get("email") or ""
+
                 leads.append(
                     DiscoveredLead(
                         place_id=place_id,
@@ -97,6 +107,10 @@ class DirectLocalDiscoveryCollector(BaseCollector):
                         city=city.title(),
                         source=self.platform_name,
                         email=email,
+                        instagram=instagram,
+                        facebook=facebook,
+                        linkedin=linkedin,
+                        twitter=twitter,
                     )
                 )
         except Exception as exc:
@@ -155,29 +169,48 @@ class DirectLocalDiscoveryCollector(BaseCollector):
             phone = f"{phone_prefix}{random.randint(20000000, 99999999)}"
 
             # Distribute realistically:
-            # First 50%: No website, under 50 reviews (Urgent website opportunity -> HIGH)
-            # Next 25%: Broken website, under 50 reviews (Urgent repair opportunity -> HIGH)
-            # Next 25%: No website, 50-180 reviews (Medium opportunity -> MEDIUM)
+            # 1. Active website (opportunity for redesign / SEO / outreach)
+            # 2. No website, low reviews (urgent new site opportunity -> HIGH)
+            # 3. Broken website (urgent repair opportunity -> HIGH)
+            # 4. No website, medium reviews (MEDIUM priority)
             mod = idx % 4
-            if mod == 0 or mod == 1:
-                # No website, low reviews (HIGH priority)
+            slug = re.sub(r"[^a-z0-9]", "", name.lower())[:16]
+            city_slug = re.sub(r"[^a-z0-9]", "", city.lower())[:8]
+
+            if mod == 0:
+                # Active website (Audit, SEO, Redesign opportunity)
+                sample_sites = [
+                    "https://apollodental.in",
+                    "https://clovedental.in",
+                    "https://parthadental.com",
+                    "https://sabkadentist.com",
+                ]
+                website = sample_sites[idx % len(sample_sites)]
+                reviews = random.randint(25, 95)
+                rating = round(random.uniform(4.2, 4.9), 1)
+                is_broken = False
+                email = ""
+            elif mod == 1:
+                # No website, low reviews (HIGH priority - prime web design client)
                 website = ""
                 reviews = random.randint(6, 42)
                 rating = round(random.uniform(4.0, 4.8), 1)
                 is_broken = False
+                email = ""
             elif mod == 2:
-                # Broken website (HIGH priority)
-                slug = re.sub(r"[^a-z0-9]", "", name.lower())
-                website = f"http://www.{slug}-broken-domain-offline.com"
+                # Broken website (HIGH priority - urgent technical rescue)
+                website = "https://broken-domain-offline-404.example.com"
                 reviews = random.randint(12, 48)
                 rating = round(random.uniform(3.7, 4.5), 1)
                 is_broken = True
+                email = ""
             else:
                 # No website, 50-180 reviews (MEDIUM priority)
                 website = ""
                 reviews = random.randint(55, 175)
                 rating = round(random.uniform(4.1, 4.9), 1)
                 is_broken = False
+                email = ""
 
             lead = DiscoveredLead(
                 place_id=place_id,
@@ -191,7 +224,11 @@ class DirectLocalDiscoveryCollector(BaseCollector):
                 city=city.title(),
                 source=self.platform_name,
                 is_broken_website=is_broken,
-                email=f"contact@{re.sub(r'[^a-z0-9]', '', name.lower())[:12]}.in" if is_india else f"info@{re.sub(r'[^a-z0-9]', '', name.lower())[:12]}.com",
+                email=email,
+                instagram="",
+                facebook="",
+                linkedin="",
+                twitter="",
             )
             leads.append(lead)
 

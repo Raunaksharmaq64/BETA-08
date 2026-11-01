@@ -40,6 +40,6 @@ EXPOSE 8002
 STOPSIGNAL SIGTERM
 
 HEALTHCHECK --interval=20s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8002/health/live || exit 1
+    CMD curl -f http://localhost:8002/health || exit 1
 
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8002"]

@@ -153,6 +153,11 @@ class OpportunityVerificationDetailResponse(BaseModel):
     expires_at: Optional[datetime] = None
     is_suppressed: bool = False
     evidence_history: List[VerificationEvidenceResponse] = Field(default_factory=list)
+    trust_tier: Optional[str] = Field(default="DIRECT_ATS_VERIFIED", description="DIRECT_ATS_VERIFIED, EMPLOYER_DOMAIN_VERIFIED, MULTI_SOURCE_CORROBORATED")
+    trust_score: Optional[int] = Field(default=95, description="Composite trust index [0-100]")
+    ghost_job_risk: Optional[Dict[str, Any]] = Field(default=None, description="Ghost job risk metrics and hiring velocity")
+    verification_proof: Optional[Dict[str, Any]] = Field(default=None, description="Auditable cryptographic and provenance proof")
+    community_signals: Optional[Dict[str, Any]] = Field(default=None, description="Community response rate and velocity signals")
 
 
 class UserFeedbackResponse(BaseModel):

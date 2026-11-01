@@ -48,25 +48,34 @@ VALID_TRANSITIONS: Dict[str, Set[str]] = {
     ApplicationStatus.PLANNING_TO_APPLY.value: {
         ApplicationStatus.SAVED.value,
         ApplicationStatus.APPLIED.value,
+        ApplicationStatus.ASSESSMENT.value,
+        ApplicationStatus.INTERVIEW.value,
+        ApplicationStatus.OFFER.value,
+        ApplicationStatus.REJECTED.value,
         ApplicationStatus.WITHDRAWN.value,
         ApplicationStatus.CLOSED.value,
     },
     ApplicationStatus.APPLIED.value: {
+        ApplicationStatus.PLANNING_TO_APPLY.value,
         ApplicationStatus.ASSESSMENT.value,
         ApplicationStatus.INTERVIEW.value,
+        ApplicationStatus.OFFER.value,
         ApplicationStatus.REJECTED.value,
         ApplicationStatus.GHOSTED.value,
         ApplicationStatus.WITHDRAWN.value,
         ApplicationStatus.CLOSED.value,
     },
     ApplicationStatus.ASSESSMENT.value: {
+        ApplicationStatus.APPLIED.value,
         ApplicationStatus.INTERVIEW.value,
+        ApplicationStatus.OFFER.value,
         ApplicationStatus.REJECTED.value,
         ApplicationStatus.GHOSTED.value,
         ApplicationStatus.WITHDRAWN.value,
         ApplicationStatus.CLOSED.value,
     },
     ApplicationStatus.INTERVIEW.value: {
+        ApplicationStatus.APPLIED.value,
         ApplicationStatus.ASSESSMENT.value,
         ApplicationStatus.OFFER.value,
         ApplicationStatus.REJECTED.value,
@@ -75,22 +84,37 @@ VALID_TRANSITIONS: Dict[str, Set[str]] = {
         ApplicationStatus.CLOSED.value,
     },
     ApplicationStatus.OFFER.value: {
+        ApplicationStatus.INTERVIEW.value,
         ApplicationStatus.CLOSED.value,
         ApplicationStatus.REJECTED.value,
         ApplicationStatus.WITHDRAWN.value,
+        ApplicationStatus.APPLIED.value,
     },
     ApplicationStatus.REJECTED.value: {
         ApplicationStatus.SAVED.value,
+        ApplicationStatus.PLANNING_TO_APPLY.value,
+        ApplicationStatus.APPLIED.value,
+        ApplicationStatus.INTERVIEW.value,
+        ApplicationStatus.CLOSED.value,
     },
     ApplicationStatus.WITHDRAWN.value: {
         ApplicationStatus.SAVED.value,
+        ApplicationStatus.PLANNING_TO_APPLY.value,
+        ApplicationStatus.APPLIED.value,
+        ApplicationStatus.INTERVIEW.value,
+        ApplicationStatus.CLOSED.value,
     },
     ApplicationStatus.GHOSTED.value: {
         ApplicationStatus.INTERVIEW.value,
+        ApplicationStatus.APPLIED.value,
+        ApplicationStatus.REJECTED.value,
         ApplicationStatus.CLOSED.value,
     },
     ApplicationStatus.CLOSED.value: {
         ApplicationStatus.SAVED.value,
+        ApplicationStatus.PLANNING_TO_APPLY.value,
+        ApplicationStatus.APPLIED.value,
+        ApplicationStatus.INTERVIEW.value,
     },
 }
 
@@ -490,6 +514,14 @@ class CRMService:
         active_interviews = by_status.get(ApplicationStatus.INTERVIEW.value, 0)
         offers_received = by_status.get(ApplicationStatus.OFFER.value, 0)
         pending_follow_ups = by_status.get(ApplicationStatus.APPLIED.value, 0) + by_status.get(ApplicationStatus.ASSESSMENT.value, 0)
+        active_pipeline = (
+            by_status.get(ApplicationStatus.PLANNING_TO_APPLY.value, 0)
+            + by_status.get(ApplicationStatus.APPLIED.value, 0)
+            + by_status.get(ApplicationStatus.ASSESSMENT.value, 0)
+            + by_status.get(ApplicationStatus.INTERVIEW.value, 0)
+        )
+        rejections_received = by_status.get(ApplicationStatus.REJECTED.value, 0)
+        stalled_or_ghosted = by_status.get(ApplicationStatus.GHOSTED.value, 0)
 
         return ApplicationStatsResponse(
             total_applications=total,
@@ -497,6 +529,10 @@ class CRMService:
             active_interviews=active_interviews,
             pending_follow_ups=pending_follow_ups,
             offers_received=offers_received,
+            active_pipeline=active_pipeline,
+            interviews_scheduled=active_interviews,
+            rejections_received=rejections_received,
+            stalled_or_ghosted=stalled_or_ghosted,
         )
 
     @classmethod
@@ -517,7 +553,9 @@ class CRMService:
             ]
 
         recent_notes = []
+        notes_count = 0
         if hasattr(app, "notes") and app.notes:
+            notes_count = len(app.notes)
             recent_notes = [
                 ApplicationNoteResponse(
                     id=n.id,
@@ -537,6 +575,8 @@ class CRMService:
             opportunity_id=app.opportunity_id,
             company_name=app.company_name,
             job_title=app.job_title,
+            company_display=app.company_name,
+            title_display=app.job_title,
             application_url=app.application_url,
             status=ApplicationStatus(app.status),
             applied_at=app.applied_at,
@@ -549,6 +589,7 @@ class CRMService:
             contact_email=app.contact_email,
             created_at=app.created_at,
             updated_at=app.updated_at,
+            notes_count=notes_count,
             status_history=hist_items,
             recent_notes=recent_notes,
         )

@@ -27,7 +27,11 @@ start "RIGHT FIT Core Backend (FastAPI :8000)" cmd /k "cd /d %~dp0 && python -m 
 timeout /t 2 /nobreak >nul
 
 echo [2/3] Starting Startup Intelligence Satellite on http://localhost:8002 ...
-start "Startup Intelligence Service (FastAPI :8002)" cmd /k "cd /d %~dp0..\Startups-problrms-hunter && python -m uvicorn main:app --host 127.0.0.1 --port 8002 --reload"
+if exist "%~dp0services\startup_intelligence\main.py" (
+    start "Startup Intelligence Service (FastAPI :8002)" cmd /k "cd /d %~dp0services\startup_intelligence && python -m uvicorn main:app --host 127.0.0.1 --port 8002 --reload"
+) else (
+    start "Startup Intelligence Service (FastAPI :8002)" cmd /k "cd /d %~dp0..\Startups-problrms-hunter && python -m uvicorn main:app --host 127.0.0.1 --port 8002 --reload"
+)
 
 timeout /t 2 /nobreak >nul
 

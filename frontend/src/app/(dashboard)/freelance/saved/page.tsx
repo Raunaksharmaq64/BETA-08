@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { apiClient } from "@/services/apiClient";
+import { apiClient, API_BASE_URL } from "@/services/apiClient";
 
 export default function SavedFreelancePage() {
   const [savedItems, setSavedItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   // Note editing state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -69,10 +70,42 @@ export default function SavedFreelancePage() {
     }
   };
 
+  const handleExportSavedExcel = async () => {
+    setExporting(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/freelance/export/excel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ saved_only: true }),
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => null);
+        throw new Error(errJson?.detail || "Excel export failed.");
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `saved_freelance_leads_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      setSuccessNotice("✓ Saved leads exported to Excel (.xlsx) successfully!");
+      setTimeout(() => setSuccessNotice(null), 4000);
+    } catch (err: any) {
+      setError(err?.message || "Failed to export saved leads.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <Link href="/freelance" className="text-xs font-semibold text-indigo-400 hover:underline">
               ← Back to Opportunities Dashboard
@@ -82,9 +115,19 @@ export default function SavedFreelancePage() {
               Bookmarked prospective clients curated for follow-up, custom notes, and outreach.
             </p>
           </div>
-          <span className="text-xs text-slate-400">
-            {savedItems.length} bookmarked
-          </span>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={handleExportSavedExcel}
+              disabled={exporting || savedItems.length === 0}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition shadow flex items-center space-x-1"
+            >
+              <span>📊</span>
+              <span>{exporting ? "Exporting..." : "Export Excel (.xlsx)"}</span>
+            </button>
+            <span className="text-xs text-slate-400 font-medium">
+              {savedItems.length} bookmarked
+            </span>
+          </div>
         </div>
 
         {error && (

@@ -1,0 +1,26 @@
+{
+  "gemini_api_key": "",
+  "custom_services": "Web design, SEO Audit, Frontend performance, Custom AI solutions, Lead capture engines, Speed optimization",
+  "target_subreddits": [
+    "saas",
+    "startups",
+    "SideProject"
+  ],
+  "enabled_sources": [
+    "reddit",
+    "rss",
+    "duckduckgo",
+    "github",
+    "indiehackers",
+    "devto",
+    "google_news",
+    "hackernews"
+  ],
+  "gemini_model": "gemini-2.5-flash",
+  "scheduler_enabled": true,
+  "scheduler_interval_hours": 2,
+  "webhook_url": "",
+  "webhook_type": "Discord",
+  "custom_system_instructions": "",
+  "developer_skills": "Python, React, Webflow, SEO, Next.js,web development,agentic ai,ai agents,"
+}

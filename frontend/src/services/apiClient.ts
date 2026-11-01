@@ -25,10 +25,17 @@ export interface ApiError {
   retryable: boolean;
 }
 
+// Client-side high-speed in-memory cache for instant tab transitions
+const clientApiCache = new Map<string, { timestamp: number; payload: any }>();
+const CLIENT_CACHE_TTL_MS = 60000; // 60s fast in-memory cache
+const inFlightRequests = new Map<string, Promise<any>>();
+
 export async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
+  const method = (options.method || "GET").toUpperCase();
+
   // Support both full paths and relative paths
   let url: string;
   if (endpoint.startsWith("http")) {
@@ -40,61 +47,100 @@ export async function apiClient<T>(
     url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
   }
 
-  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  // Clear cache on any write/mutation operation
+  if (method !== "GET") {
+    clientApiCache.clear();
+  } else {
+    const cached = clientApiCache.get(url);
+    if (cached && Date.now() - cached.timestamp < CLIENT_CACHE_TTL_MS) {
+      return cached.payload as ApiResponse<T>;
+    }
+    const ongoing = inFlightRequests.get(url);
+    if (ongoing) {
+      return ongoing as Promise<ApiResponse<T>>;
+    }
+  }
 
-  const headers: HeadersInit = {
-    ...(isFormData ? {} : { "Content-Type": "application/json" }),
-    ...(options.headers || {}),
+  const executeFetch = async (): Promise<ApiResponse<T>> => {
+    const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+
+    const headers: HeadersInit = {
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      ...(options.headers || {}),
+    };
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: "include", // Enables HttpOnly cookie authentication
+    });
+
+    let responseData: any;
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      responseData = await response.json();
+    } else {
+      const text = await response.text();
+      responseData = { success: response.ok, data: text };
+    }
+
+    if (!response.ok || (typeof responseData === "object" && responseData !== null && responseData.success === false)) {
+      const errorPayload: ApiError = responseData?.error || {
+        code: "UNKNOWN_ERROR",
+        message: responseData?.detail || responseData?.message || "An unexpected error occurred.",
+        request_id: response.headers.get("x-request-id") || "",
+        service: "frontend_gateway",
+        retryable: false,
+      };
+      throw errorPayload;
+    }
+
+    // Handle direct return models
+    let finalReturn: any;
+    if (responseData && typeof responseData === "object" && !("success" in responseData)) {
+      finalReturn = {
+        success: true,
+        data: responseData as T,
+        meta: {
+          request_id: response.headers.get("x-request-id") || "",
+          timestamp: new Date().toISOString(),
+          service: "core_career_engine",
+        },
+      };
+    } else {
+      finalReturn = responseData;
+    }
+
+    if (method === "GET") {
+      clientApiCache.set(url, { timestamp: Date.now(), payload: finalReturn });
+    }
+
+    return finalReturn;
   };
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: "include", // Enables HttpOnly cookie authentication
-  });
-
-  let responseData: any;
-  const contentType = response.headers.get("content-type") || "";
-  if (contentType.includes("application/json")) {
-    responseData = await response.json();
-  } else {
-    const text = await response.text();
-    responseData = { success: response.ok, data: text };
+  if (method === "GET") {
+    const reqPromise = executeFetch();
+    inFlightRequests.set(url, reqPromise);
+    try {
+      return await reqPromise;
+    } finally {
+      inFlightRequests.delete(url);
+    }
   }
 
-  if (!response.ok || (typeof responseData === "object" && responseData !== null && responseData.success === false)) {
-    const errorPayload: ApiError = responseData?.error || {
-      code: "UNKNOWN_ERROR",
-      message: responseData?.detail || responseData?.message || "An unexpected error occurred.",
-      request_id: response.headers.get("x-request-id") || "",
-      service: "frontend_gateway",
-      retryable: false,
-    };
-    throw errorPayload;
-  }
-
-  // Handle direct return models
-  if (responseData && typeof responseData === "object" && !("success" in responseData)) {
-    return {
-      success: true,
-      data: responseData as T,
-      meta: {
-        request_id: response.headers.get("x-request-id") || "",
-        timestamp: new Date().toISOString(),
-        service: "core_career_engine",
-      },
-    };
-  }
-
-  return responseData;
+  return executeFetch();
 }
 
 // Convenience methods
-apiClient.get = function<T>(endpoint: string, options: RequestInit = {}) {
+apiClient.clearCache = function () {
+  clientApiCache.clear();
+};
+
+apiClient.get = function <T>(endpoint: string, options: RequestInit = {}) {
   return apiClient<T>(endpoint, { ...options, method: "GET" });
 };
 
-apiClient.post = function<T>(endpoint: string, body?: any, options: RequestInit = {}) {
+apiClient.post = function <T>(endpoint: string, body?: any, options: RequestInit = {}) {
   return apiClient<T>(endpoint, {
     ...options,
     method: "POST",
@@ -102,7 +148,7 @@ apiClient.post = function<T>(endpoint: string, body?: any, options: RequestInit 
   });
 };
 
-apiClient.postForm = function<T>(endpoint: string, formData: FormData, options: RequestInit = {}) {
+apiClient.postForm = function <T>(endpoint: string, formData: FormData, options: RequestInit = {}) {
   return apiClient<T>(endpoint, {
     ...options,
     method: "POST",
@@ -110,7 +156,7 @@ apiClient.postForm = function<T>(endpoint: string, formData: FormData, options: 
   });
 };
 
-apiClient.put = function<T>(endpoint: string, body?: any, options: RequestInit = {}) {
+apiClient.put = function <T>(endpoint: string, body?: any, options: RequestInit = {}) {
   return apiClient<T>(endpoint, {
     ...options,
     method: "PUT",
@@ -118,7 +164,7 @@ apiClient.put = function<T>(endpoint: string, body?: any, options: RequestInit =
   });
 };
 
-apiClient.patch = function<T>(endpoint: string, body?: any, options: RequestInit = {}) {
+apiClient.patch = function <T>(endpoint: string, body?: any, options: RequestInit = {}) {
   return apiClient<T>(endpoint, {
     ...options,
     method: "PATCH",
@@ -126,7 +172,7 @@ apiClient.patch = function<T>(endpoint: string, body?: any, options: RequestInit
   });
 };
 
-apiClient.delete = function<T>(endpoint: string, options: RequestInit = {}) {
+apiClient.delete = function <T>(endpoint: string, options: RequestInit = {}) {
   return apiClient<T>(endpoint, { ...options, method: "DELETE" });
 };
 

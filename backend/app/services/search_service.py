@@ -12,10 +12,13 @@ Implements:
 from __future__ import annotations
 
 import math
+import re
+import time
+import urllib.parse
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, case, cast, func, or_, select, String
 from sqlalchemy.orm import Session, joinedload
 
 from app.db.models import (
@@ -39,17 +42,163 @@ from contracts.matching.schemas import (
 from app.services.matching_service import MatchingService
 
 
+SMART_SEARCH_SYNONYMS: Dict[str, List[str]] = {
+    # Web & Frontend Development
+    "webdev": ["web developer", "web development", "frontend", "front-end", "full stack", "fullstack", "react", "javascript", "typescript", "html", "css", "node.js"],
+    "web dev": ["web developer", "web development", "frontend", "front-end", "full stack", "fullstack", "react", "javascript", "typescript", "html", "css", "node.js"],
+    "web development": ["web developer", "web development", "frontend", "front-end", "full stack", "fullstack", "react", "javascript", "typescript"],
+    "web developer": ["web developer", "web development", "frontend", "full stack", "fullstack", "javascript", "typescript", "react"],
+    "frontend": ["frontend", "front-end", "react", "vue", "angular", "javascript", "typescript", "ui engineer", "html", "css", "tailwind", "next.js"],
+    "front end": ["frontend", "front-end", "react", "vue", "angular", "javascript", "typescript", "ui engineer", "next.js"],
+    "react": ["react", "react.js", "reactjs", "react native", "next.js", "frontend"],
+    "reactjs": ["react", "react.js", "react native", "frontend", "next.js"],
+    "react.js": ["react", "react.js", "react native", "frontend", "next.js"],
+    "vue": ["vue", "vue.js", "vuejs", "frontend", "javascript"],
+    "angular": ["angular", "angularjs", "frontend", "typescript"],
+    "next.js": ["next.js", "nextjs", "react", "frontend", "full stack"],
+    "nextjs": ["next.js", "nextjs", "react", "frontend", "full stack"],
+    "typescript": ["typescript", "ts", "javascript", "frontend", "full stack"],
+    "javascript": ["javascript", "js", "typescript", "frontend", "web"],
+    "tailwind": ["tailwind", "tailwind css", "frontend", "css"],
+    "html": ["html", "css", "frontend", "web"],
+    "css": ["css", "tailwind", "frontend", "web"],
+
+    # Backend Development
+    "backend": ["backend", "back-end", "node", "python", "java", "api", "golang", "go", "fastapi", "django", "postgresql", "microservices"],
+    "back end": ["backend", "back-end", "node", "python", "java", "api", "golang", "go", "fastapi", "django"],
+    "node": ["node", "node.js", "nodejs", "express", "backend", "nestjs"],
+    "nodejs": ["node", "node.js", "express", "backend", "nestjs"],
+    "node.js": ["node", "node.js", "express", "backend", "nestjs"],
+    "python": ["python", "django", "fastapi", "flask", "backend", "data engineering", "pandas"],
+    "fastapi": ["fastapi", "python", "backend", "api"],
+    "django": ["django", "python", "backend", "api"],
+    "golang": ["golang", "go", "backend", "distributed systems"],
+    "go": ["golang", "go", "backend", "systems engineer"],
+    "java": ["java", "spring boot", "backend", "microservices"],
+    "sql": ["sql", "postgresql", "mysql", "database", "data"],
+    "postgresql": ["postgresql", "postgres", "sql", "database"],
+
+    # Full Stack
+    "fullstack": ["fullstack", "full-stack", "full stack", "mern", "software engineer"],
+    "full stack": ["fullstack", "full-stack", "full stack", "mern", "software engineer"],
+    "software engineer": ["software engineer", "developer", "full stack", "backend", "frontend", "software development"],
+    "developer": ["software engineer", "developer", "programmer", "full stack", "coder"],
+
+    # AI, ML & Data
+    "ai": ["artificial intelligence", "machine learning", "ml", "llm", "deep learning", "nlp", "pytorch"],
+    "ml": ["machine learning", "deep learning", "ai", "artificial intelligence", "nlp", "pytorch", "tensorflow"],
+    "machine learning": ["machine learning", "ml", "ai", "deep learning", "pytorch", "tensorflow", "model training"],
+    "data science": ["data science", "data scientist", "analytics", "python", "machine learning", "sql"],
+    "datascience": ["data science", "data scientist", "analytics", "python", "machine learning", "sql"],
+    "data analyst": ["data analyst", "analytics", "sql", "tableau", "power bi", "bi"],
+    "data engineer": ["data engineer", "etl", "pipeline", "sql", "spark", "kafka", "python"],
+
+    # Cloud & DevOps
+    "devops": ["devops", "cloud", "aws", "docker", "kubernetes", "k8s", "ci/cd", "sre", "terraform"],
+    "cloud": ["cloud", "aws", "azure", "gcp", "devops", "kubernetes"],
+    "sre": ["site reliability", "sre", "devops", "infrastructure", "kubernetes"],
+    "kubernetes": ["kubernetes", "k8s", "docker", "devops", "cloud"],
+    "aws": ["aws", "cloud", "amazon web services", "devops"],
+    "docker": ["docker", "containers", "kubernetes", "devops"],
+
+    # Mobile
+    "mobile": ["mobile", "android", "ios", "react native", "flutter", "swift", "kotlin"],
+    "android": ["android", "kotlin", "mobile"],
+    "ios": ["ios", "swift", "mobile"],
+    "flutter": ["flutter", "dart", "mobile"],
+    "react native": ["react native", "react", "mobile"],
+
+    # Design
+    "ui/ux": ["ui/ux", "product designer", "figma", "user experience", "user interface", "design systems"],
+    "design": ["product designer", "ui/ux", "figma", "graphic design", "visual designer"],
+    "figma": ["figma", "ui/ux", "product design", "prototyping"],
+
+    # Marketing & Growth
+    "marketing": ["marketing", "growth marketing", "seo", "sem", "content marketing", "social media", "campaign"],
+    "growth": ["growth marketing", "growth", "performance marketing", "seo", "user acquisition"],
+    "seo": ["seo", "content marketing", "search engine optimization", "organic growth"],
+
+    # Sales & Business Development
+    "sales": ["sales", "b2b sales", "business development", "bdr", "sdr", "account executive", "deal closing"],
+    "b2b sales": ["b2b sales", "sales", "account executive", "deal closing", "enterprise sales"],
+    "bdr": ["business development representative", "bdr", "sdr", "sales", "outreach"],
+    "sdr": ["sales development representative", "sdr", "bdr", "sales", "lead generation"],
+    "account executive": ["account executive", "b2b sales", "pipeline management", "deal closing", "enterprise sales"],
+
+    # Finance, Accounting & Legal
+    "finance": ["finance", "accounting", "financial analyst", "financial modeling", "audit", "p&l"],
+    "accounting": ["accounting", "finance", "quickbooks", "audit", "bookkeeping", "cpa"],
+    "legal": ["legal", "corporate law", "commercial contracts", "compliance", "counsel", "regulatory"],
+    "compliance": ["compliance", "regulatory compliance", "risk management", "audit", "internal controls"],
+    "contracts": ["commercial contracts", "contracts", "legal review", "contract negotiation"],
+
+    # Product, HR & Operations
+    "product": ["product manager", "pm", "product strategy", "roadmapping", "agile", "scrum"],
+    "pm": ["product manager", "product management", "technical product manager"],
+    "hr": ["human resources", "talent acquisition", "recruiter", "people ops", "onboarding"],
+    "recruiter": ["recruiter", "talent acquisition", "technical recruiter", "sourcing", "hr"],
+    "operations": ["operations", "supply chain", "logistics", "procurement", "vendor management"],
+    "customer success": ["customer success", "client onboarding", "account support", "csm", "retention"],
+    "support": ["customer support", "technical support", "help desk", "client support"],
+}
+
+
+def expand_search_terms(raw_query: str) -> List[str]:
+    """Expands user search query using semantic tech & role synonyms."""
+    clean = raw_query.strip().lower()
+    terms: Set[str] = {clean}
+
+    # Direct synonym expansion
+    if clean in SMART_SEARCH_SYNONYMS:
+        terms.update(SMART_SEARCH_SYNONYMS[clean])
+
+    # Word-level expansion for multi-word queries
+    words = [w for w in re.split(r"[\s,\-/]+", clean) if len(w) > 1 and w not in {"in", "for", "with", "and", "a", "the", "to", "of", "or"}]
+    for w in words:
+        terms.add(w)
+        if w in SMART_SEARCH_SYNONYMS:
+            terms.update(SMART_SEARCH_SYNONYMS[w])
+
+    return list(terms)
+
+
+# In-memory high-speed cache for job search queries and source coverage
+_JOB_SEARCH_CACHE: Dict[str, Tuple[float, JobSearchResponse]] = {}
+_JOB_CACHE_TTL = 30.0
+
+_COVERAGE_CACHE: Optional[Tuple[float, SourceCoverageMetadata]] = None
+_COVERAGE_CACHE_TTL = 60.0
+
+
 class SearchService:
     """Orchestrates candidate search queries, source coverage health, and personalized ranking."""
 
     @classmethod
     def get_source_coverage_metadata(cls, session: Session) -> SourceCoverageMetadata:
-        """Inspects all configured sources to report platform coverage and partial result status."""
+        """Inspects all configured sources to report platform coverage and partial result status (cached for 60s)."""
+        global _COVERAGE_CACHE
+        if _COVERAGE_CACHE:
+            ts, cached_cov = _COVERAGE_CACHE
+            if time.time() - ts < _COVERAGE_CACHE_TTL:
+                return cached_cov
+
         sources = session.execute(select(JobSourceRecord)).scalars().all()
         total_sources = len(sources)
         healthy_count = 0
         degraded_count = 0
         coverage_items: List[SourceCoverageItem] = []
+
+        # Single aggregated query to count active opportunities per source
+        counts_map = dict(
+            session.execute(
+                select(
+                    CanonicalOpportunityRecord.source_id,
+                    func.count(CanonicalOpportunityRecord.id)
+                )
+                .where(CanonicalOpportunityRecord.is_suppressed.is_(False))
+                .group_by(CanonicalOpportunityRecord.source_id)
+            ).all()
+        )
 
         for src in sources:
             is_circuit_open = (src.circuit_breaker_state or "").upper() == "OPEN"
@@ -68,14 +217,7 @@ class SearchService:
                 status = "ACTIVE"
                 healthy_count += 1
 
-            # Count records
-            opp_count = session.execute(
-                select(func.count(CanonicalOpportunityRecord.id)).where(
-                    CanonicalOpportunityRecord.source_id == src.id,
-                    CanonicalOpportunityRecord.is_suppressed.is_(False),
-                )
-            ).scalar() or 0
-
+            opp_count = counts_map.get(src.id, 0)
             outage_reason = None
             if is_circuit_open:
                 outage_reason = f"Upstream connector circuit breaker tripped after {src.consecutive_failures} failures."
@@ -95,13 +237,15 @@ class SearchService:
 
         is_partial = degraded_count > 0
 
-        return SourceCoverageMetadata(
+        cov_meta = SourceCoverageMetadata(
             total_configured_sources=total_sources,
             healthy_sources_count=healthy_count,
             degraded_sources_count=degraded_count,
             is_partial_results=is_partial,
             coverage_details=coverage_items,
         )
+        _COVERAGE_CACHE = (time.time(), cov_meta)
+        return cov_meta
 
     @classmethod
     def search_jobs(
@@ -119,6 +263,12 @@ class SearchService:
         page = max(1, page)
         page_size = min(100, max(1, page_size))
 
+        cache_key = f"{current_user_id or ''}:{page}:{page_size}:{filters.model_dump_json()}"
+        if cache_key in _JOB_SEARCH_CACHE:
+            ts, cached_res = _JOB_SEARCH_CACHE[cache_key]
+            if time.time() - ts < _JOB_CACHE_TTL:
+                return cached_res
+
         # Base query: non-suppressed active opportunities
         query = select(CanonicalOpportunityRecord).options(
             joinedload(CanonicalOpportunityRecord.source)
@@ -127,17 +277,51 @@ class SearchService:
             CanonicalOpportunityRecord.is_active.is_(True),
         )
 
-        # 1. Fulltext / keyword query
+        # 1. Fulltext / Smart Keyword Query
+        expanded = []
         if filters.query:
-            term = f"%{filters.query.strip().lower()}%"
-            query = query.where(
-                or_(
-                    func.lower(CanonicalOpportunityRecord.title).ilike(term),
-                    func.lower(CanonicalOpportunityRecord.company_name).ilike(term),
-                    func.lower(CanonicalOpportunityRecord.description_clean).ilike(term),
-                    func.lower(CanonicalOpportunityRecord.city).ilike(term),
-                )
-            )
+            expanded = expand_search_terms(filters.query)
+            query_clauses = []
+            for t in expanded:
+                if len(t) <= 3:
+                    # Guard short terms from matching loose substrings inside description words
+                    query_clauses.extend([
+                        func.lower(CanonicalOpportunityRecord.title).ilike(f"%{t}%"),
+                        cast(CanonicalOpportunityRecord.required_skills_json, String).ilike(f'%"{t}"%'),
+                    ])
+                else:
+                    term = f"%{t}%"
+                    query_clauses.extend([
+                        func.lower(CanonicalOpportunityRecord.title).ilike(term),
+                        func.lower(CanonicalOpportunityRecord.company_name).ilike(term),
+                        func.lower(CanonicalOpportunityRecord.description_clean).ilike(term),
+                        func.lower(CanonicalOpportunityRecord.city).ilike(term),
+                        cast(CanonicalOpportunityRecord.required_skills_json, String).ilike(term),
+                    ])
+            if query_clauses:
+                query = query.where(or_(*query_clauses))
+
+        # 1b. Specific Skills filter (Multi-filter support across required skills and title)
+        if filters.skills:
+            skill_clauses = []
+            for sk in filters.skills:
+                clean_sk = sk.strip().lower()
+                if clean_sk:
+                    expanded_sk = expand_search_terms(clean_sk)
+                    for st in expanded_sk:
+                        if len(st) <= 3:
+                            skill_clauses.extend([
+                                cast(CanonicalOpportunityRecord.required_skills_json, String).ilike(f'%"{st}"%'),
+                                func.lower(CanonicalOpportunityRecord.title).ilike(f"%{st}%"),
+                            ])
+                        else:
+                            st_term = f"%{st}%"
+                            skill_clauses.extend([
+                                cast(CanonicalOpportunityRecord.required_skills_json, String).ilike(st_term),
+                                func.lower(CanonicalOpportunityRecord.title).ilike(st_term),
+                            ])
+            if skill_clauses:
+                query = query.where(or_(*skill_clauses))
 
         # 2. Role / Title
         if filters.role:
@@ -292,6 +476,46 @@ class SearchService:
                         "max_salary": prof.preferences.max_salary,
                     }
 
+        # Build SQL relevance ranking expression
+        score_parts = []
+        if filters.query:
+            clean_q = filters.query.strip().lower()
+            score_parts.extend([
+                case((func.lower(CanonicalOpportunityRecord.title) == clean_q, 250), else_=0),
+                case((func.lower(CanonicalOpportunityRecord.title).ilike(f"%{clean_q}%"), 150), else_=0),
+                case((cast(CanonicalOpportunityRecord.required_skills_json, String).ilike(f'%"{clean_q}"%'), 120), else_=0),
+                case((cast(CanonicalOpportunityRecord.required_skills_json, String).ilike(f"%{clean_q}%"), 70), else_=0),
+                case((func.lower(CanonicalOpportunityRecord.company_name).ilike(f"%{clean_q}%"), 40), else_=0),
+            ])
+            for syn in expanded[:8]:
+                if syn != clean_q and len(syn) > 2:
+                    score_parts.append(
+                        case((func.lower(CanonicalOpportunityRecord.title).ilike(f"%{syn}%"), 60), else_=0)
+                    )
+                    score_parts.append(
+                        case((cast(CanonicalOpportunityRecord.required_skills_json, String).ilike(f"%{syn}%"), 45), else_=0)
+                    )
+
+        if filters.skills:
+            for sk in filters.skills:
+                c_sk = sk.strip().lower()
+                if c_sk:
+                    score_parts.extend([
+                        case((cast(CanonicalOpportunityRecord.required_skills_json, String).ilike(f'%"{c_sk}"%'), 120), else_=0),
+                        case((cast(CanonicalOpportunityRecord.required_skills_json, String).ilike(f"%{c_sk}%"), 70), else_=0),
+                        case((func.lower(CanonicalOpportunityRecord.title).ilike(f"%{c_sk}%"), 80), else_=0),
+                    ])
+
+        if filters.role:
+            c_role = filters.role.strip().lower()
+            if c_role:
+                score_parts.extend([
+                    case((func.lower(CanonicalOpportunityRecord.title) == c_role, 200), else_=0),
+                    case((func.lower(CanonicalOpportunityRecord.title).ilike(f"%{c_role}%"), 120), else_=0),
+                ])
+
+        sql_relevance = sum(score_parts) if score_parts else None
+
         # Sorting
         if filters.sort_by == SearchSortOption.MOST_RECENT:
             query = query.order_by(CanonicalOpportunityRecord.first_seen_at.desc())
@@ -299,8 +523,19 @@ class SearchService:
             query = query.order_by(
                 func.coalesce(CanonicalOpportunityRecord.max_salary, CanonicalOpportunityRecord.min_salary).desc().nullslast()
             )
+        elif filters.sort_by in (SearchSortOption.RELEVANCE, SearchSortOption.BEST_FIT):
+            if sql_relevance is not None:
+                query = query.order_by(
+                    sql_relevance.desc(),
+                    CanonicalOpportunityRecord.last_verified_at.desc().nullslast(),
+                    CanonicalOpportunityRecord.first_seen_at.desc(),
+                )
+            else:
+                query = query.order_by(
+                    CanonicalOpportunityRecord.last_verified_at.desc().nullslast(),
+                    CanonicalOpportunityRecord.first_seen_at.desc(),
+                )
         else:
-            # Default or BEST_FIT
             query = query.order_by(
                 CanonicalOpportunityRecord.last_verified_at.desc().nullslast(),
                 CanonicalOpportunityRecord.first_seen_at.desc(),
@@ -322,6 +557,52 @@ class SearchService:
             missing_preview: List[str] = []
             is_cold_start: bool = False
             cold_start_explanation: Optional[str] = None
+
+            # Calculate item dynamic relevance score
+            item_rel = 0.0
+            t_low = (opp.title or "").lower()
+            c_low = (opp.company_name or "").lower()
+            s_low = [s.lower() for s in (opp.required_skills_json or [])]
+
+            if filters.query:
+                clean_q = filters.query.strip().lower()
+                if clean_q in t_low:
+                    item_rel += 150.0
+                tokens = [w for w in re.split(r"[\s,\-/]+", clean_q) if len(w) > 1]
+                for tk in tokens:
+                    if tk in t_low:
+                        item_rel += 40.0
+                for sk in s_low:
+                    if clean_q == sk:
+                        item_rel += 120.0
+                    elif clean_q in sk:
+                        item_rel += 70.0
+                    for tk in tokens:
+                        if tk == sk:
+                            item_rel += 80.0
+                        elif tk in sk:
+                            item_rel += 35.0
+                for syn in (expanded or []):
+                    if syn in t_low:
+                        item_rel += 35.0
+                    for sk in s_low:
+                        if syn in sk:
+                            item_rel += 30.0
+
+            if filters.skills:
+                for sk in filters.skills:
+                    c_sk = sk.strip().lower()
+                    if any(c_sk == s for s in s_low):
+                        item_rel += 100.0
+                    elif any(c_sk in s for s in s_low):
+                        item_rel += 60.0
+                    if c_sk in t_low:
+                        item_rel += 70.0
+
+            if filters.role:
+                c_role = filters.role.strip().lower()
+                if c_role in t_low:
+                    item_rel += 120.0
 
             opp_dict = {
                 "workplace_type": opp.workplace_type,
@@ -400,7 +681,11 @@ class SearchService:
                     currency=opp.currency,
                     salary_period=opp.salary_period,
                     required_skills=opp.required_skills_json or [],
-                    application_url=opp.application_url,
+                    application_url=(
+                        opp.application_url
+                        if opp.application_url and "jooble.org" not in opp.application_url.lower()
+                        else f"https://www.google.com/search?q={urllib.parse.quote_plus(f'{opp.company_name} {opp.title} job apply')}"
+                    ),
                     verification_status=opp.verification_status,
                     freshness_state=opp.freshness_state,
                     first_seen_at=opp.first_seen_at,
@@ -413,27 +698,34 @@ class SearchService:
                     is_cold_start=is_cold_start,
                     cold_start_explanation=cold_start_explanation,
                     candidate_feedback_status=fb_status,
+                    relevance_score=round(item_rel, 1) if (filters.query or filters.skills or filters.role) else None,
                     matched_skills_preview=matched_preview,
                     missing_skills_preview=missing_preview,
                 )
             )
 
-        # If candidate requested BEST_FIT sorting, sort by eligibility and skill_fit_score
-        if filters.sort_by == SearchSortOption.BEST_FIT and current_user_id:
-            items.sort(
-                key=lambda x: (
-                    1 if x.eligibility_status == EligibilityStatus.MEETS_REQUIREMENTS else 0,
-                    x.skill_fit_score or 0.0,
-                ),
-                reverse=True,
-            )
+        # Multi-factor candidate and relevance re-ranking
+        if filters.sort_by == SearchSortOption.RELEVANCE:
+            items.sort(key=lambda x: x.relevance_score or 0.0, reverse=True)
+        elif filters.sort_by == SearchSortOption.BEST_FIT:
+            if current_user_id and candidate_skills:
+                items.sort(
+                    key=lambda x: (
+                        1 if x.eligibility_status == EligibilityStatus.MEETS_REQUIREMENTS else 0,
+                        (x.skill_fit_score or 0.0) * 0.6 + min(100.0, (x.relevance_score or 0.0) / 3.0) * 0.4,
+                    ),
+                    reverse=True,
+                )
+            elif filters.query or filters.skills or filters.role:
+                items.sort(key=lambda x: x.relevance_score or 0.0, reverse=True)
         elif filters.sort_by == SearchSortOption.SKILL_MATCH and current_user_id and candidate_skills:
+            items.sort(key=lambda x: x.skill_fit_score or 0.0, reverse=True)
             items.sort(key=lambda x: x.skill_fit_score or 0.0, reverse=True)
 
         coverage = cls.get_source_coverage_metadata(session)
         total_pages = math.ceil(total_count / page_size) if total_count > 0 else 1
 
-        return JobSearchResponse(
+        response_obj = JobSearchResponse(
             items=items,
             total_count=total_count,
             page=page,
@@ -444,4 +736,6 @@ class SearchService:
             applied_filters=filters.model_dump(exclude_none=True),
             source_coverage=coverage,
         )
+        _JOB_SEARCH_CACHE[cache_key] = (time.time(), response_obj)
+        return response_obj
 

@@ -65,6 +65,10 @@ class FreelanceService:
         reviews = int(lead_dict.get("reviews_count") or lead_dict.get("reviews", 0) or 0)
         phone = lead_dict.get("phone")
         email = lead_dict.get("email")
+        instagram = lead_dict.get("instagram") or None
+        facebook = lead_dict.get("facebook") or None
+        linkedin = lead_dict.get("linkedin") or None
+        twitter = lead_dict.get("twitter") or None
 
         # Classification and Opportunity Synthesis
         skills: List[str] = []
@@ -131,6 +135,10 @@ class FreelanceService:
             "reviews_count": reviews,
             "phone": phone or None,
             "email": email or None,
+            "instagram": instagram,
+            "facebook": facebook,
+            "linkedin": linkedin,
+            "twitter": twitter,
             "required_skills": skills,
             "suggested_service": suggested_service,
             "suggested_pitch": lead_dict.get("suggested_pitch") or lead_dict.get("custom_pitch"),
@@ -197,6 +205,14 @@ class FreelanceService:
                 existing.email = mapped["email"]
             if mapped["phone"] and not existing.phone:
                 existing.phone = mapped["phone"]
+            if mapped.get("instagram") and not existing.instagram:
+                existing.instagram = mapped["instagram"]
+            if mapped.get("facebook") and not existing.facebook:
+                existing.facebook = mapped["facebook"]
+            if mapped.get("linkedin") and not existing.linkedin:
+                existing.linkedin = mapped["linkedin"]
+            if mapped.get("twitter") and not existing.twitter:
+                existing.twitter = mapped["twitter"]
             opp = existing
         else:
             opp = FreelanceOpportunityRecord(
@@ -215,6 +231,10 @@ class FreelanceService:
                 reviews_count=mapped["reviews_count"],
                 phone=mapped["phone"],
                 email=mapped["email"],
+                instagram=mapped.get("instagram"),
+                facebook=mapped.get("facebook"),
+                linkedin=mapped.get("linkedin"),
+                twitter=mapped.get("twitter"),
                 required_skills=mapped["required_skills"],
                 suggested_service=mapped["suggested_service"],
                 suggested_pitch=mapped["suggested_pitch"],
@@ -251,6 +271,14 @@ class FreelanceService:
         if mapped.get("website"):
             status = "INVALID" if mapped.get("is_broken_website") else "VERIFIED"
             contacts.append(("WEBSITE", mapped["website"], status, "DNS and HTTP health audit probe"))
+        if mapped.get("instagram"):
+            contacts.append(("INSTAGRAM", mapped["instagram"], "VERIFIED", "Extracted public Instagram link"))
+        if mapped.get("facebook"):
+            contacts.append(("FACEBOOK", mapped["facebook"], "VERIFIED", "Extracted public Facebook page"))
+        if mapped.get("linkedin"):
+            contacts.append(("LINKEDIN", mapped["linkedin"], "VERIFIED", "Extracted public LinkedIn profile"))
+        if mapped.get("twitter"):
+            contacts.append(("TWITTER", mapped["twitter"], "VERIFIED", "Extracted public Twitter / X link"))
 
         for c_type, c_val, c_status, c_notes in contacts:
             stmt = select(ContactEvidenceRecord).where(

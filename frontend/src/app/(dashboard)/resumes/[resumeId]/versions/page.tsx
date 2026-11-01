@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "../../../../../services/apiClient";
 import { ResumeSubNav } from "../../../../../features/resume/ResumeSubNav";
@@ -44,7 +44,14 @@ interface VersionDiff {
 
 export default function ResumeVersionsPage() {
   const params = useParams();
+  const router = useRouter();
   const resumeId = params?.resumeId as string;
+
+  useEffect(() => {
+    if (resumeId) {
+      router.replace(`/resumes/${resumeId}/analysis`);
+    }
+  }, [resumeId, router]);
 
   const [versions, setVersions] = useState<ResumeVersion[]>([]);
   const [loading, setLoading] = useState(true);

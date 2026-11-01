@@ -25,6 +25,7 @@ from typing import Any, Dict
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -61,6 +62,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Response Compression for fast WAN transfer of opportunity lists & JSON payloads
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @app.middleware("http")

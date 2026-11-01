@@ -38,9 +38,9 @@ export default function ResumeReviewPage() {
 
   useEffect(() => {
     if (resumeId) {
-      fetchReview();
+      router.replace(`/resumes/${resumeId}/analysis`);
     }
-  }, [resumeId]);
+  }, [resumeId, router]);
 
   const handleFieldAction = async (fieldId: string, action: string, value?: any) => {
     try {
@@ -199,25 +199,23 @@ export default function ResumeReviewPage() {
                 return (
                   <div
                     key={ev.field_id}
-                    className={`p-4 rounded-xl border transition-colors ${
-                      ev.review_status === "CONFIRMED"
+                    className={`p-4 rounded-xl border transition-colors ${ev.review_status === "CONFIRMED"
                         ? "bg-emerald-950/10 border-emerald-900/60"
                         : ev.review_status === "REJECTED"
-                        ? "bg-rose-950/10 border-rose-900/60 opacity-60"
-                        : "bg-slate-800/40 border-slate-700/80"
-                    }`}
+                          ? "bg-rose-950/10 border-rose-900/60 opacity-60"
+                          : "bg-slate-800/40 border-slate-700/80"
+                      }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div>
                         <div className="flex items-center space-x-2">
                           <span className="text-xs font-semibold text-indigo-400">{ev.field_name}</span>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            ev.review_status === "CONFIRMED"
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${ev.review_status === "CONFIRMED"
                               ? "bg-emerald-900 text-emerald-200"
                               : ev.review_status === "REJECTED"
-                              ? "bg-rose-900 text-rose-200"
-                              : "bg-amber-900 text-amber-200"
-                          }`}>
+                                ? "bg-rose-900 text-rose-200"
+                                : "bg-amber-900 text-amber-200"
+                            }`}>
                             {ev.review_status}
                           </span>
                         </div>

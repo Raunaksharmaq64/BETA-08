@@ -26,6 +26,8 @@ class DiscoveredLead:
     source: str = "google_maps"
     instagram: str = ""
     facebook: str = ""
+    linkedin: str = ""
+    twitter: str = ""
     is_broken_website: bool = False
     line_type: str = ""
     email: str = ""

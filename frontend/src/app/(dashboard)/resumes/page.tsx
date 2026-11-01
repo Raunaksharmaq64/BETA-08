@@ -148,24 +148,13 @@ export default function ResumeDashboardPage() {
                       <h2 className="text-lg font-semibold text-slate-100">{resume.title}</h2>
                       {getStatusBadge(ver?.parsing_status)}
                     </div>
-                    <div className="mt-1 flex items-center space-x-4 text-xs text-slate-400">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
                       <span>File: {ver?.original_filename || "N/A"}</span>
                       <span>•</span>
                       <span>Format: {ver?.file_type?.toUpperCase()}</span>
                       <span>•</span>
-                      <span>Versions: {resume.version_count}</span>
-                      <span>•</span>
                       <span>Updated: {new Date(resume.updated_at).toLocaleDateString()}</span>
                     </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleDelete(resume.id, resume.title)}
-                      className="px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-medium text-slate-400 hover:text-rose-400 hover:border-rose-800 transition-colors"
-                    >
-                      Delete
-                    </button>
                   </div>
                 </div>
 
@@ -175,70 +164,39 @@ export default function ResumeDashboardPage() {
                   </div>
                 )}
 
-                <div className="mt-5 flex flex-wrap gap-2.5">
-                  {ver?.parsing_status === "UPLOADED" && (
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800/80">
+                  <div className="flex items-center gap-2.5 flex-wrap">
                     <Link
-                      href={`/resumes/${resume.id}/status`}
-                      className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-medium text-white transition-colors"
+                      href={`/resumes/${resume.id}/analysis`}
+                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-colors shadow-sm"
                     >
-                      Start Parsing Pipeline
+                      View Profile & Matches →
                     </Link>
-                  )}
 
-                  {ver?.parsing_status === "REVIEW_REQUIRED" && (
                     <Link
-                      href={`/resumes/${resume.id}/review`}
-                      className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-xs font-medium text-white transition-colors"
+                      href={`/resumes/${resume.id}/ats`}
+                      className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-750 text-xs font-semibold text-indigo-300 border border-slate-700 hover:border-indigo-500/50 transition-colors"
                     >
-                      Review & Confirm Facts
+                      ATS Optimizer
                     </Link>
-                  )}
+                  </div>
 
-                  <Link
-                    href={`/resumes/${resume.id}/analysis`}
-                    className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition-colors"
-                  >
-                    View Extraction & Evidence
-                  </Link>
-
-                  <Link
-                    href={`/resumes/${resume.id}/ats`}
-                    className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition-colors"
-                  >
-                    Job Match & Quality
-                  </Link>
-
-                  <Link
-                    href={`/resumes/${resume.id}/suggestions`}
-                    className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition-colors"
-                  >
-                    AI Rewrites & Polish
-                  </Link>
-
-                  <Link
-                    href={`/resumes/${resume.id}/versions`}
-                    className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition-colors"
-                  >
-                    Manage Versions ({resume.version_count})
-                  </Link>
-
-                  {resume.version_count > 1 && (
-                    <Link
-                      href={`/resumes/${resume.id}/versions`}
-                      className="px-3.5 py-1.5 rounded-lg bg-indigo-950/60 hover:bg-indigo-900/60 text-xs font-semibold text-indigo-300 border border-indigo-700/70 transition-colors"
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={`/api/v1/resumes/${resume.id}/download`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800 transition-colors"
                     >
-                      Compare Diff ⮂
-                    </Link>
-                  )}
-
-                  <a
-                    href={`/api/v1/resumes/${resume.id}/download`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 border border-slate-700 transition-colors"
-                  >
-                    Download Original
-                  </a>
+                      Download File ↗
+                    </a>
+                    <button
+                      onClick={() => handleDelete(resume.id, resume.title)}
+                      className="px-3 py-1.5 rounded-lg border border-slate-800 text-xs font-medium text-slate-400 hover:text-rose-400 hover:border-rose-800 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             );

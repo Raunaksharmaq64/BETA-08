@@ -46,37 +46,10 @@ async def _async_run_continuous_startup_discovery() -> Dict[str, Any]:
         await session.refresh(exec_record)
 
         try:
-            # Synthetic / Satellite discovery leads batch
-            sample_leads = [
-                {
-                    "startup_name": "Nexus Logistics Tech",
-                    "url": "https://nexus-logistics.internal",
-                    "category": "Logistics & Supply Chain",
-                    "detected_signal": "Warehouse inventory sync latency exceeding 45 minutes",
-                    "insight": "High volume dispatch operations bottlenecked by legacy ERP polling instead of webhooks.",
-                    "opportunity": "Modernize event streaming architecture with Kafka / Redis Streams.",
-                    "pitch_idea": "Introduce idempotent webhook ingestion pipeline reducing sync latency to < 2 seconds.",
-                    "score": 8,
-                    "score_explanation": "Critical operational delay affecting 15 regional distribution centers.",
-                    "source": "Hacker News & Logistics Forums",
-                    "created_at": utc_now().isoformat(),
-                },
-                {
-                    "startup_name": "MedSecure Health",
-                    "url": "https://medsecure-health.internal",
-                    "category": "Healthcare & Compliance",
-                    "detected_signal": "HIPAA audit trail fragmentation across multi-cloud clusters",
-                    "insight": "Dispersed audit logs across AWS and GCP failing automated compliance validation.",
-                    "opportunity": "Centralized immutable compliance logging engine.",
-                    "pitch_idea": "Deploy OpenTelemetry compliance collector with tamper-evident S3 archive.",
-                    "score": 9,
-                    "score_explanation": "Regulatory compliance audit deadline approaching in 60 days.",
-                    "source": "Reddit r/sysadmin & HealthTech Discussions",
-                    "created_at": utc_now().isoformat(),
-                },
-            ]
-
-            stats = await StartupService.import_startup_leads(sample_leads, session)
+            # Live internet discovery across Hacker News, Reddit, GitHub, Dev.to, Google News
+            from app.modules.startup_intelligence.service import StartupDiscoveryService
+            discovered_leads = await StartupDiscoveryService.discover_leads(limit=25)
+            stats = await StartupService.import_startup_leads(discovered_leads, session)
             exec_record.status = "SUCCESS"
             exec_record.records_inserted = stats.get("imported_count", 0)
             exec_record.records_updated = stats.get("updated_count", 0)

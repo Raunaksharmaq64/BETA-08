@@ -17,6 +17,7 @@ import hashlib
 import html
 import json
 import re
+import urllib.parse
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -26,15 +27,49 @@ from contracts.sources.schemas import EmploymentType, WorkplaceType
 
 NORMALIZER_VERSION = "1.0.0"
 
-# Common skill keywords to identify in descriptions
+# Common skill keywords across all professional disciplines (Engineering, Marketing, Sales, Design, Finance, Ops, HR, etc.)
 KNOWN_SKILLS = [
+    # Engineering & Technology
     "Python", "FastAPI", "Django", "Flask", "TypeScript", "JavaScript",
     "React", "Next.js", "Vue", "Node.js", "Go", "Golang", "Rust", "Java",
     "Kotlin", "Swift", "C++", "C#", ".NET", "PostgreSQL", "MySQL", "MongoDB",
     "Redis", "Kafka", "RabbitMQ", "Elasticsearch", "AWS", "GCP", "Azure",
     "Docker", "Kubernetes", "Terraform", "CI/CD", "GraphQL", "REST",
     "SQL", "NoSQL", "Git", "Linux", "Microservices", "System Design",
-    "PyTorch", "TensorFlow", "Pandas", "Scikit-Learn", "LLM", "RAG"
+    "PyTorch", "TensorFlow", "Pandas", "Scikit-Learn", "LLM", "RAG",
+    # Marketing & Growth
+    "SEO", "SEM", "Google Ads", "Meta Ads", "Content Marketing", "Copywriting",
+    "Email Marketing", "HubSpot", "Growth Marketing", "Google Analytics", "GA4",
+    "Brand Strategy", "Social Media Marketing", "Performance Marketing", "A/B Testing", "CRO",
+    # Sales & Business Development
+    "B2B Sales", "Salesforce", "Lead Generation", "Cold Outreach", "Account Management",
+    "Pipeline Management", "Negotiation", "Prospecting", "Inbound Sales", "Outbound Sales",
+    "CRM", "Business Development", "Contract Closing",
+    # Product & Design
+    "Product Management", "UI/UX", "Figma", "User Research", "Wireframing",
+    "Prototyping", "Design Systems", "Adobe XD", "Product Strategy", "Agile", "Scrum",
+    "User Journeys", "Usability Testing",
+    # Finance & Accounting
+    "Accounting", "Financial Modeling", "QuickBooks", "Excel", "P&L", "Auditing",
+    "Financial Analysis", "Tax", "Bookkeeping", "Cash Flow", "Forecasting", "Payroll", "ERP", "SAP",
+    # Operations & Logistics
+    "Supply Chain", "Logistics", "Procurement", "Vendor Management", "Inventory Management",
+    "Operations Management", "Process Optimization", "Six Sigma", "Workflow Automation",
+    # HR & Talent Acquisition
+    "Talent Acquisition", "Technical Recruiting", "Employee Relations", "Onboarding",
+    "HRIS", "Workday", "Performance Management", "People Operations", "Greenhouse ATS",
+    # Customer Success & Support
+    "Customer Success", "Customer Support", "Zendesk", "Intercom", "Client Retention",
+    "CSAT", "NPS", "Churn Prevention", "Account Health",
+    # Data & Analytics
+    "Data Analysis", "Tableau", "Power BI", "Data Modeling", "ETL", "Snowflake",
+    "BigQuery", "Data Visualization", "Looker", "Business Intelligence", "Statistics",
+    # Legal & Compliance
+    "Commercial Contracts", "Compliance", "Contract Negotiation", "GDPR", "Corporate Law",
+    "Regulatory Compliance", "Risk Management", "Intellectual Property", "Due Diligence",
+    # Healthcare & Life Sciences
+    "Clinical Operations", "HIPAA", "Healthcare Administration", "Patient Care",
+    "Medical Terminology", "EMR", "EHR", "Clinical Trials"
 ]
 
 
@@ -248,6 +283,27 @@ class NormalizationService:
                     currency = "USD"
                     salary_period = "YEAR"
 
+        elif provider == "lever":
+            title = raw.get("text") or raw.get("title") or "Untitled Position"
+            description_raw = raw.get("descriptionPlain") or raw.get("description") or ""
+            cats = raw.get("categories")
+            if isinstance(cats, dict):
+                location_raw = cats.get("location")
+                department = cats.get("department") or cats.get("team")
+                commitment = cats.get("commitment")
+                if commitment and ("remote" in str(commitment).lower()):
+                    is_remote_flag = True
+            comp_data = raw.get("company")
+            if isinstance(comp_data, str) and comp_data:
+                company_name = comp_data
+
+        elif provider == "remoteok":
+            title = raw.get("position") or raw.get("title") or "Untitled Position"
+            description_raw = raw.get("description") or ""
+            location_raw = raw.get("location") or "Remote"
+            company_name = raw.get("company")
+            is_remote_flag = True
+
         else:
             # Generic fallback
             title = raw.get("title") or raw.get("job_title") or "Untitled Position"
@@ -282,6 +338,11 @@ class NormalizationService:
         dedup_key = cls.compute_dedup_key(company_name, title, location_raw)
 
         # Provenance envelope
+        # Ensure application URL is direct and not blocked by aggregator bot walls
+        clean_app_url = raw_job.listing_url
+        if not clean_app_url or "jooble.org" in clean_app_url.lower():
+            clean_app_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(f'{company_name.strip()} {title.strip()} job apply')}"
+
         provenance = {
             "source_id": source.id,
             "source_key": source.source_key,
@@ -311,7 +372,7 @@ class NormalizationService:
             "salary_period": salary_period,
             "is_salary_estimated": False,  # Strict: Never claim estimated numbers
             "required_skills_json": skills,
-            "application_url": raw_job.listing_url,
+            "application_url": clean_app_url,
             "source_published_at": raw_job.source_published_at,
             "provenance_json": provenance,
         }

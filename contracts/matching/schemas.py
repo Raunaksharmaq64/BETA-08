@@ -42,6 +42,7 @@ class AlertFrequency(StrEnum):
 
 class SearchSortOption(StrEnum):
     """Supported candidate-facing sorting methods."""
+    RELEVANCE = "RELEVANCE"
     BEST_FIT = "BEST_FIT"
     MOST_RECENT = "MOST_RECENT"
     HIGHEST_SALARY = "HIGHEST_SALARY"
@@ -216,6 +217,7 @@ class JobSearchResultItem(BaseModel):
     is_cold_start: bool = Field(default=False, description="True if recommended under cold-start criteria from education/goals without verified resume skills")
     cold_start_explanation: Optional[str] = None
     candidate_feedback_status: Optional[str] = Field(default=None, description="Previous candidate feedback on this opportunity: RELEVANT, NOT_RELEVANT, WRONG_SKILLS, etc.")
+    relevance_score: Optional[float] = Field(default=None, description="Dynamic smart search relevance score matching query, skills, and role")
     matched_skills_preview: List[str] = Field(default_factory=list)
     missing_skills_preview: List[str] = Field(default_factory=list)
 

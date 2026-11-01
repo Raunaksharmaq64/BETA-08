@@ -75,8 +75,14 @@ export default function ResumeUploadPage() {
 
       const res = await apiClient.postForm<any>("/api/v1/resumes", formData);
       if (res.success && res.data) {
-        // Redirect to parsing status view
-        router.push(`/resumes/${res.data.resume_id}/status`);
+        // Automatically initiate parsing pipeline
+        try {
+          await apiClient.post(`/api/v1/resumes/${res.data.resume_id}/parse`);
+        } catch (parseErr) {
+          console.warn("Auto-parse trigger:", parseErr);
+        }
+        // Redirect directly to parsed resume profile & analysis
+        router.push(`/resumes/${res.data.resume_id}/analysis`);
       }
     } catch (err: any) {
       setError(err.message || "Failed to upload resume document.");

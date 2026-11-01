@@ -33,9 +33,9 @@ export default function ResumeStatusPage() {
 
   useEffect(() => {
     if (resumeId) {
-      fetchStatus();
+      router.replace(`/resumes/${resumeId}/analysis`);
     }
-  }, [resumeId]);
+  }, [resumeId, router]);
 
   const handleStartParsing = async () => {
     try {
@@ -116,15 +116,14 @@ export default function ResumeStatusPage() {
             </div>
             <div className="text-left sm:text-right">
               <p className="text-xs text-slate-400 uppercase tracking-wider">Status</p>
-              <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-semibold ${
-                status === "COMPLETED"
+              <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-semibold ${status === "COMPLETED"
                   ? "bg-emerald-900/60 text-emerald-300 border border-emerald-700"
                   : status === "REVIEW_REQUIRED"
-                  ? "bg-amber-900/60 text-amber-300 border border-amber-700"
-                  : status === "FAILED"
-                  ? "bg-rose-900/60 text-rose-300 border border-rose-700"
-                  : "bg-blue-900/60 text-blue-300 border border-blue-700"
-              }`}>
+                    ? "bg-amber-900/60 text-amber-300 border border-amber-700"
+                    : status === "FAILED"
+                      ? "bg-rose-900/60 text-rose-300 border border-rose-700"
+                      : "bg-blue-900/60 text-blue-300 border border-blue-700"
+                }`}>
                 {status}
               </span>
             </div>
@@ -136,15 +135,14 @@ export default function ResumeStatusPage() {
             <div className="space-y-4">
               {steps.map((step, idx) => (
                 <div key={idx} className="flex items-center space-x-4">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                    step.completed
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${step.completed
                       ? "bg-emerald-600 text-white"
                       : step.failed
-                      ? "bg-rose-600 text-white"
-                      : step.active
-                      ? "bg-indigo-600 text-white animate-pulse"
-                      : "bg-slate-800 text-slate-400 border border-slate-700"
-                  }`}>
+                        ? "bg-rose-600 text-white"
+                        : step.active
+                          ? "bg-indigo-600 text-white animate-pulse"
+                          : "bg-slate-800 text-slate-400 border border-slate-700"
+                    }`}>
                     {step.completed ? "✓" : step.failed ? "✕" : idx + 1}
                   </div>
                   <div>

@@ -203,7 +203,7 @@ export default function DiscoveryOperationsPage() {
 
         <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Startup Problem Signals
+            Startup Pain Points
           </div>
           <div className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">
             {statusData?.total_opportunities_discovered.startups.toLocaleString() || 0}
@@ -213,7 +213,7 @@ export default function DiscoveryOperationsPage() {
 
         <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Total Discovered Pipeline
+            Total Discovered Opportunities
           </div>
           <div className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">
             {statusData?.total_opportunities_discovered.total.toLocaleString() || 0}

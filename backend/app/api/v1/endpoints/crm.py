@@ -75,6 +75,7 @@ async def list_applications(
 
 
 @router.get("/stats", response_model=StandardResponse[ApplicationStatsResponse])
+@router.get("/metrics", response_model=StandardResponse[ApplicationStatsResponse])
 async def get_crm_stats(
     request: Request,
     current_user: User = Depends(get_current_active_user),
@@ -193,7 +194,47 @@ async def transition_application_status(
     return StandardResponse(data=result, meta=make_meta(req_id))
 
 
+@router.patch("/{application_id}/status", response_model=StandardResponse[ApplicationResponse])
+async def patch_application_status(
+    application_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+) -> StandardResponse[ApplicationResponse]:
+    """Compatible alias endpoint for updating candidate application status."""
+    req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    target_status = body.get("status") or body.get("to_status")
+    if not target_status:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing target status.")
+
+    trans_req = ApplicationTransitionRequest(
+        to_status=target_status,
+        reason=body.get("reason"),
+        confirm_submission=bool(body.get("confirm_submission") or body.get("confirmSubmission")),
+    )
+
+    def _sync_transition(session: Session) -> ApplicationResponse:
+        try:
+            return CRMService.transition_status(
+                session=session,
+                application_id=application_id,
+                user_id=current_user.id,
+                req=trans_req,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    result = await db.run_sync(_sync_transition)
+    return StandardResponse(data=result, meta=make_meta(req_id))
+
+
 @router.post("/{application_id}/apply-link-opened", response_model=StandardResponse[ApplicationResponse])
+@router.post("/{application_id}/open-apply-link", response_model=StandardResponse[ApplicationResponse])
 async def record_apply_link_opened(
     application_id: str,
     request: Request,

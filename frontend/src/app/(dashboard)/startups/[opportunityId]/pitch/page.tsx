@@ -124,7 +124,7 @@ export default function StartupPitchDraftEditorPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Top Breadcrumb */}
       <div className="flex items-center justify-between">
         <Link href={`/startups/${oppId}`} className="text-sm font-semibold text-indigo-600 hover:underline">
@@ -199,22 +199,21 @@ export default function StartupPitchDraftEditorPage() {
 
       {/* Pitch Editor Workspace */}
       <div className="p-6 bg-white rounded-xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">
             Draft Outreach Message
           </h3>
-          <div className="flex items-center gap-1.5 text-xs">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <span className="text-slate-500 mr-1">Tone:</span>
             {["casual", "formal", "short"].map((t) => (
               <button
                 key={t}
                 onClick={() => handleRegenerateTone(t)}
                 disabled={generating}
-                className={`px-3 py-1 rounded-lg font-medium capitalize transition-colors ${
-                  tone === t
-                    ? "bg-indigo-600 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
+                className={`px-3 py-1 rounded-lg font-medium capitalize transition-colors ${tone === t
+                  ? "bg-indigo-600 text-white"
+                  : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                  }`}
               >
                 {t}
               </button>
@@ -249,17 +248,17 @@ export default function StartupPitchDraftEditorPage() {
         </div>
 
         {/* Buttons */}
-        <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+        <div className="pt-4 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <button
             onClick={() => router.push(`/startups/${oppId}`)}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200"
+            className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 text-center"
           >
             Discard Changes
           </button>
           <button
             onClick={handleSaveDraft}
             disabled={saving}
-            className="px-5 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 shadow-sm"
+            className="px-5 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 shadow-sm text-center"
           >
             {saving ? "Saving Draft..." : "Save Pitch Draft"}
           </button>

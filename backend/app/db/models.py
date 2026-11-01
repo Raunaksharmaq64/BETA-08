@@ -1148,6 +1148,10 @@ class FreelanceOpportunityRecord(Base):
     reviews_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    instagram: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    facebook: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    linkedin: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    twitter: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     required_skills: Mapped[List[Any]] = mapped_column(JSON, default=list, nullable=False)
     suggested_service: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     suggested_pitch: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -1365,6 +1369,13 @@ class StartupOpportunityRecord(Base):
     ai_generated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     problem_explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     how_to_solve_strategy: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    # Social & Direct Founder Contact Channels
+    contact_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    twitter_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    linkedin_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    github_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    contact_page_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     
     # Corroboration & Conflict Metrics
     corroboration_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)

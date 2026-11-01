@@ -409,6 +409,8 @@ class ResumeService:
             enriched_sections["_internships"] = extractions.get("internships", [])
             enriched_sections["_inferred_skills"] = extractions.get("inferred_skills", [])
             enriched_sections["_explicit_skills"] = extractions.get("explicit_skills", extractions.get("skills", {}))
+            enriched_sections["domain_info"] = extractions.get("domain_info", {})
+            enriched_sections["_domain_info"] = extractions.get("domain_info", {})
             enriched_sections["_publications"] = extractions.get("publications", [])
             enriched_sections["_languages"] = extractions.get("languages", [])
             enriched_sections["_awards"] = extractions.get("awards", [])

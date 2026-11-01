@@ -60,6 +60,7 @@ interface OpportunityBasic {
   id: string;
   title: string;
   company_name: string;
+  organization_name?: string;
   description_clean: string;
   employment_type: string;
   is_remote: boolean;
@@ -200,7 +201,7 @@ export default function OpportunityVerificationPage() {
             </button>
             {opp?.application_url && (
               <a
-                href={opp.application_url}
+                href={opp.application_url && !opp.application_url.toLowerCase().includes("jooble.org") ? opp.application_url : `https://www.google.com/search?q=${encodeURIComponent(`${opp.organization_name || opp.company_name || ""} ${opp.title} job apply`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-colors"

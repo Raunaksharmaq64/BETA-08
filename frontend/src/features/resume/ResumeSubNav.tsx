@@ -12,32 +12,27 @@ export function ResumeSubNav({ resumeId }: ResumeSubNavProps) {
   const pathname = usePathname();
 
   const links = [
-    { label: "Status & Pipeline", href: `/resumes/${resumeId}/status` },
-    { label: "Extraction & Evidence", href: `/resumes/${resumeId}/analysis` },
-    { label: "Review Workbench", href: `/resumes/${resumeId}/review` },
-    { label: "ATS & Job Matcher", href: `/resumes/${resumeId}/ats` },
-    { label: "AI Suggestions & Rewrites", href: `/resumes/${resumeId}/suggestions` },
-    { label: "Versions", href: `/resumes/${resumeId}/versions` },
+    { label: "📋 Resume Profile & Skills", href: `/resumes/${resumeId}/analysis` },
+    { label: "🎯 ATS Score & Job Optimizer", href: `/resumes/${resumeId}/ats` },
   ];
 
   return (
-    <div className="flex border-b border-slate-800 mb-8 overflow-x-auto gap-2 text-xs font-medium text-slate-400">
+    <nav className="flex border-b border-slate-800 mb-8 overflow-x-auto scrollbar-none gap-1 sm:gap-2 text-xs font-medium text-slate-400 -mx-4 px-4 sm:mx-0 sm:px-0" aria-label="Resume Sub-Navigation">
       {links.map((link) => {
         const isActive = pathname === link.href;
         return (
           <Link
             key={link.href}
             href={link.href}
-            className={`pb-3 px-3 transition-colors border-b-2 whitespace-nowrap ${
-              isActive
-                ? "border-indigo-500 text-indigo-400 font-semibold"
-                : "border-transparent hover:text-slate-200 hover:border-slate-700"
-            }`}
+            className={`pb-3 px-3 transition-colors border-b-2 whitespace-nowrap ${isActive
+              ? "border-indigo-500 text-indigo-400 font-semibold"
+              : "border-transparent hover:text-slate-200 hover:border-slate-700"
+              }`}
           >
             {link.label}
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }

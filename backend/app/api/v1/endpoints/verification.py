@@ -78,6 +78,9 @@ def _to_evidence_response(ev: VerificationEvidenceRecord) -> VerificationEvidenc
 
 def _to_verification_detail(opp: CanonicalOpportunityRecord, evidence_history: List[VerificationEvidenceRecord]) -> OpportunityVerificationDetailResponse:
     user_friendly_status, user_explanation = VerificationService.get_user_explanation(opp)
+    from app.services.unified_opportunity_service import UnifiedOpportunityService
+    trust_m = UnifiedOpportunityService.compute_trust_metrics("JOB", opp)
+
     return OpportunityVerificationDetailResponse(
         opportunity_id=opp.id,
         verification_status=VerificationStatus(opp.verification_status),
@@ -96,6 +99,11 @@ def _to_verification_detail(opp: CanonicalOpportunityRecord, evidence_history: L
         expires_at=opp.expires_at,
         is_suppressed=opp.is_suppressed,
         evidence_history=[_to_evidence_response(e) for e in evidence_history],
+        trust_tier=trust_m["trust_tier"],
+        trust_score=trust_m["trust_score"],
+        ghost_job_risk=trust_m["ghost_job_risk"],
+        verification_proof=trust_m["verification_proof"],
+        community_signals=trust_m["community_signals"],
     )
 
 
@@ -114,14 +122,79 @@ async def get_opportunity_verification(
 
     def _sync_fetch(session: Session):
         opp = session.get(CanonicalOpportunityRecord, opportunity_id)
-        if not opp:
-            return None
-        evidence = session.execute(
-            select(VerificationEvidenceRecord)
-            .where(VerificationEvidenceRecord.opportunity_id == opportunity_id)
-            .order_by(VerificationEvidenceRecord.check_timestamp.desc())
-        ).scalars().all()
-        return _to_verification_detail(opp, list(evidence))
+        if opp:
+            evidence = session.execute(
+                select(VerificationEvidenceRecord)
+                .where(VerificationEvidenceRecord.opportunity_id == opportunity_id)
+                .order_by(VerificationEvidenceRecord.check_timestamp.desc())
+            ).scalars().all()
+            return _to_verification_detail(opp, list(evidence))
+
+        from app.db.models import FreelanceOpportunityRecord, StartupOpportunityRecord
+        from app.services.unified_opportunity_service import UnifiedOpportunityService
+
+        freelance = session.get(FreelanceOpportunityRecord, opportunity_id)
+        if freelance:
+            trust_m = UnifiedOpportunityService.compute_trust_metrics("FREELANCE", freelance)
+            now = datetime.now(timezone.utc)
+            disc_dt = freelance.discovered_at if freelance.discovered_at else now
+            return OpportunityVerificationDetailResponse(
+                opportunity_id=freelance.id,
+                verification_status=VerificationStatus.OPEN_CONFIRMED,
+                freshness_state=FreshnessState.FRESH,
+                user_friendly_status="Verified Business Lead",
+                user_explanation="Business identity, website health diagnostics, and public contacts verified via LeadHunter engine.",
+                published_at=disc_dt,
+                source_updated_at=disc_dt,
+                first_seen_at=disc_dt,
+                last_seen_at=disc_dt,
+                last_checked_at=freelance.last_verified_at or disc_dt,
+                last_successful_check_at=freelance.last_verified_at or disc_dt,
+                last_verified_at=freelance.last_verified_at or disc_dt,
+                status_changed_at=disc_dt,
+                closed_at=None,
+                expires_at=None,
+                is_suppressed=False,
+                evidence_history=[],
+                trust_tier=trust_m["trust_tier"],
+                trust_score=trust_m["trust_score"],
+                ghost_job_risk=trust_m["ghost_job_risk"],
+                verification_proof=trust_m["verification_proof"],
+                community_signals=trust_m["community_signals"],
+            )
+
+        startup = session.get(StartupOpportunityRecord, opportunity_id)
+        if startup:
+            trust_m = UnifiedOpportunityService.compute_trust_metrics("STARTUP_PAIN_POINT", startup)
+            now = datetime.now(timezone.utc)
+            pub_dt = startup.published_at if startup.published_at else now
+            first_dt = startup.first_seen_at if startup.first_seen_at else now
+            return OpportunityVerificationDetailResponse(
+                opportunity_id=startup.id,
+                verification_status=VerificationStatus.OPEN_CONFIRMED,
+                freshness_state=FreshnessState.FRESH,
+                user_friendly_status=f"Corroborated Signal ({startup.corroboration_count} Sources)",
+                user_explanation="Problem statement independently observed and corroborated across public engineering discussions.",
+                published_at=pub_dt,
+                source_updated_at=first_dt,
+                first_seen_at=first_dt,
+                last_seen_at=first_dt,
+                last_checked_at=startup.last_checked_at or first_dt,
+                last_successful_check_at=startup.last_checked_at or first_dt,
+                last_verified_at=startup.last_checked_at or first_dt,
+                status_changed_at=first_dt,
+                closed_at=None,
+                expires_at=None,
+                is_suppressed=False,
+                evidence_history=[],
+                trust_tier=trust_m["trust_tier"],
+                trust_score=trust_m["trust_score"],
+                ghost_job_risk=trust_m["ghost_job_risk"],
+                verification_proof=trust_m["verification_proof"],
+                community_signals=trust_m["community_signals"],
+            )
+
+        return None
 
     detail = await db.run_sync(_sync_fetch)
     if not detail:

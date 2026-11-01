@@ -58,6 +58,8 @@ export default function FreelanceDetailPage() {
   const [whatsAppCustomMsg, setWhatsAppCustomMsg] = useState("");
   const [generatingWhatsApp, setGeneratingWhatsApp] = useState(false);
   const [whatsAppSuccess, setWhatsAppSuccess] = useState<string | null>(null);
+  const [enriching, setEnriching] = useState(false);
+  const [customWebsiteInput, setCustomWebsiteInput] = useState("");
 
   useEffect(() => {
     if (!opportunityId) return;
@@ -168,6 +170,25 @@ export default function FreelanceDetailPage() {
       setError(err?.message || "Failed to generate outreach draft.");
     } finally {
       setDrafting(false);
+    }
+  };
+
+  const handleEnrichContacts = async (websiteOverride?: string) => {
+    setEnriching(true);
+    setAuditMessage(null);
+    try {
+      const targetWebsite = websiteOverride || customWebsiteInput;
+      const payload = targetWebsite ? { website_url: targetWebsite } : {};
+      const res: any = await apiClient.post(`/freelance/${opportunityId}/enrich-contacts`, payload);
+      if (res?.data) {
+        setAuditMessage("Contact & social profiles enriched from website crawl!");
+        const refreshed = await apiClient.get<any>(`/freelance/${opportunityId}`);
+        setOpp(refreshed.data);
+      }
+    } catch (err: any) {
+      setError(err?.message || "Failed to enrich contact details.");
+    } finally {
+      setEnriching(false);
     }
   };
 
@@ -333,6 +354,28 @@ export default function FreelanceDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Resume & Portfolio Proposal Synergy */}
+          <div className="mt-4 pt-4 border-t border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+                <span>📝</span>
+                <span>Resume &amp; Proposal Portfolio Alignment</span>
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">
+                High-Converting Pitch
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              When pitching {opp.business_name}, highlight past projects matching their technical requirements:
+            </p>
+            <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 text-xs font-mono text-slate-300 space-y-1">
+              <span className="text-amber-400 text-[11px] font-semibold">Recommended Proposal Bullet:</span>
+              <p className="italic">
+                &quot;Delivered full-cycle {opp.suggested_service || 'digital modernization'} projects for local businesses, improving search visibility and customer inquiries by 40%.&quot;
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Website Technical Health & Diagnostics Section */}
@@ -468,6 +511,133 @@ export default function FreelanceDetailPage() {
               />
             </div>
           )}
+        </div>
+
+        {/* Discovered Social Channels & Contact Enrichment */}
+        <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <span>🌐</span> Official Social Media Channels & Outreach
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Public social profiles detected and verified from website crawling and public registries.
+              </p>
+            </div>
+            {opp.website && (
+              <button
+                onClick={() => handleEnrichContacts()}
+                disabled={enriching}
+                className="px-3.5 py-1.5 bg-indigo-600/80 hover:bg-indigo-600 disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition flex items-center space-x-1"
+              >
+                <span>🔍</span>
+                <span>{enriching ? "Crawling..." : "Re-Scan Socials & Email"}</span>
+              </button>
+            )}
+          </div>
+
+          {!opp.website && (
+            <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-lg space-y-2">
+              <p className="text-xs text-slate-300">
+                No website URL listed on Maps. Enter client or business website to crawl for real emails and social profiles:
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="url"
+                  placeholder="e.g. https://apollodental.in"
+                  value={customWebsiteInput}
+                  onChange={(e) => setCustomWebsiteInput(e.target.value)}
+                  className="flex-1 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleEnrichContacts()}
+                  disabled={enriching || !customWebsiteInput.trim()}
+                  className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-semibold rounded-lg transition shrink-0"
+                >
+                  {enriching ? "Crawling..." : "Scan & Enrich ⚡"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            {/* Instagram */}
+            <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs">
+              <span className="text-[11px] font-bold text-pink-400 uppercase flex items-center gap-1">
+                <span>📸</span> Instagram
+              </span>
+              {opp.instagram ? (
+                <a
+                  href={opp.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 text-slate-200 hover:text-pink-300 font-medium truncate block underline"
+                >
+                  View Profile ↗
+                </a>
+              ) : (
+                <span className="text-slate-500 mt-1 block italic text-[11px]">Not detected</span>
+              )}
+            </div>
+
+            {/* Facebook */}
+            <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs">
+              <span className="text-[11px] font-bold text-blue-400 uppercase flex items-center gap-1">
+                <span>👥</span> Facebook
+              </span>
+              {opp.facebook ? (
+                <a
+                  href={opp.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 text-slate-200 hover:text-blue-300 font-medium truncate block underline"
+                >
+                  View Page ↗
+                </a>
+              ) : (
+                <span className="text-slate-500 mt-1 block italic text-[11px]">Not detected</span>
+              )}
+            </div>
+
+            {/* LinkedIn */}
+            <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs">
+              <span className="text-[11px] font-bold text-sky-400 uppercase flex items-center gap-1">
+                <span>💼</span> LinkedIn
+              </span>
+              {opp.linkedin ? (
+                <a
+                  href={opp.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 text-slate-200 hover:text-sky-300 font-medium truncate block underline"
+                >
+                  View Company ↗
+                </a>
+              ) : (
+                <span className="text-slate-500 mt-1 block italic text-[11px]">Not detected</span>
+              )}
+            </div>
+
+            {/* Twitter / X */}
+            <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs">
+              <span className="text-[11px] font-bold text-slate-300 uppercase flex items-center gap-1">
+                <span>🐦</span> Twitter / X
+              </span>
+              {opp.twitter ? (
+                <a
+                  href={opp.twitter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 text-slate-200 hover:text-white font-medium truncate block underline"
+                >
+                  View Handle ↗
+                </a>
+              ) : (
+                <span className="text-slate-500 mt-1 block italic text-[11px]">Not detected</span>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Multi-Channel Outreach Bar (WhatsApp & Direct) */}

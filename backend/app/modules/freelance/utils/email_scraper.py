@@ -23,7 +23,9 @@ class EmailScraper:
         r"\.png$", r"\.jpg$", r"\.jpeg$", r"\.gif$", r"\.svg$", r"\.webp$",
         r"\.css$", r"\.js$", r"\.mp4$", r"\.woff$", r"\.woff2$", r"\.ttf$",
         r"^sentry@", r"^bootstrap@", r"^jquery@", r"^example@", r"^yourname@",
-        r"^email@", r"^user@", r"^domain@", r"^test@",
+        r"^email@", r"^user@", r"^domain@", r"^test@", r"^you@",
+        r"@domain\.com$", r"@example\.com$", r"wixpress\.com$", r"wordpress\.org$",
+        r"sentry\.io$", r"cloudflare\.com$",
     ]
 
     CONTACT_PAGE_KEYWORDS = ["contact", "about", "connect", "reach-us", "get-in-touch"]
@@ -75,7 +77,7 @@ class EmailScraper:
         }
 
         try:
-            resp = safe_request(target, method="GET", headers=headers, timeout=5.0, max_bytes=2 * 1024 * 1024)
+            resp = safe_request(target, method="GET", headers=headers, timeout=5.0, max_bytes=2 * 1024 * 1024, verify_ssl=False)
             return cls.scrape_emails_from_html(resp.text)
         except Exception as e:
             logger.debug(f"[EmailScraper] Failed to scrape {target}: {e}")
@@ -101,10 +103,97 @@ class EmailScraper:
         return links
 
     @classmethod
-    def deep_scrape_business_emails(cls, main_url: str) -> str:
-        """Crawls home page and contact links, returning best discovered public email."""
+    def scrape_socials_from_html(cls, html_content: str) -> Dict[str, str]:
+        """
+        Extract public social media links (Instagram, Facebook, LinkedIn, Twitter/X) from webpage HTML.
+        Filters out sharing widgets, legal policies, and generic intent links.
+        """
+        socials: Dict[str, str] = {
+            "instagram": "",
+            "facebook": "",
+            "linkedin": "",
+            "twitter": "",
+        }
+        if not html_content:
+            return socials
+
+        # Instagram
+        insta_matches = re.findall(
+            r'href=["\'](https?://(?:www\.)?instagram\.com/[a-zA-Z0-9_\-\.]+/?)[^"\']*["\']',
+            html_content,
+            re.IGNORECASE,
+        )
+        for link in insta_matches:
+            lower = link.lower()
+            if not any(x in lower for x in ["/p/", "/tags/", "/explore/", "/reel/", "/directory/", "/accounts/"]):
+                socials["instagram"] = link
+                break
+
+        # Facebook
+        fb_matches = re.findall(
+            r'href=["\'](https?://(?:www\.)?facebook\.com/[a-zA-Z0-9_\-\./]+)[^"\']*["\']',
+            html_content,
+            re.IGNORECASE,
+        )
+        for link in fb_matches:
+            lower = link.lower()
+            if not any(x in lower for x in ["/sharer/", "/policies/", "/groups/", "/events/", "/post/", "/dialog/"]):
+                socials["facebook"] = link
+                break
+
+        # LinkedIn
+        li_matches = re.findall(
+            r'href=["\'](https?://(?:www\.)?linkedin\.com/(?:company|in)/[a-zA-Z0-9_\-\./]+)[^"\']*["\']',
+            html_content,
+            re.IGNORECASE,
+        )
+        for link in li_matches:
+            lower = link.lower()
+            if not any(x in lower for x in ["/shareArticle", "/sharing/", "/pulse/"]):
+                socials["linkedin"] = link
+                break
+
+        # Twitter / X
+        tw_matches = re.findall(
+            r'href=["\'](https?://(?:www\.)?(?:twitter\.com|x\.com)/[a-zA-Z0-9_\-\.]+/?)[^"\']*["\']',
+            html_content,
+            re.IGNORECASE,
+        )
+        for link in tw_matches:
+            lower = link.lower()
+            if not any(x in lower for x in ["/intent/", "/share", "/hashtag/", "/search"]):
+                socials["twitter"] = link
+                break
+
+        return socials
+
+    @classmethod
+    def deep_scrape_socials(cls, main_url: str) -> Dict[str, str]:
+        """Crawl homepage and contact pages to locate verified official social profiles."""
+        enrichment = cls.deep_enrich_contacts(main_url)
+        return enrichment.get("socials", {"instagram": "", "facebook": "", "linkedin": "", "twitter": ""})
+
+    @classmethod
+    def deep_enrich_contacts(cls, main_url: str) -> Dict[str, Any]:
+        """
+        Unified multi-signal contact extraction:
+        Crawls homepage and top contact links in a single pass to discover:
+        - Primary public business email
+        - List of candidate emails
+        - Official social profiles (Instagram, Facebook, LinkedIn, Twitter/X)
+        """
+        result: Dict[str, Any] = {
+            "email": "",
+            "emails": [],
+            "socials": {
+                "instagram": "",
+                "facebook": "",
+                "linkedin": "",
+                "twitter": "",
+            },
+        }
         if not main_url:
-            return ""
+            return result
 
         target = main_url.strip()
         if not target.startswith(("http://", "https://")):
@@ -115,18 +204,51 @@ class EmailScraper:
         }
 
         try:
-            resp = safe_request(target, method="GET", headers=headers, timeout=5.0, max_bytes=2 * 1024 * 1024)
+            resp = safe_request(target, method="GET", headers=headers, timeout=5.0, max_bytes=2 * 1024 * 1024, verify_ssl=False)
             html = resp.text
+
+            # 1. Extract from homepage
             emails = cls.scrape_emails_from_html(html)
+            socials = cls.scrape_socials_from_html(html)
+
+            result["emails"] = emails
             if emails:
-                return emails[0]
+                result["email"] = emails[0]
+            result["socials"] = socials
 
-            contact_links = cls.find_contact_links(target, html)
-            for c_url in contact_links:
-                c_emails = cls.scrape_url(c_url)
-                if c_emails:
-                    return c_emails[0]
+            # 2. Check contact pages if email or socials are incomplete
+            missing_socials = not all(result["socials"].values())
+            if not result["email"] or missing_socials:
+                contact_links = cls.find_contact_links(target, html)
+                for c_url in contact_links:
+                    try:
+                        c_resp = safe_request(c_url, method="GET", headers=headers, timeout=5.0, max_bytes=2 * 1024 * 1024, verify_ssl=False)
+                        c_html = c_resp.text
+
+                        # If email was missing, extract
+                        if not result["email"]:
+                            c_emails = cls.scrape_emails_from_html(c_html)
+                            if c_emails:
+                                result["email"] = c_emails[0]
+                                for em in c_emails:
+                                    if em not in result["emails"]:
+                                        result["emails"].append(em)
+
+                        # If any social was missing, extract
+                        c_socials = cls.scrape_socials_from_html(c_html)
+                        for key, val in c_socials.items():
+                            if not result["socials"].get(key) and val:
+                                result["socials"][key] = val
+                    except Exception:
+                        continue
+
         except Exception as e:
-            logger.debug(f"[EmailScraper] Deep scrape error for {main_url}: {e}")
+            logger.debug(f"[EmailScraper] Deep contact enrichment error for {main_url}: {e}")
 
-        return ""
+        return result
+
+    @classmethod
+    def deep_scrape_business_emails(cls, main_url: str) -> str:
+        """Crawls home page and contact links, returning best discovered public email."""
+        enrichment = cls.deep_enrich_contacts(main_url)
+        return enrichment.get("email", "")

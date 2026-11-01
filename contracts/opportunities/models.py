@@ -115,6 +115,9 @@ class FreelanceOpportunityPayload(BaseModel):
     suggested_pitch: Optional[str] = Field(default=None, description="AI-generated pitch or proposal text.")
     contact_email: Optional[str] = Field(default=None, description="Discovered contact email for decision maker.")
     contact_phone: Optional[str] = Field(default=None, description="Discovered business phone number.")
+    fit_score: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Personalized candidate match score [0.0 to 1.0].")
+    matched_skills: List[str] = Field(default_factory=list, description="Candidate skills matching freelance requirements.")
+    missing_skills: List[str] = Field(default_factory=list, description="Skills missing for this freelance project.")
 
 
 class StartupProblemPayload(BaseModel):
@@ -128,6 +131,9 @@ class StartupProblemPayload(BaseModel):
     tech_stack_detected: List[str] = Field(default_factory=list, description="Technologies detected (e.g. ['React', 'Next.js', 'PostgreSQL']).")
     urgency_score: int = Field(default=5, ge=1, le=10, description="Evaluated hiring or problem urgency (1-10).")
     recommended_solution: Optional[str] = Field(default=None, description="Proposed technical approach for outreach.")
+    fit_score: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="Personalized candidate match score [0.0 to 1.0].")
+    matched_skills: List[str] = Field(default_factory=list, description="Candidate skills matching startup pain point.")
+    missing_skills: List[str] = Field(default_factory=list, description="Skills or tools missing.")
 
 
 # ------------------------------------------------------------------------------

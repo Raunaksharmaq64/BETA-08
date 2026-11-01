@@ -104,6 +104,10 @@ class FreelanceDiscoveryService:
             "reviews_count": reviews,
             "phone": phone or None,
             "email": email or None,
+            "instagram": getattr(lead, "instagram", None) or None,
+            "facebook": getattr(lead, "facebook", None) or None,
+            "linkedin": getattr(lead, "linkedin", None) or None,
+            "twitter": getattr(lead, "twitter", None) or None,
             "required_skills": skills,
             "suggested_service": suggested_service,
             "suggested_pitch": lead.custom_pitch or None,
@@ -141,6 +145,14 @@ class FreelanceDiscoveryService:
                 existing.email = mapped["email"]
             if mapped["phone"] and not existing.phone:
                 existing.phone = mapped["phone"]
+            if mapped.get("instagram") and not existing.instagram:
+                existing.instagram = mapped["instagram"]
+            if mapped.get("facebook") and not existing.facebook:
+                existing.facebook = mapped["facebook"]
+            if mapped.get("linkedin") and not existing.linkedin:
+                existing.linkedin = mapped["linkedin"]
+            if mapped.get("twitter") and not existing.twitter:
+                existing.twitter = mapped["twitter"]
             opp = existing
         else:
             opp = FreelanceOpportunityRecord(
@@ -158,6 +170,10 @@ class FreelanceDiscoveryService:
                 reviews_count=mapped["reviews_count"],
                 phone=mapped["phone"],
                 email=mapped["email"],
+                instagram=mapped.get("instagram"),
+                facebook=mapped.get("facebook"),
+                linkedin=mapped.get("linkedin"),
+                twitter=mapped.get("twitter"),
                 required_skills=mapped["required_skills"],
                 suggested_service=mapped["suggested_service"],
                 suggested_pitch=mapped["suggested_pitch"],
@@ -212,6 +228,54 @@ class FreelanceDiscoveryService:
                     discovered_at=utc_now(),
                 )
             )
+        if mapped.get("instagram"):
+            session.add(
+                ContactEvidenceRecord(
+                    opportunity_id=opp.id,
+                    contact_type="INSTAGRAM",
+                    contact_value=mapped["instagram"],
+                    source="web_social_scraper",
+                    source_evidence_url=mapped["original_source_url"],
+                    evidence_status="VERIFIED",
+                    discovered_at=utc_now(),
+                )
+            )
+        if mapped.get("facebook"):
+            session.add(
+                ContactEvidenceRecord(
+                    opportunity_id=opp.id,
+                    contact_type="FACEBOOK",
+                    contact_value=mapped["facebook"],
+                    source="web_social_scraper",
+                    source_evidence_url=mapped["original_source_url"],
+                    evidence_status="VERIFIED",
+                    discovered_at=utc_now(),
+                )
+            )
+        if mapped.get("linkedin"):
+            session.add(
+                ContactEvidenceRecord(
+                    opportunity_id=opp.id,
+                    contact_type="LINKEDIN",
+                    contact_value=mapped["linkedin"],
+                    source="web_social_scraper",
+                    source_evidence_url=mapped["original_source_url"],
+                    evidence_status="VERIFIED",
+                    discovered_at=utc_now(),
+                )
+            )
+        if mapped.get("twitter"):
+            session.add(
+                ContactEvidenceRecord(
+                    opportunity_id=opp.id,
+                    contact_type="TWITTER",
+                    contact_value=mapped["twitter"],
+                    source="web_social_scraper",
+                    source_evidence_url=mapped["original_source_url"],
+                    evidence_status="VERIFIED",
+                    discovered_at=utc_now(),
+                )
+            )
 
         await session.flush()
         return opp
@@ -251,9 +315,30 @@ class FreelanceDiscoveryService:
         cleaned_leads = DataCleaner.clean_leads(raw_leads)
         filtered_leads = DataCleaner.filter_leads(cleaned_leads, include_with_website)[:max_results]
 
-        # Ingest into Core database
+        # Ingest into Core database with proactive email & socials scraping
+        from app.modules.freelance.utils.email_scraper import EmailScraper
+        import re
+
         imported_opportunities: List[FreelanceOpportunityRecord] = []
         for lead in filtered_leads:
+            # 1. Scrape real email and socials if website is available
+            if lead.website and not lead.is_broken_website:
+                try:
+                    enrichment = EmailScraper.deep_enrich_contacts(lead.website)
+                    if enrichment.get("email") and not lead.email:
+                        lead.email = enrichment["email"]
+                    socials = enrichment.get("socials", {})
+                    if socials.get("instagram") and not lead.instagram:
+                        lead.instagram = socials["instagram"]
+                    if socials.get("facebook") and not lead.facebook:
+                        lead.facebook = socials["facebook"]
+                    if socials.get("linkedin") and not getattr(lead, "linkedin", None):
+                        lead.linkedin = socials["linkedin"]
+                    if socials.get("twitter") and not getattr(lead, "twitter", None):
+                        lead.twitter = socials["twitter"]
+                except Exception as crawl_err:
+                    logger.debug(f"[DiscoveryService] Web crawl notice for {lead.name}: {crawl_err}")
+
             opp = await cls.import_discovered_lead(session, lead)
             imported_opportunities.append(opp)
 
@@ -302,6 +387,10 @@ class FreelanceDiscoveryService:
                     "reviews_count": o.reviews_count,
                     "phone": o.phone,
                     "email": o.email,
+                    "instagram": o.instagram,
+                    "facebook": o.facebook,
+                    "linkedin": o.linkedin,
+                    "twitter": o.twitter,
                     "priority": o.priority,
                     "classification_state": o.classification_state,
                     "relevance_score": o.relevance_score,

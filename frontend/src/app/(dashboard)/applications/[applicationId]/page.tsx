@@ -46,8 +46,9 @@ interface ApplicationDetail {
   title_display: string;
   workplace_type?: string;
   city?: string;
-  status_history: StatusHistoryItem[];
-  notes: NoteItem[];
+  status_history?: StatusHistoryItem[];
+  notes?: NoteItem[];
+  recent_notes?: NoteItem[];
 }
 
 const VALID_STATUSES = [
@@ -84,13 +85,29 @@ export default function ApplicationDetailPage() {
   const [isPinned, setIsPinned] = useState(false);
   const [addingNote, setAddingNote] = useState(false);
 
+  const normalizeApp = (raw: any): ApplicationDetail => {
+    if (!raw) return raw;
+    const rawNotes = raw.notes || raw.recent_notes || [];
+    const rawHistory = raw.status_history || [];
+    return {
+      ...raw,
+      company_display: raw.company_display || raw.company_name || raw.custom_company_name || "Company",
+      title_display: raw.title_display || raw.job_title || raw.custom_job_title || "Job Application",
+      notes: Array.isArray(rawNotes) ? rawNotes : [],
+      status_history: Array.isArray(rawHistory) ? rawHistory : [],
+    };
+  };
+
   const fetchApplication = async () => {
     if (!applicationId) return;
     setLoading(true);
     try {
-      const res = await apiClient<ApplicationDetail>(`/applications/${applicationId}`);
-      setApplication(res.data);
-      setTargetStatus(res.data.status);
+      const res = await apiClient<any>(`/applications/${applicationId}`);
+      if (res.data) {
+        const norm = normalizeApp(res.data);
+        setApplication(norm);
+        setTargetStatus(norm.status);
+      }
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to load application details.");
     } finally {
@@ -110,18 +127,27 @@ export default function ApplicationDetailPage() {
 
   const handleOpenApplyLink = async () => {
     if (!application?.application_url) return;
+    const comp = application.company_display || application.custom_company_name || "Company";
+
+    const title = application.title_display || application.custom_job_title || "Job";
+
+    const safeUrl = application.application_url.toLowerCase().includes("jooble.org")
+
+      ? `https://www.google.com/search?q=${encodeURIComponent(`${comp} ${title} job apply`)}`
+
+      : application.application_url;
     try {
       // Notify backend to track opening timestamp
       const res = await apiClient<ApplicationDetail>(
         `/applications/${applicationId}/open-apply-link`,
         { method: "POST" }
       );
-      setApplication(res.data);
+      setApplication(normalizeApp(res.data));
       // Open link in new tab
-      window.open(application.application_url, "_blank", "noopener,noreferrer");
+      window.open(safeUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
       console.error("Failed to track apply link opening:", err);
-      window.open(application.application_url, "_blank", "noopener,noreferrer");
+      window.open(safeUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -140,7 +166,7 @@ export default function ApplicationDetailPage() {
           }),
         }
       );
-      setApplication(res.data);
+      setApplication(normalizeApp(res.data));
       setIsConfirmApplyModalOpen(false);
       setTransitionReason("");
     } catch (err: any) {
@@ -372,7 +398,10 @@ export default function ApplicationDetailPage() {
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
             <h2 className="text-base font-bold text-white">Auditable State History</h2>
             <div className="relative border-l border-slate-800 pl-4 space-y-4 ml-2">
-              {application.status_history.map((hist) => (
+              {(application.status_history || []).length === 0 ? (
+                <div className="text-xs text-slate-500 py-2">No status history recorded yet.</div>
+              ) : (
+                (application.status_history || []).map((hist) => (
                 <div key={hist.id} className="relative">
                   <div className="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-slate-900" />
                   <div className="text-xs">
@@ -390,7 +419,8 @@ export default function ApplicationDetailPage() {
                     )}
                   </div>
                 </div>
-              ))}
+              )))
+              }
             </div>
           </div>
         </div>
@@ -435,12 +465,12 @@ export default function ApplicationDetailPage() {
 
             {/* Notes List */}
             <div className="space-y-3 pt-2">
-              {application.notes.length === 0 ? (
+              {(application.notes || []).length === 0 ? (
                 <div className="text-center py-6 text-xs text-slate-500">
                   No notes recorded yet. Keep personal reminders and research here.
                 </div>
               ) : (
-                application.notes
+                (application.notes || [])
                   .slice()
                   .sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0))
                   .map((note) => (

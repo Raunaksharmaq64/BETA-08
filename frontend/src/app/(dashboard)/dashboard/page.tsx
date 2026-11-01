@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiClient } from "@/services/apiClient";
+import { fastCache } from "@/services/fastCache";
+import VerificationProofModal, { VerificationItem } from "@/components/opportunities/VerificationProofModal";
 
 interface SummaryMetrics {
   total_opportunities: number;
@@ -38,35 +40,65 @@ interface OpportunityItem {
   freshness_state?: string;
   classification_state?: string;
   is_saved?: boolean;
+  is_new_signal?: boolean;
+  opportunity_domain?: string;
+  domain_display_name?: string;
+  domain_icon?: string;
+  candidate_fit?: {
+    fit_score: number;
+    fit_percentage: number;
+    fit_rating: string;
+    how_you_fit: string;
+    matched_skills: string[];
+    missing_skills: string[];
+  };
+  trust_metrics?: any;
   type_specific_payload: any;
 }
 
 export default function UnifiedDashboardPage() {
-  const [metrics, setMetrics] = useState<SummaryMetrics | null>(null);
-  const [health, setHealth] = useState<SourceHealth | null>(null);
-  const [recentOpportunities, setRecentOpportunities] = useState<OpportunityItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState<SummaryMetrics | null>(() => {
+    return fastCache.get<SummaryMetrics>("dash_metrics") || null;
+  });
+  const [health, setHealth] = useState<SourceHealth | null>(() => {
+    return fastCache.get<SourceHealth>("dash_health") || null;
+  });
+  const [recentOpportunities, setRecentOpportunities] = useState<OpportunityItem[]>(() => {
+    return fastCache.get<OpportunityItem[]>("dash_recent_opps") || [];
+  });
+  const [loading, setLoading] = useState(() => {
+    return !fastCache.get<SummaryMetrics>("dash_metrics");
+  });
   const [error, setError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [proofItem, setProofItem] = useState<VerificationItem | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchDashboard = async () => {
-    setLoading(true);
+  const fetchDashboard = async (forceFresh = false) => {
+    if (!metrics) setLoading(true);
+    if (forceFresh) setIsRefreshing(true);
     setError(null);
     try {
-      const res: any = await apiClient.get("/dashboard");
+      const url = forceFresh ? `/dashboard?refresh=true&_t=${Date.now()}` : "/dashboard";
+      const res: any = await apiClient.get(url);
       const data = res.data;
       setMetrics(data.summary_metrics);
       setHealth(data.source_health);
       setRecentOpportunities(data.recent_opportunities || []);
+      fastCache.set("dash_metrics", data.summary_metrics, 30000);
+      fastCache.set("dash_health", data.source_health, 30000);
+      fastCache.set("dash_recent_opps", data.recent_opportunities || [], 30000);
     } catch (err: any) {
-      setError(err?.message || "Failed to load dashboard metrics.");
+      if (!metrics) setError(err?.message || "Failed to load dashboard metrics.");
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchDashboard();
+    // Always trigger fresh background sync on reload / navigation
+    fetchDashboard(true);
   }, []);
 
   const handleToggleSave = async (item: OpportunityItem) => {
@@ -100,10 +132,19 @@ export default function UnifiedDashboardPage() {
             Career Intelligence Dashboard
           </h1>
           <p className="mt-2 text-sm text-slate-400">
-            Unified view across full-time jobs, freelance leads, startup signals, and candidate CRM.
+            Unified view across verified full-time jobs, freelance gigs, startup pain points, and applications.
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => fetchDashboard(true)}
+            disabled={isRefreshing}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-semibold text-slate-200 border border-slate-700 transition-colors disabled:opacity-60"
+            title="Fetch real-time updates and fresh metrics"
+          >
+            <span className={isRefreshing ? "animate-spin" : ""}>🔄</span>
+            {isRefreshing ? "Refreshing..." : "Refresh Live Data"}
+          </button>
           <Link
             href="/opportunities"
             className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white shadow-sm transition-colors"
@@ -140,7 +181,7 @@ export default function UnifiedDashboardPage() {
                 : "Partial Service Degradation — Returning Available Aggregates"}
             </span>
           </div>
-          <div className="flex items-center gap-4 text-xs font-mono">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono">
             <span>Core: <strong className="text-white">{health.core_career_engine}</strong></span>
             <span>LeadHunter: <strong className="text-white">{health.leadhunter_satellite}</strong></span>
             <span>Startup Intel: <strong className="text-white">{health.startup_intelligence_satellite}</strong></span>
@@ -155,7 +196,7 @@ export default function UnifiedDashboardPage() {
       )}
 
       {/* Summary KPI Grid */}
-      {loading ? (
+      {loading && !metrics ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-pulse">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="h-28 rounded-xl bg-slate-900 border border-slate-800" />
@@ -163,9 +204,9 @@ export default function UnifiedDashboardPage() {
         </div>
       ) : metrics ? (
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span className="font-semibold tracking-wide uppercase text-slate-300">Aggregated Pipeline Totals</span>
-            <span className="bg-slate-800/80 px-2.5 py-1 rounded border border-slate-700 text-slate-300 font-mono">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-400">
+            <span className="font-semibold tracking-wide uppercase text-slate-300">Live Opportunities Overview</span>
+            <span className="bg-slate-850 px-2.5 py-1 rounded border border-slate-750 text-slate-300 font-mono text-[11px] sm:text-xs">
               Reconciled: {metrics.total_opportunities} = {metrics.total_jobs} (Jobs) + {metrics.total_freelance} (Freelance) + {metrics.total_startups} (Startups)
             </span>
           </div>
@@ -176,11 +217,11 @@ export default function UnifiedDashboardPage() {
               href="/opportunities"
               className="p-5 rounded-xl bg-gradient-to-br from-indigo-900/40 to-slate-900 border border-indigo-700/50 hover:border-indigo-500 transition-all group"
             >
-              <div className="text-xs font-medium text-indigo-300 uppercase tracking-wider">Total Pipeline</div>
+              <div className="text-xs font-medium text-indigo-300 uppercase tracking-wider">Total Opportunities</div>
               <div className="mt-2 text-3xl font-black text-white group-hover:text-indigo-400 transition-colors">
                 {metrics.total_opportunities}
               </div>
-              <div className="mt-1 text-xs text-slate-400">Aggregated active leads</div>
+              <div className="mt-1 text-xs text-slate-400">Aggregated live openings</div>
             </Link>
 
             {/* 2. Canonical Jobs */}
@@ -200,11 +241,11 @@ export default function UnifiedDashboardPage() {
               href="/opportunities?type=FREELANCE"
               className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-600 transition-all group"
             >
-              <div className="text-xs font-medium text-emerald-400 uppercase tracking-wider">Freelance Leads</div>
+              <div className="text-xs font-medium text-emerald-400 uppercase tracking-wider">Freelance Projects</div>
               <div className="mt-2 text-3xl font-black text-white group-hover:text-emerald-400 transition-colors">
                 {metrics.total_freelance}
               </div>
-              <div className="mt-1 text-xs text-slate-400">LeadHunter businesses</div>
+              <div className="mt-1 text-xs text-slate-400">Direct business outreach</div>
             </Link>
 
             {/* 4. Startup Pain Points */}
@@ -212,11 +253,11 @@ export default function UnifiedDashboardPage() {
               href="/opportunities?type=STARTUP_PAIN_POINT"
               className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-purple-600 transition-all group"
             >
-              <div className="text-xs font-medium text-purple-400 uppercase tracking-wider">Startup Signals</div>
+              <div className="text-xs font-medium text-purple-400 uppercase tracking-wider">Startup Pain Points</div>
               <div className="mt-2 text-3xl font-black text-white group-hover:text-purple-400 transition-colors">
                 {metrics.total_startups}
               </div>
-              <div className="mt-1 text-xs text-slate-400">Pain points & opportunities</div>
+              <div className="mt-1 text-xs text-slate-400">Technical bottlenecks & demands</div>
             </Link>
 
             {/* 5. Total Bookmarks */}
@@ -240,7 +281,7 @@ export default function UnifiedDashboardPage() {
               <div className="mt-2 text-3xl font-black text-white group-hover:text-cyan-400 transition-colors">
                 {metrics.active_applications}
               </div>
-              <div className="mt-1 text-xs text-slate-400">Tracked in Candidate CRM</div>
+              <div className="mt-1 text-xs text-slate-400">Tracked in Application CRM</div>
             </Link>
 
             {/* 7. High Urgency Startups */}
@@ -248,7 +289,7 @@ export default function UnifiedDashboardPage() {
               href="/opportunities?type=STARTUP_PAIN_POINT"
               className="p-5 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-600 transition-all group"
             >
-              <div className="text-xs font-medium text-rose-400 uppercase tracking-wider">Urgent Signals (≥8/10)</div>
+              <div className="text-xs font-medium text-rose-400 uppercase tracking-wider">High-Urgency Problems (≥8/10)</div>
               <div className="mt-2 text-3xl font-black text-white group-hover:text-rose-400 transition-colors">
                 {metrics.high_urgency_signals}
               </div>
@@ -271,18 +312,18 @@ export default function UnifiedDashboardPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
-            <h2 className="text-xl font-bold text-white">Recent Cross-Module Ingestions</h2>
-            <p className="text-xs text-slate-400">Latest discovered items across jobs, freelance, and startup intelligence.</p>
+            <h2 className="text-xl font-bold text-white">Recent Live Opportunities</h2>
+            <p className="text-xs text-slate-400">Latest discovered positions and pain points across live job boards, freelance leads, and startup intelligence.</p>
           </div>
           <Link
             href="/opportunities"
             className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
           >
-            View all pipeline →
+            View all opportunities →
           </Link>
         </div>
 
-        {loading ? (
+        {loading && recentOpportunities.length === 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="h-44 rounded-xl bg-slate-900 border border-slate-800 animate-pulse" />
@@ -313,14 +354,26 @@ export default function UnifiedDashboardPage() {
                   className="p-5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 flex flex-col justify-between transition-all"
                 >
                   <div className="space-y-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
-                          typeBadgeColors[item.opportunity_type] || "bg-slate-800 text-slate-300 border-slate-700"
-                        }`}
-                      >
-                        {typeLabels[item.opportunity_type]}
-                      </span>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
+                            typeBadgeColors[item.opportunity_type] || "bg-slate-800 text-slate-300 border-slate-700"
+                          }`}
+                        >
+                          {typeLabels[item.opportunity_type]}
+                        </span>
+                        {item.domain_display_name && (
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                            {item.domain_icon} {item.domain_display_name}
+                          </span>
+                        )}
+                        {item.is_new_signal && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 animate-pulse">
+                            ✨ NEW
+                          </span>
+                        )}
+                      </div>
                       <span className="text-xs text-slate-400 font-medium">
                         {item.source_name}
                       </span>
@@ -337,6 +390,26 @@ export default function UnifiedDashboardPage() {
                     <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
                       {item.short_description}
                     </p>
+
+                    {/* Dynamic Candidate Fit */}
+                    {item.candidate_fit && (
+                      <div className="p-2 rounded-lg bg-slate-950/80 border border-indigo-950/80 text-[11px] space-y-1">
+                        <div className="flex items-center justify-between font-bold text-white">
+                          <span className="flex items-center gap-1">
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                item.candidate_fit.fit_percentage >= 80 ? "bg-emerald-400" : "bg-blue-400"
+                              }`}
+                            />
+                            Fit: {item.candidate_fit.fit_percentage}% ({item.candidate_fit.fit_rating})
+                          </span>
+                          <span className="text-[10px] text-indigo-300 font-mono">Resume Synergy</span>
+                        </div>
+                        <p className="text-slate-300 line-clamp-1 text-[11px]">
+                          {item.candidate_fit.how_you_fit}
+                        </p>
+                      </div>
+                    )}
 
                     {/* Specific payload badges */}
                     <div className="text-xs text-slate-400 flex flex-wrap gap-2 pt-1 font-mono">
@@ -356,20 +429,56 @@ export default function UnifiedDashboardPage() {
                         </span>
                       )}
                     </div>
+
+                    {/* Trust Tier & Ghost Job Indicator */}
+                    {item.trust_metrics && (
+                      <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1 flex-wrap text-[10px]">
+                        <span className="inline-flex items-center gap-1 font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-2 py-0.5 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          {item.trust_metrics.trust_tier_label}
+                        </span>
+                        <span className="text-slate-400 font-mono">
+                          👻 {item.trust_metrics.ghost_job_risk.urgency_label}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                    <button
-                      onClick={() => handleToggleSave(item)}
-                      disabled={savingId === item.opportunity_id}
-                      className={`text-xs font-semibold px-2.5 py-1 rounded transition-colors ${
-                        item.is_saved
-                          ? "bg-amber-900/60 text-amber-300 border border-amber-700/60"
-                          : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
-                      }`}
-                    >
-                      {item.is_saved ? "★ Bookmarked" : "☆ Save"}
-                    </button>
+                  <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleToggleSave(item)}
+                        disabled={savingId === item.opportunity_id}
+                        className={`text-xs font-semibold px-2.5 py-1 rounded transition-colors ${
+                          item.is_saved
+                            ? "bg-amber-900/60 text-amber-300 border border-amber-700/60"
+                            : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
+                        }`}
+                      >
+                        {item.is_saved ? "★ Bookmarked" : "☆ Save"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setProofItem(item as any)}
+                        className="text-xs font-semibold px-2 py-1 rounded bg-slate-800 hover:bg-slate-750 text-indigo-300 border border-indigo-700/50 hover:border-indigo-400 transition-colors flex items-center gap-1"
+                        title="Inspect verifiable proof and ATS handshake"
+                      >
+                        <span>🛡️</span>
+                        <span>Proof</span>
+                      </button>
+
+                      {item.opportunity_type === "JOB" && (
+                        <Link
+                          href={`/jobs/${item.opportunity_id}`}
+                          className="text-xs font-semibold px-2 py-1 rounded bg-indigo-950/80 hover:bg-indigo-900 text-indigo-300 border border-indigo-700/60 transition-colors flex items-center gap-1"
+                          title="View match breakdown and missing skills for your resume"
+                        >
+                          <span>🎯</span>
+                          <span>Match & Gaps</span>
+                        </Link>
+                      )}
+                    </div>
 
                     {item.source_url ? (
                       <a
@@ -395,6 +504,12 @@ export default function UnifiedDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Authenticity & Verification Proof Modal */}
+      <VerificationProofModal
+        item={proofItem}
+        onClose={() => setProofItem(null)}
+      />
     </div>
   );
 }

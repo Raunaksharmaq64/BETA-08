@@ -174,3 +174,31 @@ def test_fit_score_bounds_validation():
             application_url="https://jobs.example.com",
         )
 
+
+def test_freelance_and_startup_payload_personalized_fit_fields():
+    """Verifies that Freelance and Startup problem payloads support personalized candidate fit metadata."""
+    freelance_payload = FreelanceOpportunityPayload(
+        business_category="Marketing Agency",
+        website_url="https://growthagency.example.com",
+        fit_score=0.88,
+        matched_skills=["SEO", "Content Marketing"],
+        missing_skills=["HubSpot CRM"],
+    )
+    assert freelance_payload.fit_score == 0.88
+    assert freelance_payload.matched_skills == ["SEO", "Content Marketing"]
+    assert freelance_payload.missing_skills == ["HubSpot CRM"]
+
+    startup_payload = StartupProblemPayload(
+        target_startup="OmniFlow Growth",
+        pain_point_summary="GA4 Multi-touch attribution tracking failure",
+        problem_category="Marketing",
+        community_source="Reddit",
+        fit_score=0.94,
+        matched_skills=["Google Analytics", "Data Tracking"],
+        missing_skills=["Mixpanel"],
+    )
+    assert startup_payload.fit_score == 0.94
+    assert startup_payload.matched_skills == ["Google Analytics", "Data Tracking"]
+    assert startup_payload.missing_skills == ["Mixpanel"]
+
+

@@ -179,50 +179,9 @@ export default function OutreachActivityPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-[11px] text-slate-400 mb-1">
-                  Primary Maps Discovery Provider
-                </label>
-                <select
-                  value={mapsProvider}
-                  onChange={(e) => setMapsProvider(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="serpapi">SerpApi (Google Maps Engine)</option>
-                  <option value="apify">Apify (Google Places Crawler)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">
-                  SerpApi Key {settings?.has_serpapi_key && <span className="text-emerald-400 font-bold">(Configured ✓)</span>}
-                </label>
-                <input
-                  type="password"
-                  value={serpapiKey}
-                  onChange={(e) => setSerpapiKey(e.target.value)}
-                  placeholder={settings?.has_serpapi_key ? "••••••••••••" : "Paste SerpApi key"}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">
-                  Apify Token {settings?.has_apify_token && <span className="text-emerald-400 font-bold">(Configured ✓)</span>}
-                </label>
-                <input
-                  type="password"
-                  value={apifyToken}
-                  onChange={(e) => setApifyToken(e.target.value)}
-                  placeholder={settings?.has_apify_token ? "••••••••••••" : "Paste Apify token"}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">
                   Google Gemini AI Key {settings?.has_gemini_key && <span className="text-emerald-400 font-bold">(Configured ✓)</span>}
                 </label>
                 <input
-                  type="password"
                   value={geminiKey}
                   onChange={(e) => setGeminiKey(e.target.value)}
                   placeholder={settings?.has_gemini_key ? "••••••••••••" : "Paste Gemini API key"}

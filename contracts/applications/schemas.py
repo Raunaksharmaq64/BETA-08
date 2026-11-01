@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # ==============================================================================
@@ -85,8 +85,10 @@ class NotificationCategory(StrEnum):
 
 class ApplicationCreateRequest(BaseModel):
     opportunity_id: Optional[str] = Field(default=None, description="Linked canonical opportunity UUID if applicable")
-    company_name: str = Field(..., min_length=1, max_length=150)
-    job_title: str = Field(..., min_length=1, max_length=150)
+    company_name: Optional[str] = Field(default=None, max_length=150)
+    job_title: Optional[str] = Field(default=None, max_length=150)
+    custom_company_name: Optional[str] = Field(default=None, max_length=150, description="Alias for company_name")
+    custom_job_title: Optional[str] = Field(default=None, max_length=150, description="Alias for job_title")
     application_url: Optional[str] = Field(default=None, max_length=1000)
     status: ApplicationStatus = Field(default=ApplicationStatus.SAVED)
     initial_notes: Optional[str] = Field(default=None, max_length=2000)
@@ -94,6 +96,22 @@ class ApplicationCreateRequest(BaseModel):
     contact_email: Optional[str] = Field(default=None, max_length=150)
     salary_offered: Optional[float] = None
     salary_currency: Optional[str] = Field(default="USD", max_length=10)
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_company_and_title(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            c_name = data.get("company_name") or data.get("custom_company_name")
+            j_title = data.get("job_title") or data.get("custom_job_title")
+            if c_name:
+                data["company_name"] = str(c_name).strip()
+            else:
+                data["company_name"] = "Target Employer"
+            if j_title:
+                data["job_title"] = str(j_title).strip()
+            else:
+                data["job_title"] = "Prospective Opportunity"
+        return data
 
 
 class ApplicationUpdateRequest(BaseModel):
@@ -147,6 +165,8 @@ class ApplicationResponse(BaseModel):
     opportunity_id: Optional[str] = None
     company_name: str
     job_title: str
+    company_display: Optional[str] = None
+    title_display: Optional[str] = None
     application_url: Optional[str] = None
     status: ApplicationStatus
     applied_at: Optional[datetime] = None
@@ -159,6 +179,7 @@ class ApplicationResponse(BaseModel):
     contact_email: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    notes_count: int = 0
     status_history: List[StatusHistoryItem] = Field(default_factory=list)
     recent_notes: List[ApplicationNoteResponse] = Field(default_factory=list)
 
@@ -169,6 +190,10 @@ class ApplicationStatsResponse(BaseModel):
     active_interviews: int = 0
     pending_follow_ups: int = 0
     offers_received: int = 0
+    active_pipeline: int = 0
+    interviews_scheduled: int = 0
+    rejections_received: int = 0
+    stalled_or_ghosted: int = 0
 
 
 # ==============================================================================

@@ -32,6 +32,7 @@ router = APIRouter(tags=["Unified Opportunities & Dashboard"])
 
 class SaveOpportunityRequest(BaseModel):
     notes: Optional[str] = Field(default=None, description="Candidate's private bookmark notes")
+    category: Optional[str] = Field(default=None, description="Folder/Tag category: HIGH_FIT, APPLY_SOON, OUTREACH_LEAD, STARTUP_SOLVE, RESEARCHING")
 
 
 class OpportunityFeedbackRequest(BaseModel):
@@ -46,8 +47,26 @@ class OpportunityFeedbackRequest(BaseModel):
 # Endpoints
 # -----------------------------------------------------------------------------
 
+@router.post("/opportunities/refresh", summary="Dynamically refresh real-time market signals and opportunities")
+async def refresh_opportunities(
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
+    """
+    Dynamically scans and injects fresh real-time opportunities and startup pain points
+    across multiple disciplines (Engineering, Marketing, Sales, Product, Finance, Ops).
+    """
+    refreshed_count = await UnifiedOpportunityService.refresh_market_signals(db)
+    return {
+        "success": True,
+        "message": f"Successfully synced and refreshed {refreshed_count} market signals.",
+        "refreshed_count": refreshed_count,
+    }
+
+
 @router.get("/dashboard", summary="Unified candidate dashboard metrics and recent opportunities")
 async def get_dashboard(
+    refresh: bool = Query(default=False, description="Whether to bypass cache and fetch live real-time metrics"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[User] = Depends(get_optional_current_user),
 ):
@@ -56,7 +75,9 @@ async def get_dashboard(
     Reconciles: total_opportunities == total_jobs + total_freelance + total_startups.
     """
     user_id = current_user.id if current_user else None
-    data = await UnifiedOpportunityService.get_unified_dashboard_metrics(db, user_id=user_id)
+    if refresh:
+        UnifiedOpportunityService.clear_caches()
+    data = await UnifiedOpportunityService.get_unified_dashboard_metrics(db, user_id=user_id, force_fresh=refresh)
     return {
         "success": True,
         "data": data,
@@ -68,8 +89,12 @@ async def list_unified_opportunities(
     type: str = Query(default="ALL", description="Opportunity type: ALL, JOB, FREELANCE, STARTUP_PAIN_POINT"),
     search: Optional[str] = Query(default=None, description="Search term for title or organization"),
     category: Optional[str] = Query(default=None, description="Category filter"),
+    discipline: Optional[str] = Query(default=None, description="Discipline: MARKETING_GROWTH, SALES_BD, PRODUCT_DESIGN, FINANCE_ACCOUNTING, OPERATIONS_LOGISTICS, HR_TALENT, CUSTOMER_SUCCESS, DATA_ANALYTICS, HEALTHCARE_MEDICAL, LEGAL_COMPLIANCE, SOFTWARE_ENGINEERING"),
+    sort_by: str = Query(default="BEST_FIT", description="Sort by: BEST_FIT, NEWEST, URGENCY"),
+    refresh: bool = Query(default=False, description="Whether to trigger fresh signal refresh"),
     source: Optional[str] = Query(default=None, description="Source platform filter"),
     min_score: Optional[int] = Query(default=None, ge=1, le=10, description="Minimum urgency/rating score"),
+    employment_type: Optional[str] = Query(default=None, description="Employment type filter: FULL_TIME, INTERNSHIP, CONTRACT"),
     page: int = Query(default=1, ge=1, description="Page number"),
     per_page: int = Query(default=20, ge=1, le=100, description="Items per page"),
     db: AsyncSession = Depends(get_db),
@@ -78,7 +103,7 @@ async def list_unified_opportunities(
     """
     Aggregates opportunities across Core Canonical Jobs, LeadHunter Freelance Leads,
     and Startup Intelligence Pain Points into standard OpportunityEnvelopes.
-    Includes service availability metadata and degraded fallback states.
+    Adapts dynamically to the candidate's resume/domain and calculates why the candidate fits.
     """
     user_id = current_user.id if current_user else None
     result = await UnifiedOpportunityService.aggregate_opportunities(
@@ -91,19 +116,25 @@ async def list_unified_opportunities(
         page=page,
         per_page=per_page,
         user_id=user_id,
+        discipline=discipline,
+        sort_by=sort_by,
+        refresh=refresh,
+        employment_type=employment_type,
     )
     return result
 
 
 @router.get("/opportunities/saved/all", summary="List all saved opportunities across types")
 async def list_saved_opportunities(
+    category: Optional[str] = Query(default=None, description="Filter by bookmark folder category"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Returns candidate's saved items across Jobs, Freelance, and Startups."""
+    """Returns candidate's saved items across Jobs, Freelance, and Startups with category categorization."""
     saved_items = await UnifiedOpportunityService.list_all_saved_opportunities(
         user_id=current_user.id,
         session=db,
+        category_filter=category,
     )
     return {
         "success": True,
@@ -120,14 +151,16 @@ async def save_opportunity(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Bookmarks a Job, Freelance, or Startup opportunity for the candidate."""
+    """Bookmarks a Job, Freelance, or Startup opportunity for the candidate with optional category."""
     notes = body.notes if body else None
+    category = body.category if body else None
     try:
         saved = await UnifiedOpportunityService.save_unified_opportunity(
             user_id=current_user.id,
             opportunity_type=opportunity_type,
             opportunity_id=opportunity_id,
             notes=notes,
+            category=category,
             session=db,
         )
         return {

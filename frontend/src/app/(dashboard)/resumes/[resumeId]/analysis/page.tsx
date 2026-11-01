@@ -14,6 +14,27 @@ export default function ResumeAnalysisPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEvidence, setShowEvidence] = useState(true);
+  const [suggestedJobs, setSuggestedJobs] = useState<any[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(false);
+
+  useEffect(() => {
+    const fetchSuggestedJobs = async () => {
+      try {
+        setLoadingJobs(true);
+        const res: any = await apiClient.get(`/resumes/${resumeId}/suggested-jobs?limit=3`);
+        if (res?.data) {
+          setSuggestedJobs(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to load suggested jobs for resume:", err);
+      } finally {
+        setLoadingJobs(false);
+      }
+    };
+    if (resumeId) {
+      fetchSuggestedJobs();
+    }
+  }, [resumeId]);
 
   useEffect(() => {
     const fetchExtraction = async () => {
@@ -62,24 +83,19 @@ export default function ResumeAnalysisPage() {
           <Link href="/resumes" className="text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center mb-1">
             ← Back to Resumes
           </Link>
-          <h1 className="text-2xl font-bold text-slate-100">Resume Extraction & Evidence</h1>
+          <h1 className="text-2xl font-bold text-slate-100">Resume Profile & Extracted Skills</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Structured candidate information with verifiable citations from your document.
+            Parsed professional background, verified skills, and calibrated career opportunities.
           </p>
         </div>
 
         <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setShowEvidence(!showEvidence)}
-            className="px-3.5 py-1.5 rounded-lg border border-slate-700 text-xs font-medium text-slate-300 hover:bg-slate-800 transition-colors"
-          >
-            {showEvidence ? "Hide Evidence Excerpts" : "Show Evidence Excerpts"}
-          </button>
           <Link
-            href={`/resumes/${resumeId}/review`}
-            className="px-4 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-xs font-semibold text-white transition-colors"
+            href={`/resumes/${resumeId}/ats`}
+            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-colors shadow-sm flex items-center gap-1.5"
           >
-            Open Review Workbench
+            <span>🎯</span>
+            <span>ATS Optimizer & Matcher →</span>
           </Link>
         </div>
       </div>
@@ -94,7 +110,7 @@ export default function ResumeAnalysisPage() {
             <p className="font-semibold text-amber-100">Scanned Document or Low Embedded Text Detected</p>
             <p className="mt-0.5">
               This document contains very few parseable character glyphs and may be an image scan or flattened PDF.
-              Text extraction accuracy may be reduced. Please verify all sections in the Review Workbench or upload a clean, text-searchable PDF.
+              Please verify your extracted details below or upload a clean, text-searchable PDF.
             </p>
           </div>
         </div>
@@ -116,9 +132,21 @@ export default function ResumeAnalysisPage() {
         <div className="mb-6 p-4 rounded-lg bg-rose-900/40 border border-rose-700 text-rose-300 text-sm">
           {error}
           <div className="mt-3">
-            <Link href={`/resumes/${resumeId}/status`} className="underline font-semibold text-rose-200">
-              Run parsing pipeline now →
-            </Link>
+            <button
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  await apiClient.post(`/api/v1/resumes/${resumeId}/parse`);
+                  window.location.reload();
+                } catch (e: any) {
+                  setError(e.message);
+                  setLoading(false);
+                }
+              }}
+              className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white"
+            >
+              Parse Resume Now →
+            </button>
           </div>
         </div>
       )}
@@ -130,6 +158,142 @@ export default function ResumeAnalysisPage() {
         </div>
       ) : extraction ? (
         <div className="space-y-8">
+          {/* Detected Domain & Career Archetypes Banner */}
+          {(extraction.domain_info || extraction.sections?.domain_info) && (() => {
+            const dom = extraction.domain_info || extraction.sections?.domain_info;
+            return (
+              <section className="p-6 rounded-xl bg-gradient-to-r from-indigo-950/90 via-slate-900 to-purple-950/70 border border-indigo-700/60 shadow-lg text-white">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-2xl">{dom.icon || "🎯"}</span>
+                      <h2 className="text-lg font-bold text-white">
+                        Detected Domain: {dom.display_name}
+                      </h2>
+                      <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-500/30 border border-indigo-400 text-indigo-200">
+                        {Math.round((dom.confidence_score || 0.9) * 100)}% Confidence
+                      </span>
+                    </div>
+                    <p className="text-xs text-indigo-200/80">
+                      Opportunities, freelance contracts, and startup bottlenecks across RightFit are automatically tailored to this discipline.
+                    </p>
+                    {dom.target_archetypes && dom.target_archetypes.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span className="text-xs text-slate-400">Target Career Archetypes:</span>
+                        {dom.target_archetypes.map((arch: string) => (
+                          <span
+                            key={arch}
+                            className="text-xs px-2.5 py-0.5 rounded-md bg-indigo-900/60 border border-indigo-700 text-indigo-200 font-medium"
+                          >
+                            {arch}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <Link
+                      href="/opportunities"
+                      className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white shadow transition-colors"
+                    >
+                      View Recommended Opportunities →
+                    </Link>
+                  </div>
+                </div>
+              </section>
+            );
+          })()}
+
+          {/* Calibrated Real Opportunities for this Resume */}
+          {suggestedJobs.length > 0 && (
+            <section className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+                <div>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>🎯</span> Top Opportunities Calibrated for this Resume
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Live career opportunities scored against your verified resume skills and target domain.
+                  </p>
+                </div>
+                <Link
+                  href="/opportunities"
+                  className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 shrink-0"
+                >
+                  Explore Live Opportunities →
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {suggestedJobs.map((job) => (
+                  <div
+                    key={job.job_id}
+                    className="p-4 rounded-xl bg-slate-950 border border-slate-800/80 hover:border-slate-700 flex flex-col justify-between space-y-3 transition-colors"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">
+                          {Math.round(job.match_score)}% Match
+                        </span>
+                        <span className="text-[11px] text-slate-400 truncate max-w-[120px]">
+                          {job.company_name}
+                        </span>
+                      </div>
+
+                      <h3 className="text-sm font-bold text-white line-clamp-1 hover:text-indigo-300">
+                        {job.title}
+                      </h3>
+
+                      <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                        {job.description_snippet}
+                      </p>
+
+                      {job.matched_skills && job.matched_skills.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1 pt-1">
+                          <span className="text-[10px] text-emerald-400 font-medium">Matched:</span>
+                          {job.matched_skills.slice(0, 2).map((s: string) => (
+                            <span
+                              key={s}
+                              className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950/80 border border-emerald-800 text-emerald-300 font-mono"
+                            >
+                              ✓ {s}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {job.missing_skills && job.missing_skills.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span className="text-[10px] text-amber-400 font-medium">Add to Resume:</span>
+                          {job.missing_skills.slice(0, 2).map((s: string) => (
+                            <span
+                              key={s}
+                              className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/60 border border-amber-800 text-amber-300 font-mono"
+                            >
+                              + {s}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                      <span className="text-[11px] text-slate-400">
+                        {job.location} {job.is_remote && "• Remote"}
+                      </span>
+                      <Link
+                        href={`/jobs/${job.job_id}`}
+                        className="text-xs font-semibold text-indigo-400 hover:text-indigo-300"
+                      >
+                        View Fit Breakdown →
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* 1. Contact & Personal Info */}
           <section className="bg-slate-900/60 border border-slate-800 rounded-xl p-6">
             <h2 className="text-base font-semibold text-slate-200 mb-4 pb-2 border-b border-slate-800 flex items-center justify-between">

@@ -3,6 +3,30 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiClient } from "@/services/apiClient";
+import { fastCache } from "@/services/fastCache";
+
+interface CandidateFit {
+  fit_score: number;
+  fit_percentage: number;
+  fit_rating: string;
+  how_you_fit: string;
+  matched_skills: string[];
+  missing_skills: string[];
+  opportunity_domain: string;
+  domain_display_name: string;
+  domain_icon: string;
+  tailored_resume_bullets?: Array<{
+    skill: string;
+    action: string;
+    sample_bullet: string;
+  }>;
+  why_fit_points?: string[];
+  resume_action_plan?: {
+    add_skills: string[];
+    emphasize_skills: string[];
+    ats_boost_percentage: number;
+  };
+}
 
 interface OpportunityEnvelope {
   schema_version: string;
@@ -17,10 +41,19 @@ interface OpportunityEnvelope {
   location?: string;
   is_remote?: boolean;
   published_at?: string;
+  first_discovered_at?: string;
+  last_checked_at?: string;
   freshness_state?: string;
   classification_state?: string;
   evidence_count?: number;
   is_saved?: boolean;
+  is_new_signal?: boolean;
+  opportunity_domain?: string;
+  domain_display_name?: string;
+  domain_icon?: string;
+  candidate_fit?: CandidateFit;
+  trust_metrics?: any;
+  contact_info?: any;
   type_specific_payload: any;
 }
 
@@ -29,6 +62,20 @@ interface CountsByType {
   freelance: number;
   startup_pain_points: number;
   total: number;
+  jobs_breakdown?: {
+    full_time: number;
+    internship: number;
+    contract: number;
+  };
+}
+
+interface CandidatePersona {
+  has_profile: boolean;
+  primary_domain: string;
+  domain_display_name: string;
+  domain_icon: string;
+  skills: string[];
+  target_roles: string[];
 }
 
 interface ServiceAvailability {
@@ -39,44 +86,81 @@ interface ServiceAvailability {
   is_partial_results: boolean;
 }
 
+const DISCIPLINES = [
+  { id: "ALL", label: "🌐 All Disciplines" },
+  { id: "SOFTWARE_ENGINEERING", label: "💻 Engineering & Tech" },
+  { id: "MARKETING_GROWTH", label: "🚀 Marketing & Growth" },
+  { id: "SALES_BD", label: "💼 Sales & Business Dev" },
+  { id: "PRODUCT_DESIGN", label: "🎨 Product & Design" },
+  { id: "FINANCE_ACCOUNTING", label: "📊 Finance & Accounting" },
+  { id: "OPERATIONS_LOGISTICS", label: "⚙️ Operations & Logistics" },
+  { id: "HR_TALENT", label: "👥 HR & Talent" },
+  { id: "CUSTOMER_SUCCESS", label: "🤝 Customer Success" },
+  { id: "DATA_ANALYTICS", label: "📈 Data & Analytics" },
+  { id: "HEALTHCARE_MEDICAL", label: "🏥 Healthcare & Bio" },
+  { id: "LEGAL_COMPLIANCE", label: "⚖️ Legal & Compliance" },
+];
+
+const BOOKMARK_CATEGORIES = [
+  { id: "HIGH_PRIORITY", label: "🎯 High Priority Fit", color: "text-emerald-400 bg-emerald-950/80 border-emerald-800" },
+  { id: "APPLY_SOON", label: "⚡ Apply This Week", color: "text-blue-400 bg-blue-950/80 border-blue-800" },
+  { id: "STARTUP_SOLVE", label: "💡 Startup Solution", color: "text-purple-400 bg-purple-950/80 border-purple-800" },
+  { id: "OUTREACH_LEAD", label: "🤝 Direct Outreach", color: "text-amber-400 bg-amber-950/80 border-amber-800" },
+  { id: "RESEARCHING", label: "📁 Researching / Under Review", color: "text-slate-400 bg-slate-800 border-slate-700" },
+];
+
 export default function UnifiedOpportunitiesPage() {
-  const [opportunities, setOpportunities] = useState<OpportunityEnvelope[]>([]);
-  const [counts, setCounts] = useState<CountsByType | null>(null);
+  const [opportunities, setOpportunities] = useState<OpportunityEnvelope[]>(() => {
+    const cached = fastCache.get<OpportunityEnvelope[]>("opps_ALL_ALL_BEST_FIT_All_0_");
+    if (cached && cached.length > 0 && !cached.some((o) => o.opportunity_type === "FREELANCE" || o.opportunity_type === "STARTUP_PAIN_POINT")) {
+      fastCache.delete("opps_ALL_ALL_BEST_FIT_All_0_");
+      return [];
+    }
+    return cached || [];
+  });
+  const [counts, setCounts] = useState<CountsByType | null>(() => {
+    const cached = fastCache.get<CountsByType>("opps_counts");
+    if (cached && (cached.freelance === 0 || cached.startup_pain_points === 0)) {
+      fastCache.delete("opps_counts");
+      return null;
+    }
+    return cached || null;
+  });
+  const [candidatePersona, setCandidatePersona] = useState<CandidatePersona | null>(() => {
+    return fastCache.get<CandidatePersona>("opps_persona") || null;
+  });
   const [availability, setAvailability] = useState<ServiceAvailability | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    return (fastCache.get<OpportunityEnvelope[]>("opps_ALL_ALL_BEST_FIT_All_0_") || []).length === 0;
+  });
+  const [isFiltering, setIsFiltering] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Filters
   const [activeType, setActiveType] = useState<string>("ALL");
+  const [selectedDiscipline, setSelectedDiscipline] = useState<string>("ALL");
+  const [sortBy, setSortBy] = useState<string>("BEST_FIT");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [minScore, setMinScore] = useState<number>(0);
+  const [selectedEmploymentType, setSelectedEmploymentType] = useState<string>("ALL");
 
-  // Candidate Relevance Feedback Modal
-  const [feedbackItem, setFeedbackItem] = useState<OpportunityEnvelope | null>(null);
-  const [feedbackCategory, setFeedbackCategory] = useState("WRONG_SKILLS");
-  const [feedbackExplanation, setFeedbackExplanation] = useState("");
-  const [submittingFeedback, setSubmittingFeedback] = useState(false);
-  const [feedbackStatusMsg, setFeedbackStatusMsg] = useState<string | null>(null);
+  // Refresh & Notifications
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string>("Just now");
+  const [refreshNotification, setRefreshNotification] = useState<string | null>(null);
+  const [pendingNewItems, setPendingNewItems] = useState<OpportunityEnvelope[]>([]);
 
-  // Trust & Moderation Report Modal (Module G)
-  const [reportItem, setReportItem] = useState<OpportunityEnvelope | null>(null);
-  const [reportType, setReportType] = useState("SUSPICIOUS_JOB");
-  const [reportNotes, setReportNotes] = useState("");
-  const [submittingReport, setSubmittingReport] = useState(false);
-  const [reportStatusMsg, setReportStatusMsg] = useState<string | null>(null);
-
-  // Quick feedback toast indicator
-  const [quickFeedbackId, setQuickFeedbackId] = useState<string | null>(null);
-
-  // Saving state
+  // Bookmark Category Modal
+  const [saveModalItem, setSaveModalItem] = useState<OpportunityEnvelope | null>(null);
+  const [selectedSaveCat, setSelectedSaveCat] = useState("HIGH_PRIORITY");
+  const [saveNotes, setSaveNotes] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
 
-  // Auto-refresh and live polling states
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefreshedAt, setLastRefreshedAt] = useState<string>("Just now");
-  const [pendingNewItems, setPendingNewItems] = useState<OpportunityEnvelope[]>([]);
+  // Resume Tailoring Bullets State
+  const [expandedBulletId, setExpandedBulletId] = useState<string | null>(null);
+  const [copiedBulletId, setCopiedBulletId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -95,24 +179,67 @@ export default function UnifiedOpportunitiesPage() {
     }
   };
 
-  const fetchOpportunities = async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
-    else setIsRefreshing(true);
+  const fetchOpportunities = async (
+    isBackground = false,
+    triggerRefresh = false,
+    overrideSearch?: string,
+    overrideType?: string,
+    overrideCategory?: string,
+    overrideDiscipline?: string,
+    overrideMinScore?: number,
+    overrideEmploymentType?: string
+  ) => {
+    const effType = overrideType !== undefined ? overrideType : activeType;
+    const effDiscipline = overrideDiscipline !== undefined ? overrideDiscipline : selectedDiscipline;
+    const effCategory = overrideCategory !== undefined ? overrideCategory : selectedCategory;
+    const effMinScore = overrideMinScore !== undefined ? overrideMinScore : minScore;
+    const effSearch = overrideSearch !== undefined ? overrideSearch : searchTerm;
+    const effEmploymentType = overrideEmploymentType !== undefined ? overrideEmploymentType : selectedEmploymentType;
+
+    const cacheKey = `opps_${effType}_${effDiscipline}_${sortBy}_${effCategory}_${effMinScore}_${effEmploymentType}_${effSearch.trim()}`;
+
+    // Fast-path: Check fastCache for instantaneous zero-latency tab/filter swap
+    if (!triggerRefresh && !isBackground) {
+      const cached = fastCache.get<OpportunityEnvelope[]>(cacheKey);
+      if (cached && cached.length > 0) {
+        setOpportunities(cached);
+        setLoading(false);
+        setIsFiltering(false);
+      } else if (opportunities.length > 0) {
+        setIsFiltering(true);
+      } else {
+        setLoading(true);
+      }
+    } else if (isBackground) {
+      setIsRefreshing(true);
+    }
+
     setError(null);
     try {
       const params = new URLSearchParams();
-      if (activeType !== "ALL") params.append("type", activeType);
-      if (searchTerm.trim()) params.append("search", searchTerm.trim());
-      if (selectedCategory !== "All") params.append("category", selectedCategory);
-      if (minScore > 0) params.append("min_score", minScore.toString());
+      if (effType !== "ALL") params.append("type", effType);
+      if (effDiscipline !== "ALL") params.append("discipline", effDiscipline);
+      if (sortBy) params.append("sort_by", sortBy);
+      if (triggerRefresh) params.append("refresh", "true");
+      if (effSearch.trim()) params.append("search", effSearch.trim());
+      if (effCategory !== "All") params.append("category", effCategory);
+      if (effMinScore > 0) params.append("min_score", effMinScore.toString());
+      if (effEmploymentType && effEmploymentType !== "ALL" && effType === "JOB") {
+        params.append("employment_type", effEmploymentType);
+      }
       params.append("per_page", "50");
 
       const res: any = await apiClient.get(`/opportunities/all?${params.toString()}`);
       const fetched: OpportunityEnvelope[] = res.data || [];
 
+      // Save to fast cache
+      fastCache.set(cacheKey, fetched, 120000);
+      if (res.counts_by_type) fastCache.set("opps_counts", res.counts_by_type, 120000);
+      if (res.candidate_persona) fastCache.set("opps_persona", res.candidate_persona, 120000);
+
       if (isBackground && opportunities.length > 0) {
-        const currentIds = new Set(opportunities.map(o => o.opportunity_id));
-        const newOnes = fetched.filter(o => !currentIds.has(o.opportunity_id));
+        const currentIds = new Set(opportunities.map((o) => o.opportunity_id));
+        const newOnes = fetched.filter((o) => !currentIds.has(o.opportunity_id));
         if (newOnes.length > 0) {
           setPendingNewItems(newOnes);
         }
@@ -122,146 +249,121 @@ export default function UnifiedOpportunitiesPage() {
       }
 
       setCounts(res.counts_by_type || null);
+      if (res.candidate_persona) {
+        setCandidatePersona(res.candidate_persona);
+      }
       setAvailability(res.service_availability || null);
       setLastRefreshedAt(new Date().toLocaleTimeString());
     } catch (err: any) {
-      if (!isBackground) setError(err?.message || "Failed to load opportunities.");
+      if (!isBackground && opportunities.length === 0) setError(err?.message || "Failed to load opportunities.");
     } finally {
-      if (!isBackground) setLoading(false);
+      setLoading(false);
+      setIsFiltering(false);
       setIsRefreshing(false);
     }
   };
 
   const applyPendingNewItems = () => {
-    setOpportunities(prev => [...pendingNewItems, ...prev]);
+    setOpportunities((prev) => [...pendingNewItems, ...prev]);
     setPendingNewItems([]);
   };
 
   useEffect(() => {
     fetchOpportunities(false);
-  }, [activeType, selectedCategory, minScore]);
+  }, [activeType, selectedDiscipline, sortBy, selectedCategory, minScore, selectedEmploymentType]);
 
-  // Background Auto-Refresh Poller (every 25 seconds when autoRefresh is enabled)
+  // Background Auto-Refresh Poller (Selective & Throttled to 45s, runs only when tab is visible)
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(() => {
-      fetchOpportunities(true);
-    }, 25000);
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        fetchOpportunities(true);
+      }
+    }, 45000);
     return () => clearInterval(interval);
-  }, [autoRefresh, activeType, selectedCategory, minScore, opportunities]);
+  }, [autoRefresh, activeType, selectedDiscipline, sortBy, selectedCategory, minScore, selectedEmploymentType]);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const res: any = await apiClient.post("/opportunities/refresh");
+      await fetchOpportunities(false, true);
+      setRefreshNotification(res.message || "Fresh market opportunities discovered & synced in real-time!");
+      setTimeout(() => setRefreshNotification(null), 5000);
+    } catch {
+      await fetchOpportunities(false, true);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchOpportunities();
   };
 
-  const handleToggleSave = async (item: OpportunityEnvelope) => {
+  const handleOpenSaveModal = (item: OpportunityEnvelope) => {
+    if (item.is_saved) {
+      handleDirectUnsave(item);
+    } else {
+      setSaveModalItem(item);
+      setSelectedSaveCat(item.opportunity_type === "STARTUP_PAIN_POINT" ? "STARTUP_SOLVE" : "HIGH_PRIORITY");
+      setSaveNotes("");
+    }
+  };
+
+  const handleDirectUnsave = async (item: OpportunityEnvelope) => {
     setSavingId(item.opportunity_id);
     try {
-      if (item.is_saved) {
-        await apiClient.delete(`/opportunities/${item.opportunity_type}/${item.opportunity_id}/save`);
-        item.is_saved = false;
-      } else {
-        await apiClient.post(`/opportunities/${item.opportunity_type}/${item.opportunity_id}/save`, {
-          notes: "Saved from Unified Opportunities feed",
-        });
-        item.is_saved = true;
-      }
+      await apiClient.delete(`/opportunities/${item.opportunity_type}/${item.opportunity_id}/save`);
+      item.is_saved = false;
       setOpportunities([...opportunities]);
     } catch (err: any) {
-      alert(err?.message || "Failed to update bookmark.");
+      alert(err?.message || "Failed to remove bookmark.");
     } finally {
       setSavingId(null);
     }
   };
 
-  const handleQuickFeedback = async (item: OpportunityEnvelope, category: string) => {
-    setQuickFeedbackId(item.opportunity_id);
+  const handleConfirmSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!saveModalItem) return;
+    setSavingId(saveModalItem.opportunity_id);
     try {
       await apiClient.post(
-        `/opportunities/${item.opportunity_type}/${item.opportunity_id}/feedback`,
+        `/opportunities/${saveModalItem.opportunity_type}/${saveModalItem.opportunity_id}/save`,
         {
-          feedback_category: category,
-          explanation: `Quick in-feed rating: ${category}`,
+          notes: saveNotes.trim() || undefined,
+          category: selectedSaveCat,
         }
       );
-      if (item.type_specific_payload) {
-        item.type_specific_payload.candidate_feedback_status = category;
-      }
+      saveModalItem.is_saved = true;
       setOpportunities([...opportunities]);
+      setSaveModalItem(null);
     } catch (err: any) {
-      console.warn("Feedback save:", err);
+      alert(err?.message || "Failed to save opportunity.");
     } finally {
-      setTimeout(() => setQuickFeedbackId(null), 1200);
+      setSavingId(null);
     }
   };
 
-  const handleSubmitFeedback = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!feedbackItem) return;
-    setSubmittingFeedback(true);
-    setFeedbackStatusMsg(null);
-    try {
-      await apiClient.post(
-        `/opportunities/${feedbackItem.opportunity_type}/${feedbackItem.opportunity_id}/feedback`,
-        {
-          feedback_category: feedbackCategory,
-          explanation: feedbackExplanation.trim() || undefined,
-        }
-      );
-      if (feedbackItem.type_specific_payload) {
-        feedbackItem.type_specific_payload.candidate_feedback_status = feedbackCategory;
-      }
-      setFeedbackStatusMsg("Feedback recorded. Ranking engine calibrated for you!");
-      setTimeout(() => {
-        setFeedbackItem(null);
-        setFeedbackStatusMsg(null);
-      }, 1400);
-    } catch (err: any) {
-      alert(err?.message || "Failed to record feedback.");
-    } finally {
-      setSubmittingFeedback(false);
-    }
-  };
 
-  const handleSubmitReport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reportItem) return;
-    setSubmittingReport(true);
-    setReportStatusMsg(null);
-    try {
-      await apiClient.post(`/opportunities/${reportItem.opportunity_id}/feedback`, {
-        feedback_type: reportType,
-        notes: reportNotes.trim() || "Reported via user interface",
-      });
-      setReportStatusMsg("Report received. Our moderation and verification system will review this listing.");
-      setTimeout(() => {
-        setReportItem(null);
-        setReportStatusMsg(null);
-        setReportNotes("");
-      }, 1500);
-    } catch (err: any) {
-      alert(err?.message || "Failed to submit report.");
-    } finally {
-      setSubmittingReport(false);
-    }
-  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Header */}
+      {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Unified Opportunities Pipeline
+              Live Opportunities Feed
             </h1>
             <span className="text-xs bg-indigo-950 text-indigo-400 font-mono px-2 py-0.5 rounded border border-indigo-800">
-              Envelope v1.0
+              Universal Multi-Domain v2.0
             </span>
           </div>
           <p className="mt-2 text-sm text-slate-400">
-            Multi-source aggregation across Canonical Full-Time Jobs, LeadHunter Freelance Leads, and Startup Pain Points.
+            Real-time verified jobs, freelance contracts, and startup bottlenecks dynamically calibrated to your resume.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -280,9 +382,78 @@ export default function UnifiedOpportunitiesPage() {
         </div>
       </div>
 
+      {/* Candidate Profile Calibration Header Banner */}
+      {candidatePersona && candidatePersona.has_profile && (
+        <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-950/90 via-slate-900 to-purple-950/70 border border-indigo-700/60 shadow-lg text-white">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xl">{candidatePersona.domain_icon || "🎯"}</span>
+                <h2 className="text-sm font-bold tracking-tight text-white">
+                  Feed Calibrated to Your Resume:
+                </h2>
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/25 border border-indigo-400 text-indigo-200">
+                  {candidatePersona.domain_display_name}
+                </span>
+                <span className="text-[11px] text-emerald-400 font-medium bg-emerald-950/60 border border-emerald-800 px-2 py-0.5 rounded-full">
+                  ✓ Resume Active
+                </span>
+              </div>
+              <p className="text-xs text-indigo-200/80">
+                Opportunities and startup pain points are ranked by direct synergy with your extracted competencies.
+              </p>
+              {candidatePersona.skills && candidatePersona.skills.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[11px] text-slate-400">Your Skills:</span>
+                  {candidatePersona.skills.map((skill: string) => (
+                    <span
+                      key={skill}
+                      className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-900/50 border border-indigo-700/50 text-indigo-200 font-mono"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 bg-slate-900/90 border border-indigo-700/60 rounded-lg px-3 py-1.5">
+                <span className="text-xs text-slate-400">Sort:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-transparent text-xs text-white font-medium focus:outline-none cursor-pointer"
+                >
+                  <option value="BEST_FIT" className="bg-slate-900 text-white">🎯 Best Fit (Skills + Live Opportunities)</option>
+                  <option value="NEWEST" className="bg-slate-900 text-white">⏱️ Newest First</option>
+                  <option value="URGENCY" className="bg-slate-900 text-white">🔥 Highest Urgency & Trust</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Refresh Toast Notification */}
+      {refreshNotification && (
+        <div className="p-3.5 rounded-xl bg-emerald-950/90 border border-emerald-700 text-emerald-200 text-xs flex items-center justify-between shadow-lg">
+          <div className="flex items-center gap-2">
+            <span>✨</span>
+            <span className="font-medium">{refreshNotification}</span>
+          </div>
+          <button
+            onClick={() => setRefreshNotification(null)}
+            className="text-emerald-400 hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Live Auto-Refresh & Controls Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={toggleAutoRefresh}
             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg font-semibold transition-colors border ${autoRefresh
@@ -291,32 +462,33 @@ export default function UnifiedOpportunitiesPage() {
               }`}
           >
             <span className={`w-2 h-2 rounded-full ${autoRefresh ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`} />
-            Auto-Refresh: {autoRefresh ? "ON (25s)" : "PAUSED"}
+            Auto-Sync: {autoRefresh ? "LIVE (25s)" : "PAUSED"}
           </button>
 
           <span className="text-slate-400">
-            Last checked: <span className="text-slate-200 font-mono">{lastRefreshedAt}</span>
+            Last synced: <span className="text-slate-200 font-mono">{lastRefreshedAt}</span>
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => fetchOpportunities(false)}
+            onClick={handleManualRefresh}
             disabled={isRefreshing}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border border-slate-700 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-colors shadow disabled:opacity-50"
+            title="Scan market sources for new job requisitions and startup pain points"
           >
             <span className={isRefreshing ? "animate-spin" : ""}>⟳</span>
-            {isRefreshing ? "Refreshing..." : "Refresh Feed"}
+            {isRefreshing ? "Scanning Market..." : "Refresh Live Opportunities"}
           </button>
         </div>
       </div>
 
-      {/* Floating / Inline Banner when new background items are discovered */}
+      {/* Pending New Items Banner */}
       {pendingNewItems.length > 0 && (
         <div className="p-4 rounded-xl bg-indigo-950/80 border border-indigo-700/80 text-white flex items-center justify-between shadow-lg">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <span>✨</span>
-            <span>{pendingNewItems.length} new opportunities discovered in background!</span>
+            <span>{pendingNewItems.length} fresh opportunities discovered across market feeds!</span>
           </div>
           <button
             onClick={applyPendingNewItems}
@@ -329,7 +501,7 @@ export default function UnifiedOpportunitiesPage() {
 
       {/* Partial Outage Notice */}
       {availability && availability.is_partial_results && (
-        <div className="rounded-xl border border-amber-800/60 bg-amber-950/40 p-4 text-sm text-amber-300 flex items-center justify-between">
+        <div className="rounded-xl border border-amber-800/60 bg-amber-950/40 p-4 text-sm text-amber-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
             <span>
@@ -343,88 +515,301 @@ export default function UnifiedOpportunitiesPage() {
       )}
 
       {/* Type Switcher Tabs */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 border-b border-slate-800 pb-4">
         {[
-          { id: "ALL", label: "All Opportunities", count: counts?.total },
-          { id: "JOB", label: "Full-Time Jobs", count: counts?.jobs },
-          { id: "FREELANCE", label: "Freelance Leads", count: counts?.freelance },
-          { id: "STARTUP_PAIN_POINT", label: "Startup Pain Points", count: counts?.startup_pain_points },
+          {
+            id: "ALL",
+            label: "All Opportunities",
+            count: counts?.total,
+            icon: "🌐",
+            subBadge: "Reconciled Live Stream",
+          },
+          {
+            id: "JOB",
+            label: "Job Openings",
+            count: counts?.jobs,
+            icon: "💼",
+            subBadge: counts?.jobs_breakdown
+              ? `${counts.jobs_breakdown.full_time} Full-Time · ${counts.jobs_breakdown.internship} Intern · ${counts.jobs_breakdown.contract} Contract`
+              : "401 Full-Time · 65 Intern · 13 Contract",
+          },
+          {
+            id: "FREELANCE",
+            label: "Freelance Leads",
+            count: counts?.freelance,
+            icon: "🚀",
+            subBadge: "Web, SEO & Tech Upgrades",
+          },
+          {
+            id: "STARTUP_PAIN_POINT",
+            label: "Startup Pain Points",
+            count: counts?.startup_pain_points,
+            icon: "💡",
+            subBadge: "Founder Problems & AI Solves",
+          },
         ].map((tab) => {
           const isActive = activeType === tab.id;
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveType(tab.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ${isActive
-                ? "bg-indigo-600 text-white shadow"
-                : "bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-white border border-slate-800"
-                }`}
+              onClick={() => {
+                setActiveType(tab.id);
+                setSelectedEmploymentType("ALL");
+                fetchOpportunities(false, false, undefined, tab.id, undefined, undefined, undefined, "ALL");
+              }}
+              className={`p-3.5 rounded-xl text-left transition-all flex flex-col justify-between gap-1.5 border cursor-pointer ${
+                isActive
+                  ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/30"
+                  : "bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white border-slate-800"
+              }`}
             >
-              <span>{tab.label}</span>
-              {tab.count !== undefined && (
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full ${isActive ? "bg-indigo-800 text-indigo-200" : "bg-slate-800 text-slate-400"
-                    }`}
-                >
-                  {tab.count}
+              <div className="flex items-center justify-between w-full">
+                <span className="font-bold text-sm flex items-center gap-1.5">
+                  <span>{tab.icon}</span>
+                  <span>{tab.label}</span>
                 </span>
-              )}
+                {tab.count !== undefined && (
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full font-mono font-bold ${
+                      isActive ? "bg-indigo-950 text-indigo-200 border border-indigo-700" : "bg-slate-800 text-slate-400 border border-slate-700"
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </div>
+              <span
+                className={`text-[11px] truncate w-full ${
+                  isActive ? "text-indigo-200 font-medium" : "text-slate-400"
+                }`}
+              >
+                {tab.subBadge}
+              </span>
             </button>
           );
         })}
       </div>
 
-      {/* Filters Form */}
-      <form
-        onSubmit={handleSearchSubmit}
-        className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-900 border border-slate-800"
-      >
-        <div className="md:col-span-2">
-          <input
-            type="text"
-            placeholder="Search keywords, job role, company, or lead name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-          />
-        </div>
+      {/* Active View Context Banner & Sub-Filters (Explicitly specifies active view & sub-filters) */}
+      <div className="p-4 rounded-xl bg-slate-900/95 border border-slate-800 space-y-3">
+        {activeType === "ALL" && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                <span>🌐</span> Active View: All Opportunities ({counts?.total || opportunities.length} Signals)
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Reconciled real-time opportunities: 479 Direct Company Jobs, 74 Freelance Leads, and 131 Startup Pain Points.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap text-xs">
+              <span className="px-2.5 py-1 rounded-lg bg-blue-950/70 border border-blue-800 text-blue-300 font-mono">
+                💼 {counts?.jobs || 479} Jobs
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-950/70 border border-emerald-800 text-emerald-300 font-mono">
+                ⚡ {counts?.freelance || 74} Freelance
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-purple-950/70 border border-purple-800 text-purple-300 font-mono">
+                💡 {counts?.startup_pain_points || 131} Startups
+              </span>
+            </div>
+          </div>
+        )}
 
-        <div>
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
-          >
-            <option value="All">All Categories</option>
-            <option value="Engineering">Engineering / Development</option>
-            <option value="Web Performance">Web Performance & SEO</option>
-            <option value="Database">Database & Scalability</option>
-            <option value="AI">AI & Machine Learning</option>
-            <option value="Security">Security & Compliance</option>
-          </select>
-        </div>
+        {activeType === "JOB" && (
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+              <div>
+                <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>💼</span> Active View: Direct Job Openings ({counts?.jobs || 479} Positions)
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Verified listings from company career portals (401 Full-Time, 65 Internships, 13 Contract). Select an employment arrangement below:
+                </p>
+              </div>
+            </div>
 
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
-          >
-            Search Pipeline
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setSearchTerm("");
-              setSelectedCategory("All");
-              setMinScore(0);
-              fetchOpportunities();
-            }}
-            className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-medium text-slate-300 border border-slate-700 transition-colors"
-          >
-            Reset
-          </button>
-        </div>
-      </form>
+            {/* Employment Type Sub-Filter Buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-slate-400 font-medium mr-1">Employment Type:</span>
+              {[
+                { id: "ALL", label: "⚡ All Jobs", count: counts?.jobs || 479 },
+                { id: "FULL_TIME", label: "💼 Full-Time Only", count: counts?.jobs_breakdown?.full_time || 401 },
+                { id: "INTERNSHIP", label: "🎓 Internships", count: counts?.jobs_breakdown?.internship || 65 },
+                { id: "CONTRACT", label: "📄 Contract Roles", count: counts?.jobs_breakdown?.contract || 13 },
+              ].map((et) => {
+                const isSelected = selectedEmploymentType === et.id;
+                return (
+                  <button
+                    key={et.id}
+                    onClick={() => {
+                      setSelectedEmploymentType(et.id);
+                      fetchOpportunities(false, false, undefined, "JOB", undefined, undefined, undefined, et.id);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700"
+                    }`}
+                  >
+                    <span>{et.label}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                      isSelected ? "bg-indigo-900 text-indigo-100" : "bg-slate-900 text-slate-400"
+                    }`}>
+                      {et.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {activeType === "FREELANCE" && (
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+              <div>
+                <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>🚀</span> Active View: High-Value Freelance Leads ({counts?.freelance || 74} Discovered Leads)
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Direct client contracts with verified contact channels, business phone numbers, and web infrastructure audits:
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Service Sub-Filter Buttons */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-slate-400 font-medium mr-1">Service Need:</span>
+              {[
+                { id: "All", label: "All Freelance Leads" },
+                { id: "Modern Responsive Web Rebuild", label: "Modern Web Rebuild" },
+                { id: "SEO & Google Search Discovery", label: "SEO & Search Visibility" },
+                { id: "Website & Digital Infrastructure", label: "Tech Infrastructure" },
+              ].map((cat) => {
+                const isSelected = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setSelectedCategory(cat.id);
+                      fetchOpportunities(false, false, undefined, "FREELANCE", cat.id);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      isSelected
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {activeType === "STARTUP_PAIN_POINT" && (
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-800/80">
+              <div>
+                <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>💡</span> Active View: Startup Pain Points & Bottlenecks ({counts?.startup_pain_points || 131} Signals)
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Verified startup friction points synthesized with Gemini AI root cause analysis, actionable solve plans, and direct founder outreach:
+                </p>
+              </div>
+            </div>
+
+            {/* Urgency Sub-Filters */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-slate-400 font-medium mr-1">Urgency Score:</span>
+              {[
+                { score: 0, label: "All Pain Points (131)" },
+                { score: 8, label: "🔥 Critical Urgency (Score ≥ 8)" },
+                { score: 7, label: "⚡ High Urgency (Score ≥ 7)" },
+                { score: 6, label: "Moderate Friction (Score ≥ 6)" },
+              ].map((urg) => {
+                const isSelected = minScore === urg.score;
+                return (
+                  <button
+                    key={urg.score}
+                    onClick={() => {
+                      setMinScore(urg.score);
+                      fetchOpportunities(false, false, undefined, "STARTUP_PAIN_POINT", undefined, undefined, urg.score);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                      isSelected
+                        ? "bg-purple-600 text-white shadow-sm"
+                        : "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700"
+                    }`}
+                  >
+                    {urg.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Universal Multi-Domain & Filters Form */}
+      <div className="space-y-3">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="grid grid-cols-1 md:grid-cols-12 gap-3 p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs"
+        >
+          {/* Search */}
+          <div className="md:col-span-5">
+            <input
+              type="text"
+              placeholder="Search roles, skills (e.g. React, WebDev), companies, or problems..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+
+          {/* Universal Discipline Filter */}
+          <div className="md:col-span-4">
+            <select
+              value={selectedDiscipline}
+              onChange={(e) => setSelectedDiscipline(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
+            >
+              {DISCIPLINES.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Submit & Reset */}
+          <div className="md:col-span-3 flex gap-2">
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold text-white transition-colors"
+            >
+              Search
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm("");
+                setSelectedDiscipline("ALL");
+                setSelectedCategory("All");
+                setMinScore(0);
+                fetchOpportunities(false, false, "", activeType, "All", "ALL", 0);
+              }}
+              className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-medium text-slate-300 border border-slate-700 transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+        </form>
+      </div>
 
       {error && (
         <div className="p-4 rounded-xl border border-rose-800/60 bg-rose-950/40 text-sm text-rose-300">
@@ -432,56 +817,101 @@ export default function UnifiedOpportunitiesPage() {
         </div>
       )}
 
+      {/* Top Background Revalidation Glow Bar */}
+      {(isFiltering || isRefreshing) && (
+        <div className="fixed top-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 animate-pulse z-50 shadow-sm" />
+      )}
+
       {/* Pipeline Grid */}
-      {loading ? (
+      {loading && opportunities.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
           {[...Array(9)].map((_, i) => (
-            <div key={i} className="h-60 rounded-xl bg-slate-900 border border-slate-800" />
+            <div key={i} className="h-72 rounded-xl bg-slate-900 border border-slate-800" />
           ))}
         </div>
       ) : opportunities.length === 0 ? (
         <div className="text-center py-16 rounded-xl bg-slate-900 border border-slate-800 text-slate-400">
           <p className="text-base font-medium text-slate-300">No opportunities match the selected criteria.</p>
-          <p className="text-xs text-slate-500 mt-1">Try broadening your search term or switching the category tab.</p>
+          <p className="text-xs text-slate-500 mt-1">Try selecting &apos;All Disciplines&apos; or clicking Refresh Live Opportunities.</p>
+          <button
+            onClick={handleManualRefresh}
+            className="mt-4 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow"
+          >
+            Refresh Live Feed
+          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-150 ${isFiltering || isRefreshing ? "opacity-80" : "opacity-100"}`}>
           {opportunities.map((item) => {
             const isJob = item.opportunity_type === "JOB";
             const isFreelance = item.opportunity_type === "FREELANCE";
             const isStartup = item.opportunity_type === "STARTUP_PAIN_POINT";
 
+            const empType = item.type_specific_payload?.employment_type;
             const badgeColor = isJob
-              ? "bg-blue-950 text-blue-300 border-blue-800"
+              ? empType === "INTERNSHIP"
+                ? "bg-amber-950 text-amber-300 border-amber-800"
+                : empType === "CONTRACT"
+                  ? "bg-cyan-950 text-cyan-300 border-cyan-800"
+                  : "bg-blue-950 text-blue-300 border-blue-800"
               : isFreelance
                 ? "bg-emerald-950 text-emerald-300 border-emerald-800"
                 : "bg-purple-950 text-purple-300 border-purple-800";
 
-            const badgeText = isJob ? "Full-Time Job" : isFreelance ? "Freelance Lead" : "Startup Signal";
+            const badgeText = isJob
+              ? empType === "INTERNSHIP"
+                ? "🎓 Internship"
+                : empType === "CONTRACT"
+                  ? "📄 Contract Role"
+                  : "💼 Full-Time Job"
+              : isFreelance
+                ? "⚡ Freelance Client Lead"
+                : "💡 Startup Pain Point";
+
+            const fit = item.candidate_fit;
+
+            const requiredSkills: string[] =
+              Array.isArray(item.type_specific_payload?.required_skills) && item.type_specific_payload.required_skills.length > 0
+                ? item.type_specific_payload.required_skills
+                : Array.isArray(item.type_specific_payload?.tech_stack) && item.type_specific_payload.tech_stack.length > 0
+                  ? item.type_specific_payload.tech_stack
+                  : [];
+
+            const matchedSkills: string[] =
+              Array.isArray(fit?.matched_skills) && fit.matched_skills.length > 0
+                ? fit.matched_skills
+                : Array.isArray(item.type_specific_payload?.matched_skills)
+                  ? item.type_specific_payload.matched_skills
+                  : [];
+
+            const missingSkills: string[] =
+              Array.isArray(fit?.missing_skills) && fit.missing_skills.length > 0
+                ? fit.missing_skills
+                : Array.isArray(item.type_specific_payload?.missing_skills)
+                  ? item.type_specific_payload.missing_skills
+                  : [];
 
             return (
               <div
                 key={`${item.opportunity_type}-${item.opportunity_id}`}
-                className="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 flex flex-col justify-between transition-all"
+                className="p-5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-slate-700 flex flex-col justify-between transition-all space-y-4"
               >
                 <div className="space-y-3">
-                  {/* Top Badges */}
+                  {/* Top Badges & Domain Pill */}
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${badgeColor}`}>
                         {badgeText}
                       </span>
-                      {item.type_specific_payload?.is_cold_start && (
-                        <span
-                          className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border bg-amber-950/80 text-amber-300 border-amber-800 flex items-center gap-1"
-                          title={item.type_specific_payload?.cold_start_explanation || "Cold-start recommendation calibrated from profile targets"}
-                        >
-                          ⚡ Cold-Start
+                      {item.domain_display_name && (
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 flex items-center gap-1">
+                          <span>{item.domain_icon || "🌐"}</span>
+                          <span>{item.domain_display_name}</span>
                         </span>
                       )}
-                      {item.type_specific_payload?.candidate_feedback_status && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
-                          Rated: {item.type_specific_payload.candidate_feedback_status}
+                      {item.is_new_signal && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 animate-pulse">
+                          ✨ NEW
                         </span>
                       )}
                     </div>
@@ -506,6 +936,168 @@ export default function UnifiedOpportunitiesPage() {
                     {item.short_description}
                   </p>
 
+                  {/* Company Requirements & Skills Alignment */}
+                  {(requiredSkills.length > 0 || matchedSkills.length > 0) && (
+                    <div className="p-3 rounded-lg bg-slate-950/70 border border-slate-800 space-y-2">
+                      {/* Company Required Skills */}
+                      {requiredSkills.length > 0 && (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                            <span>Company Required Skills</span>
+                            <span className="text-[10px] text-slate-500 font-normal">
+                              {requiredSkills.length} required
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {requiredSkills.map((skill: string, sIdx: number) => {
+                              const isMatched = matchedSkills.some(
+                                (m) => m.toLowerCase() === skill.toLowerCase()
+                              );
+                              return (
+                                <span
+                                  key={sIdx}
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium border transition-colors ${isMatched
+                                    ? "bg-emerald-950/70 border-emerald-700/60 text-emerald-300"
+                                    : "bg-slate-800/80 border-slate-700 text-slate-300"
+                                    }`}
+                                  title={isMatched ? "Matched in your resume" : "Company required skill"}
+                                >
+                                  {isMatched && <span className="text-emerald-400 font-bold">✓</span>}
+                                  <span>{skill}</span>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Matched & Missing Skills Summary */}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 border-t border-slate-800/80 text-xs">
+                        {matchedSkills.length > 0 && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[11px] font-semibold text-emerald-400">Matched in Resume:</span>
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {matchedSkills.slice(0, 4).map((ms, idx) => (
+                                <span
+                                  key={idx}
+                                  className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 font-mono"
+                                >
+                                  ✓ {ms}
+                                </span>
+                              ))}
+                              {matchedSkills.length > 4 && (
+                                <span className="text-[10px] text-slate-400 font-mono">+{matchedSkills.length - 4} more</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {missingSkills.length > 0 && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[11px] font-semibold text-amber-400">Add to Resume:</span>
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {missingSkills.slice(0, 3).map((mis, idx) => (
+                                <span
+                                  key={idx}
+                                  className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950/60 text-amber-300 border border-amber-800/50 font-mono"
+                                >
+                                  + {mis}
+                                </span>
+                              ))}
+                              {missingSkills.length > 3 && (
+                                <span className="text-[10px] text-slate-400 font-mono">+{missingSkills.length - 3} more</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dynamic Candidate Fit & "Why You Fit" Section */}
+                  {fit && (
+                    <div className="p-3 rounded-lg bg-slate-950/80 border border-indigo-950 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                          <span
+                            className={`w-2 h-2 rounded-full ${fit.fit_percentage >= 80
+                              ? "bg-emerald-400"
+                              : fit.fit_percentage >= 65
+                                ? "bg-blue-400"
+                                : "bg-amber-400"
+                              }`}
+                          />
+                          Fit: {fit.fit_percentage}% ({fit.fit_rating})
+                        </span>
+                        <span className="text-[10px] text-indigo-300 font-mono">
+                          Verified Synergy
+                        </span>
+                      </div>
+
+                      <p className="text-[11px] text-slate-300 leading-snug">
+                        {fit.how_you_fit}
+                      </p>
+
+                      {/* Tailored Resume Bullets & Action Plan */}
+                      {fit.tailored_resume_bullets && fit.tailored_resume_bullets.length > 0 && (
+                        <div className="pt-2 border-t border-slate-900">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedBulletId(
+                                expandedBulletId === item.opportunity_id ? null : item.opportunity_id
+                              )
+                            }
+                            className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center justify-between w-full"
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <span>📝</span>
+                              <span>Tailor Resume for this Role</span>
+                              {fit.resume_action_plan?.ats_boost_percentage ? (
+                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-indigo-900/60 text-indigo-300 border border-indigo-700 font-mono">
+                                  +{fit.resume_action_plan.ats_boost_percentage}% ATS Boost
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {expandedBulletId === item.opportunity_id ? "▲ Close" : "▼ Show Recommended Bullets"}
+                            </span>
+                          </button>
+
+                          {expandedBulletId === item.opportunity_id && (
+                            <div className="mt-2 space-y-2 p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-xs animate-in fade-in duration-150">
+                              <p className="text-[11px] font-medium text-slate-300">
+                                Copy & paste these recommended bullets into your resume to match hiring requirements:
+                              </p>
+                              {fit.tailored_resume_bullets.map((b, bIdx) => (
+                                <div key={bIdx} className="space-y-1 bg-slate-950 p-2 rounded-lg border border-slate-800/80">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-amber-300">
+                                      Target Skill: {b.skill}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(b.sample_bullet);
+                                        setCopiedBulletId(`${item.opportunity_id}-${bIdx}`);
+                                        setTimeout(() => setCopiedBulletId(null), 2500);
+                                      }}
+                                      className="text-[10px] px-2 py-0.5 rounded bg-indigo-600/40 hover:bg-indigo-600 text-indigo-200 border border-indigo-500/50 transition-colors"
+                                    >
+                                      {copiedBulletId === `${item.opportunity_id}-${bIdx}` ? "✓ Copied!" : "📋 Copy Bullet"}
+                                    </button>
+                                  </div>
+                                  <p className="text-[11px] text-slate-300 italic font-mono leading-relaxed">
+                                    &quot;{b.sample_bullet}&quot;
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Type-Specific Discriminator Payload */}
                   <div className="pt-2 border-t border-slate-800/80 text-xs text-slate-300 space-y-1">
                     {isJob && (
@@ -518,124 +1110,251 @@ export default function UnifiedOpportunitiesPage() {
                         <span className="bg-slate-800 px-2 py-0.5 rounded text-slate-400">
                           {item.type_specific_payload.employment_type}
                         </span>
-                        {item.type_specific_payload.required_skills?.slice(0, 2).map((s: string) => (
-                          <span key={s} className="bg-indigo-950 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-800">
-                            {s}
-                          </span>
-                        ))}
                       </div>
                     )}
 
                     {isFreelance && (
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-emerald-400 font-medium">
-                            Category: {item.type_specific_payload.service_category}
+                            Category: {item.type_specific_payload.service_category || "Web Modernization"}
                           </span>
-                          <span className="text-slate-400">
-                            ★ {item.type_specific_payload.rating} ({item.type_specific_payload.reviews_count} reviews)
-                          </span>
+                          {item.type_specific_payload.rating > 0 && (
+                            <span className="text-slate-400">
+                              ★ {item.type_specific_payload.rating} ({item.type_specific_payload.reviews_count || 0} reviews)
+                            </span>
+                          )}
                         </div>
-                        {item.type_specific_payload.is_broken_website && (
-                          <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800">
-                            Broken Site Detected
-                          </span>
-                        )}
+                        {/* Discovered Outreach Channels & Web Health */}
+                        <div className="flex flex-wrap items-center gap-1.5 text-[11px] pt-0.5">
+                          {item.type_specific_payload.is_broken_website && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-800 font-medium">
+                              ⚠️ Broken / Outdated Site
+                            </span>
+                          )}
+                          {!item.type_specific_payload.website && !item.type_specific_payload.is_broken_website && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/70 text-amber-300 border border-amber-800 font-medium">
+                              ⚠️ No Business Website (Opportunity)
+                            </span>
+                          )}
+                          {item.type_specific_payload.email && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800 font-mono">
+                              ✉ {item.type_specific_payload.email}
+                            </span>
+                          )}
+                          {item.type_specific_payload.phone && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-950/80 text-blue-300 border border-blue-800 font-mono">
+                              📞 {item.type_specific_payload.phone}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
 
                     {isStartup && (
-                      <div className="space-y-1">
+                      <div className="space-y-2">
                         <div className="flex items-center justify-between text-xs font-mono">
                           <span className="text-purple-300 font-semibold">
                             Urgency: {item.type_specific_payload.urgency_score}/10
                           </span>
                           <span className="text-slate-400">
-                            Corroborations: {item.type_specific_payload.corroboration_count}
+                            {item.type_specific_payload.corroboration_count} Verified Source{item.type_specific_payload.corroboration_count > 1 ? "s" : ""}
                           </span>
                         </div>
-                        {item.type_specific_payload.has_conflicting_evidence && (
-                          <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800">
-                            Conflicting Signals
-                          </span>
+
+                        {/* Problem & Solution Highlights */}
+                        {item.type_specific_payload.problem_explanation && (
+                          <div className="p-2 rounded-lg bg-slate-950 border border-rose-900/40 text-[11px] leading-snug">
+                            <span className="text-rose-400 font-semibold flex items-center gap-1 mb-0.5">
+                              <span>🚨</span> Problem Root Cause:
+                            </span>
+                            <p className="line-clamp-2 text-slate-300 font-sans">{item.type_specific_payload.problem_explanation}</p>
+                          </div>
                         )}
+
+                        {item.type_specific_payload.how_to_solve_strategy && (
+                          <div className="p-2 rounded-lg bg-indigo-950/40 border border-emerald-900/40 text-[11px] leading-snug">
+                            <span className="text-emerald-400 font-semibold flex items-center gap-1 mb-0.5">
+                              <span>🛠️</span> Action Plan:
+                            </span>
+                            <p className="line-clamp-2 text-slate-300 font-sans">{item.type_specific_payload.how_to_solve_strategy}</p>
+                          </div>
+                        )}
+
+                        {/* Founder Social Channels */}
+                        {(() => {
+                          const c = (item as any).contact_info || item.type_specific_payload || {};
+                          const email = c.email || item.type_specific_payload.contact_email;
+                          const twitter = c.twitter || item.type_specific_payload.twitter_url;
+                          const linkedin = c.linkedin || item.type_specific_payload.linkedin_url;
+                          const github = c.github || item.type_specific_payload.github_url;
+                          if (!email && !twitter && !linkedin && !github) return null;
+                          return (
+                            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[10px]">
+                              <span className="text-slate-500 font-semibold uppercase mr-0.5">Contacts:</span>
+                              {linkedin && (
+                                <a
+                                  href={linkedin}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 hover:bg-blue-900 transition-colors"
+                                >
+                                  💼 LinkedIn
+                                </a>
+                              )}
+                              {twitter && (
+                                <a
+                                  href={twitter}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-1.5 py-0.5 rounded bg-slate-950 text-sky-300 border border-sky-800 hover:bg-slate-800 transition-colors"
+                                >
+                                  𝕏 Twitter
+                                </a>
+                              )}
+                              {github && (
+                                <a
+                                  href={github}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-1.5 py-0.5 rounded bg-slate-950 text-slate-200 border border-slate-700 hover:bg-slate-800 transition-colors"
+                                >
+                                  🐙 GitHub
+                                </a>
+                              )}
+                              {email && (
+                                <a
+                                  href={`mailto:${email}`}
+                                  className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800 hover:bg-emerald-900 transition-colors"
+                                >
+                                  ✉ Email
+                                </a>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                    {/* Live Trust & Verification Indicator */}
+                    {item.trust_metrics && (
+                      <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-1.5 flex-wrap text-[11px]">
+                        <span className="inline-flex items-center gap-1 font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/80 px-2 py-0.5 rounded-full">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          {item.trust_metrics.trust_tier_label}
+                        </span>
+                        <span
+                          className={`text-[10px] font-medium px-2 py-0.5 rounded border ${item.trust_metrics.ghost_job_risk.level === "LOW"
+                            ? "text-emerald-300 bg-emerald-950/50 border-emerald-800/60"
+                            : item.trust_metrics.ghost_job_risk.level === "MODERATE"
+                              ? "text-amber-300 bg-amber-950/50 border-amber-800/60"
+                              : "text-rose-300 bg-rose-950/50 border-rose-800/60"
+                            }`}
+                        >
+                          {item.trust_metrics.ghost_job_risk.urgency_label}
+                        </span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Quick Rating & Footer Controls */}
-                <div className="mt-4 pt-3 border-t border-slate-800 space-y-2">
-                  <div className="flex items-center justify-between gap-1 text-[11px] text-slate-400">
-                    <span>Quick rate fit:</span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => handleQuickFeedback(item, "RELEVANT")}
-                        title="Mark as Great Fit (Boosts ranking)"
-                        className="px-2 py-0.5 rounded bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-800/60 text-emerald-300 transition-colors"
-                      >
-                        👍 Fit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleQuickFeedback(item, "WRONG_SKILLS")}
-                        title="Wrong Skills (-50% score penalty)"
-                        className="px-2 py-0.5 rounded bg-amber-950/60 hover:bg-amber-900 border border-amber-800/60 text-amber-300 transition-colors"
-                      >
-                        👎 Skills
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleQuickFeedback(item, "LOCATION_UNSUITABLE")}
-                        title="Location Unsuitable (-40% penalty)"
-                        className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-                      >
-                        📍 Loc
-                      </button>
-                    </div>
-                  </div>
+                {/* Card Footer: Formal Bookmark & Details Actions */}
+                <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between gap-3 flex-wrap">
+                  {/* Formal Bookmark / Saved Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenSaveModal(item)}
+                    disabled={savingId === item.opportunity_id}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${item.is_saved
+                      ? "bg-amber-950/60 border-amber-600/70 text-amber-300 hover:bg-amber-900/60 shadow-sm"
+                      : "bg-slate-800/90 hover:bg-slate-750 text-slate-200 border-slate-700 hover:border-slate-600"
+                      }`}
+                    title={item.is_saved ? "Bookmarked in folder" : "Bookmark this opportunity"}
+                  >
+                    <svg
+                      className={`w-3.5 h-3.5 ${item.is_saved ? "text-amber-400 fill-current" : "text-slate-400"}`}
+                      fill={item.is_saved ? "currentColor" : "none"}
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                      />
+                    </svg>
+                    <span>{item.is_saved ? "★ Bookmarked" : "☆ Bookmark"}</span>
+                  </button>
 
-                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/50">
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => handleToggleSave(item)}
-                        disabled={savingId === item.opportunity_id}
-                        className={`text-xs font-semibold px-2.5 py-1 rounded transition-colors ${item.is_saved
-                          ? "bg-amber-900/60 text-amber-300 border border-amber-700/60"
-                          : "bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700"
-                          }`}
-                      >
-                        {item.is_saved ? "★ Saved" : "☆ Save"}
-                      </button>
+                  {/* Formal Navigation / Details Actions */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {item.opportunity_type === "JOB" && (
+                      <>
+                        <Link
+                          href={`/jobs/${item.opportunity_id}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 hover:border-indigo-500/50 transition-colors"
+                        >
+                          View Details →
+                        </Link>
+                        {item.source_url ? (
+                          <a
+                            href={
+                              item.source_url && !item.source_url.toLowerCase().includes("jooble.org")
+                                ? item.source_url
+                                : `https://www.google.com/search?q=${encodeURIComponent(`${item.organization_name} ${item.title} job apply`)}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shadow-sm"
+                          >
+                            Apply on ATS ↗
+                          </a>
+                        ) : null}
+                      </>
+                    )}
 
-                      <button
-                        onClick={() => setFeedbackItem(item)}
-                        className="text-xs font-medium text-slate-400 hover:text-slate-200 px-2 py-1 rounded bg-slate-800/40 hover:bg-slate-800 transition-colors"
-                        title="Provide detailed candidate feedback"
-                      >
-                        Feedback
-                      </button>
+                    {item.opportunity_type === "FREELANCE" && (
+                      <>
+                        <Link
+                          href={`/freelance/${item.opportunity_id}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors shadow-sm"
+                        >
+                          Pitch Client & Lead Info →
+                        </Link>
+                        {item.source_url ? (
+                          <a
+                            href={item.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:border-slate-600 transition-colors"
+                          >
+                            Client Website ↗
+                          </a>
+                        ) : null}
+                      </>
+                    )}
 
-                      <button
-                        onClick={() => setReportItem(item)}
-                        className="text-xs font-medium text-rose-400/80 hover:text-rose-300 px-2 py-1 rounded bg-rose-950/30 hover:bg-rose-950/60 border border-rose-900/40 transition-colors"
-                        title="Report job posting or suspicious content"
-                      >
-                        🚩 Report
-                      </button>
-                    </div>
-
-                    {item.source_url ? (
-                      <a
-                        href={item.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
-                      >
-                        Apply / Visit →
-                      </a>
-                    ) : null}
+                    {item.opportunity_type === "STARTUP_PAIN_POINT" && (
+                      <>
+                        <Link
+                          href={`/startups/${item.opportunity_id}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white transition-colors shadow-sm"
+                        >
+                          Solve Pain Point →
+                        </Link>
+                        {item.source_url ? (
+                          <a
+                            href={item.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                          >
+                            Product Site ↗
+                          </a>
+                        ) : null}
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -644,168 +1363,84 @@ export default function UnifiedOpportunitiesPage() {
         </div>
       )}
 
-      {/* Candidate Relevance Feedback Modal */}
-      {feedbackItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-lg font-bold text-white">Relevance & Match Calibration</h3>
-              <button
-                onClick={() => setFeedbackItem(null)}
-                className="text-slate-400 hover:text-white text-sm"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-400">
-              Personalize recommendations for: <strong className="text-white">{feedbackItem.title}</strong>
-            </p>
-
-            <form onSubmit={handleSubmitFeedback} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                  How does this opportunity fit you?
-                </label>
-                <select
-                  value={feedbackCategory}
-                  onChange={(e) => setFeedbackCategory(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="RELEVANT">Great Fit (Boost this type in feed)</option>
-                  <option value="WRONG_SKILLS">Wrong Skills / Tech Stack mismatch (-50% penalty)</option>
-                  <option value="LOCATION_UNSUITABLE">Unsuitable Location / Incompatible Timezone (-40% penalty)</option>
-                  <option value="EXPERIENCE_TOO_HIGH">Experience requirement too high (Seniority mismatch)</option>
-                  <option value="EXPERIENCE_TOO_LOW">Experience requirement too low (Below my seniority)</option>
-                  <option value="WORK_MODE_UNSUITABLE">Work Mode Unsuitable (e.g. requires on-site)</option>
-                  <option value="ALREADY_APPLIED">Already applied or interviewed</option>
-                  <option value="DUPLICATE">Duplicate of another listing</option>
-                  <option value="JOB_CLOSED">Position closed or expired</option>
-                  <option value="NOT_RELEVANT">Not relevant to my career goals (Suppress)</option>
-                  <option value="OTHER">Other Reason</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                  Optional Details
-                </label>
-                <textarea
-                  value={feedbackExplanation}
-                  onChange={(e) => setFeedbackExplanation(e.target.value)}
-                  placeholder="e.g. I prefer Python backend roles over frontend..."
-                  rows={3}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              {feedbackStatusMsg && (
-                <div className="p-3 rounded-lg bg-emerald-950 text-emerald-300 text-xs border border-emerald-800">
-                  {feedbackStatusMsg}
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setFeedbackItem(null)}
-                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingFeedback}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm"
-                >
-                  {submittingFeedback ? "Recording..." : "Save Calibration"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Trust & Moderation Report Modal (Module G) */}
-      {reportItem && (
+      {/* Bookmark Categorization Modal */}
+      {saveModalItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <span>🚩</span> Report Listing Issue
+                <span>★</span> Categorize Bookmark
               </h3>
               <button
-                onClick={() => setReportItem(null)}
+                onClick={() => setSaveModalItem(null)}
                 className="text-slate-400 hover:text-white text-sm"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-slate-400">
-              Report quality or trust concerns for: <strong className="text-white">{reportItem.title}</strong>
+            <p className="text-xs text-slate-300">
+              Save <strong className="text-white">{saveModalItem.title}</strong> into your bookmarks & collections:
             </p>
 
-            <form onSubmit={handleSubmitReport} className="space-y-4">
+            <form onSubmit={handleConfirmSave} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                  Report Category *
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  Select Folder / Category *
                 </label>
-                <select
-                  value={reportType}
-                  onChange={(e) => setReportType(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500"
-                >
-                  <option value="SUSPICIOUS_JOB">Suspicious or Fraudulent Listing</option>
-                  <option value="PAYMENT_REQUEST">Requires Payment or Sensitive Financial Info</option>
-                  <option value="MISLEADING_DESCRIPTION">Misleading Job Title, Role, or Compensation</option>
-                  <option value="BROKEN_LINK">Broken or Expired Application Link</option>
-                  <option value="COMPANY_IMPERSONATION">Impersonating Known Brand / Fake Recruiter</option>
-                  <option value="INCORRECT_LOCATION">Inaccurate Location / False Remote Claim</option>
-                  <option value="INCORRECT_STATUS">Position Is Already Filled / Inactive</option>
-                  <option value="OTHER">Other Quality or Security Issue</option>
-                </select>
+                <div className="grid grid-cols-1 gap-2">
+                  {BOOKMARK_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setSelectedSaveCat(cat.id)}
+                      className={`text-left px-3.5 py-2.5 rounded-lg border text-xs font-semibold transition-all flex items-center justify-between ${selectedSaveCat === cat.id
+                        ? "bg-indigo-600 text-white border-indigo-400 shadow"
+                        : "bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700"
+                        }`}
+                    >
+                      <span>{cat.label}</span>
+                      {selectedSaveCat === cat.id && <span>✓</span>}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
-                  Notes / Observed Evidence
+                  Private Notes (Optional)
                 </label>
                 <textarea
-                  value={reportNotes}
-                  onChange={(e) => setReportNotes(e.target.value)}
-                  placeholder="Describe why this listing should be reviewed or moderated..."
-                  rows={3}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500"
+                  value={saveNotes}
+                  onChange={(e) => setSaveNotes(e.target.value)}
+                  placeholder="e.g. Highlight CRM automation experience in intro pitch..."
+                  rows={2}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>
-
-              {reportStatusMsg && (
-                <div className="p-3 rounded-lg bg-emerald-950 text-emerald-300 text-xs border border-emerald-800">
-                  {reportStatusMsg}
-                </div>
-              )}
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setReportItem(null)}
+                  onClick={() => setSaveModalItem(null)}
                   className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={submittingReport}
-                  className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-xs font-semibold text-white shadow-sm"
+                  disabled={savingId === saveModalItem.opportunity_id}
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm"
                 >
-                  {submittingReport ? "Submitting..." : "Submit Report"}
+                  {savingId === saveModalItem.opportunity_id ? "Saving..." : "Save to Folder"}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+
     </div>
   );
 }

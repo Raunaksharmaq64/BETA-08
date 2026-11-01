@@ -103,6 +103,64 @@ _KNOWN_SKILLS: Dict[str, List[str]] = {
         "gemini", "claude", "gpt", "rag", "document rag", "bolna", "prompt engineering",
         "langchain", "llamaindex", "autogen", "crewai"
     ],
+    "marketing_growth": [
+        "seo", "sem", "google ads", "meta ads", "facebook ads", "content marketing", "copywriting",
+        "email marketing", "growth hacking", "conversion rate optimization", "cro", "hubspot",
+        "google analytics", "ga4", "social media marketing", "performance marketing", "brand strategy",
+        "content strategy", "marketing automation", "mailchimp", "semrush", "ahrefs", "influencer marketing",
+        "affiliate marketing", "product marketing", "organic growth", "paid ads", "campaign management"
+    ],
+    "sales_bd": [
+        "b2b sales", "cold outreach", "lead generation", "pipeline management", "salesforce",
+        "hubspot crm", "account management", "enterprise sales", "b2b prospecting", "cold calling",
+        "discovery calls", "negotiation", "deal closing", "inbound sales", "outbound sales", "saas sales",
+        "sdr", "bdr", "revenue operations", "revops", "sales enablement", "key account management",
+        "contract closing", "business development", "client pitching", "sales forecasting"
+    ],
+    "product_design": [
+        "ui/ux design", "ui design", "ux design", "figma", "wireframing", "prototyping",
+        "user research", "usability testing", "design systems", "interaction design",
+        "information architecture", "product management", "user stories", "product roadmapping",
+        "feature prioritization", "a/b testing", "adobe xd", "sketch", "miro", "persona development"
+    ],
+    "finance_accounting": [
+        "financial modeling", "financial analysis", "quickbooks", "excel modeling", "advanced excel",
+        "valuation", "p&l management", "budgeting", "financial forecasting", "bookkeeping", "auditing",
+        "tax compliance", "cash flow management", "accounts payable", "accounts receivable",
+        "variance analysis", "balance sheet", "xero", "sap", "erp", "corporate finance"
+    ],
+    "operations_logistics": [
+        "supply chain management", "procurement", "vendor management", "inventory management",
+        "logistics", "process improvement", "lean six sigma", "warehouse management",
+        "operations management", "contract negotiation", "standard operating procedures", "sop",
+        "workflow optimization", "root cause analysis", "distribution management"
+    ],
+    "hr_talent": [
+        "talent acquisition", "full cycle recruiting", "technical recruiting", "candidate sourcing",
+        "applicant tracking systems", "ats screening", "employee onboarding", "employee relations",
+        "performance management", "hris", "workday", "greenhouse", "bamboo hr", "employer branding",
+        "compensation and benefits", "labor law compliance", "talent retention"
+    ],
+    "customer_success": [
+        "customer success", "client onboarding", "customer retention", "churn reduction",
+        "customer advocacy", "zendesk", "intercom", "freshdesk", "csat", "nps", "support operations",
+        "technical account management", "customer experience", "cx", "escalation management"
+    ],
+    "data_analytics": [
+        "sql", "powerbi", "tableau", "data analysis", "business intelligence", "excel dashboards",
+        "data visualization", "exploratory data analysis", "etl", "statistical analysis",
+        "hypothesis testing", "predictive modeling", "looker", "dbt", "bigquery", "snowflake"
+    ],
+    "healthcare_medical": [
+        "clinical operations", "healthcare administration", "patient care", "hipaa compliance",
+        "medical terminology", "electronic medical records", "emr", "ehr", "epic", "cerner",
+        "patient advocacy", "medical billing", "clinical research"
+    ],
+    "legal_compliance": [
+        "contract drafting", "contract review", "legal research", "regulatory compliance",
+        "risk management", "gdpr compliance", "corporate governance", "intellectual property",
+        "due diligence", "policy drafting", "litigation support"
+    ],
     "soft_skills": [
         "leadership", "mentorship", "agile", "scrum", "communication", "collaboration",
         "problem solving", "critical thinking", "project management"
@@ -654,13 +712,7 @@ class ResumeParserService:
         Distinguishes between explicit skills (in SKILLS section) and inferred skills (in project/experience text).
         """
         categorized_skills: Dict[str, List[Dict[str, Any]]] = {
-            "languages": [],
-            "frameworks": [],
-            "databases": [],
-            "cloud": [],
-            "tools": [],
-            "ai_agentic": [],
-            "soft_skills": []
+            cat: [] for cat in _KNOWN_SKILLS.keys()
         }
         inferred_skills: List[Dict[str, Any]] = []
 
@@ -1045,6 +1097,193 @@ class ResumeParserService:
 
         return certifications
 
+    @classmethod
+    def detect_candidate_domain(
+        cls,
+        explicit_skills: Dict[str, List[Dict[str, Any]]],
+        inferred_skills: List[Dict[str, Any]],
+        experience: List[Dict[str, Any]],
+        summary: Optional[Dict[str, Any]],
+        raw_text: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Dynamically classifies candidate into their primary and secondary professional domains.
+        Enables non-technical multi-domain support across Marketing, Sales, Design, Finance,
+        Operations, HR, Customer Success, Engineering, and Data.
+        """
+        domain_scores: Dict[str, float] = {
+            "MARKETING_GROWTH": 0.0,
+            "SALES_BD": 0.0,
+            "PRODUCT_DESIGN": 0.0,
+            "FINANCE_ACCOUNTING": 0.0,
+            "OPERATIONS_LOGISTICS": 0.0,
+            "HR_TALENT": 0.0,
+            "CUSTOMER_SUCCESS": 0.0,
+            "SOFTWARE_ENGINEERING": 0.0,
+            "DATA_ANALYTICS": 0.0,
+            "HEALTHCARE_MEDICAL": 0.0,
+            "LEGAL_COMPLIANCE": 0.0,
+        }
+
+        # 1. Score from Explicit & Inferred Skills
+        domain_category_map = {
+            "marketing_growth": "MARKETING_GROWTH",
+            "sales_bd": "SALES_BD",
+            "product_design": "PRODUCT_DESIGN",
+            "finance_accounting": "FINANCE_ACCOUNTING",
+            "operations_logistics": "OPERATIONS_LOGISTICS",
+            "hr_talent": "HR_TALENT",
+            "customer_success": "CUSTOMER_SUCCESS",
+            "data_analytics": "DATA_ANALYTICS",
+            "healthcare_medical": "HEALTHCARE_MEDICAL",
+            "legal_compliance": "LEGAL_COMPLIANCE",
+            "languages": "SOFTWARE_ENGINEERING",
+            "frameworks": "SOFTWARE_ENGINEERING",
+            "databases": "SOFTWARE_ENGINEERING",
+            "cloud": "SOFTWARE_ENGINEERING",
+            "tools": "SOFTWARE_ENGINEERING",
+            "ai_agentic": "SOFTWARE_ENGINEERING",
+        }
+
+        for cat, skills in (explicit_skills or {}).items():
+            mapped_domain = domain_category_map.get(cat)
+            if mapped_domain:
+                domain_scores[mapped_domain] += len(skills) * 3.0
+
+        for inf in (inferred_skills or []):
+            cat = inf.get("category")
+            mapped_domain = domain_category_map.get(cat)
+            if mapped_domain:
+                domain_scores[mapped_domain] += 1.5
+
+        # 2. Score from Experience Titles & Responsibilities
+        role_clues = {
+            "MARKETING_GROWTH": [r"\bmarket", r"\bseo\b", r"\bsem\b", r"\bgrowth\b", r"\bcontent\b", r"\bcopywrit", r"\bbrand\b", r"\bcampaign\b"],
+            "SALES_BD": [r"\bsales\b", r"\bbdr\b", r"\bsdr\b", r"\baccount exec", r"\bbusiness dev", r"\bquota\b", r"\bdeal", r"\bclosing\b"],
+            "PRODUCT_DESIGN": [r"\bux\b", r"\bui\b", r"\bproduct design", r"\bproduct manager", r"\buser research", r"\bfigma\b", r"\bwireframe"],
+            "FINANCE_ACCOUNTING": [r"\bfinanc", r"\baccount", r"\bbookkeep", r"\baudit", r"\btax\b", r"\bp&l\b", r"\bquickbook", r"\bbalance sheet"],
+            "OPERATIONS_LOGISTICS": [r"\boperat", r"\bsupply chain", r"\blogistic", r"\bprocure", r"\bvendor\b", r"\bwarehouse", r"\bsix sigma"],
+            "HR_TALENT": [r"\brecruit", r"\btalent\b", r"\bhuman resource", r"\bhr\b", r"\bpeople ops", r"\bonboard", r"\bworkday\b"],
+            "CUSTOMER_SUCCESS": [r"\bcustomer success", r"\bclient success", r"\bsupport\b", r"\bhelp desk", r"\bcsat\b", r"\bzen desk"],
+            "SOFTWARE_ENGINEERING": [r"\bsoftware", r"\bdeveloper", r"\bengineer", r"\bprogrammer", r"\bbackend", r"\bfrontend", r"\bfull[- ]?stack"],
+            "DATA_ANALYTICS": [r"\bdata analy", r"\bbusiness intel", r"\bbi analy", r"\btableau\b", r"\bpower bi\b", r"\bdata scien"],
+            "HEALTHCARE_MEDICAL": [r"\bclinic", r"\bhealth", r"\bpatient\b", r"\bmedic", r"\bnurs", r"\bhospital", r"\bhipaa\b"],
+            "LEGAL_COMPLIANCE": [r"\blegal\b", r"\bcomplian", r"\battorney\b", r"\bcounsel\b", r"\bcontract\b", r"\bgdpr\b"],
+        }
+
+        combined_exp_text = ""
+        for exp in (experience or []):
+            role = exp.get("role", "") or exp.get("title", "")
+            company = exp.get("company", "")
+            resps = " ".join(exp.get("responsibilities", [])) if isinstance(exp.get("responsibilities"), list) else ""
+            combined_exp_text += f" {role} {company} {resps}".lower()
+            for domain, patterns in role_clues.items():
+                for pat in patterns:
+                    if re.search(pat, role.lower()):
+                        domain_scores[domain] += 8.0
+
+        for domain, patterns in role_clues.items():
+            for pat in patterns:
+                matches = len(re.findall(pat, combined_exp_text))
+                domain_scores[domain] += min(matches * 2.0, 10.0)
+
+        # 3. Score from Summary
+        summary_text = (summary.get("text") or "") if isinstance(summary, dict) else ""
+        if summary_text:
+            for domain, patterns in role_clues.items():
+                for pat in patterns:
+                    if re.search(pat, summary_text.lower()):
+                        domain_scores[domain] += 4.0
+
+        # Sort domains
+        sorted_domains = sorted(domain_scores.items(), key=lambda x: x[1], reverse=True)
+        top_domain, top_score = sorted_domains[0]
+        secondary = [d for d, s in sorted_domains[1:3] if s > 0]
+
+        domain_meta = {
+            "MARKETING_GROWTH": {
+                "display_name": "Marketing & Growth",
+                "icon": "🚀",
+                "target_archetypes": ["Growth Marketer", "SEO Specialist", "Content Strategist", "Performance Marketer"],
+            },
+            "SALES_BD": {
+                "display_name": "Sales & Business Development",
+                "icon": "💼",
+                "target_archetypes": ["Account Executive", "B2B Sales Representative", "Business Development Manager", "SDR/BDR"],
+            },
+            "PRODUCT_DESIGN": {
+                "display_name": "Product & Design",
+                "icon": "🎨",
+                "target_archetypes": ["UI/UX Designer", "Product Designer", "Product Manager", "UX Researcher"],
+            },
+            "FINANCE_ACCOUNTING": {
+                "display_name": "Finance & Accounting",
+                "icon": "📊",
+                "target_archetypes": ["Financial Analyst", "Accountant", "Bookkeeper", "Financial Controller"],
+            },
+            "OPERATIONS_LOGISTICS": {
+                "display_name": "Operations & Logistics",
+                "icon": "⚙️",
+                "target_archetypes": ["Operations Manager", "Supply Chain Analyst", "Project Manager", "Logistics Coordinator"],
+            },
+            "HR_TALENT": {
+                "display_name": "HR & Talent Acquisition",
+                "icon": "👥",
+                "target_archetypes": ["Talent Acquisition Specialist", "Technical Recruiter", "HR Manager", "People Operations Lead"],
+            },
+            "CUSTOMER_SUCCESS": {
+                "display_name": "Customer Success & Support",
+                "icon": "🤝",
+                "target_archetypes": ["Customer Success Manager", "Client Relationship Manager", "Support Operations Lead"],
+            },
+            "SOFTWARE_ENGINEERING": {
+                "display_name": "Engineering & Technology",
+                "icon": "💻",
+                "target_archetypes": ["Full Stack Engineer", "Backend Developer", "DevOps Engineer", "Frontend Developer"],
+            },
+            "DATA_ANALYTICS": {
+                "display_name": "Data & Analytics",
+                "icon": "📈",
+                "target_archetypes": ["Data Analyst", "Business Intelligence Specialist", "Data Strategist", "Analytics Engineer"],
+            },
+            "HEALTHCARE_MEDICAL": {
+                "display_name": "Healthcare & Life Sciences",
+                "icon": "🏥",
+                "target_archetypes": ["Healthcare Administrator", "Clinical Operations Lead", "Medical Operations Specialist"],
+            },
+            "LEGAL_COMPLIANCE": {
+                "display_name": "Legal & Compliance",
+                "icon": "⚖️",
+                "target_archetypes": ["Compliance Specialist", "Legal Analyst", "Contract Manager", "Regulatory Affairs Lead"],
+            },
+        }
+
+        # If top score is essentially zero, fallback to GENERAL_PROFESSIONAL
+        if top_score < 2.0:
+            return {
+                "primary_domain": "GENERAL_PROFESSIONAL",
+                "secondary_domains": [],
+                "display_name": "Cross-Discipline Professional",
+                "icon": "🌐",
+                "target_archetypes": ["Business Specialist", "Project Coordinator", "Operations Lead"],
+                "confidence_score": 0.50,
+            }
+
+        meta = domain_meta.get(top_domain, {
+            "display_name": top_domain.replace("_", " ").title(),
+            "icon": "💼",
+            "target_archetypes": ["Specialist", "Manager"],
+        })
+
+        return {
+            "primary_domain": top_domain,
+            "secondary_domains": secondary,
+            "display_name": meta["display_name"],
+            "icon": meta["icon"],
+            "target_archetypes": meta["target_archetypes"],
+            "confidence_score": min(0.98, max(0.60, round(top_score / max(1.0, top_score + 10.0), 2))),
+        }
+
     def parse_document(
         self,
         file_bytes: bytes,
@@ -1115,6 +1354,7 @@ class ResumeParserService:
         publications = self.extract_publications(sections, evidence_list)
         languages = self.extract_languages(sections, evidence_list)
         awards = self.extract_awards(sections, evidence_list)
+        domain_info = self.detect_candidate_domain(explicit_skills, inferred_skills, experience, summary, raw_text)
 
         structured_extractions = {
             "sections": {k: [i["line"] for i in v] for k, v in sections.items() if v},
@@ -1126,6 +1366,7 @@ class ResumeParserService:
             "skills": explicit_skills,  # Backward compatible alias
             "explicit_skills": explicit_skills,
             "inferred_skills": inferred_skills,
+            "domain_info": domain_info,
             "projects": projects,
             "certifications": certifications,
             "publications": publications,

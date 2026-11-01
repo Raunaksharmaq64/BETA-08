@@ -32,6 +32,7 @@ from app.modules.freelance.schemas.freelance_schemas import (
 )
 from app.modules.freelance.services.audit_service import FreelanceAuditService
 from app.modules.freelance.services.discovery_service import FreelanceDiscoveryService
+from app.modules.freelance.services.export_service import FreelanceExportService
 from app.modules.freelance.services.mockup_service import MockupService
 from app.modules.freelance.services.outreach_service import FreelanceOutreachService
 from app.services.freelance_service import freelance_service
@@ -47,6 +48,19 @@ router = APIRouter(prefix="/freelance", tags=["Freelance Opportunity Finder"])
 
 class WhatsAppLinkRequest(BaseModel):
     message: Optional[str] = None
+
+
+class EnrichContactsRequest(BaseModel):
+    website_url: Optional[str] = None
+
+
+class ExportOpportunitiesRequest(BaseModel):
+    opportunity_ids: Optional[List[str]] = None
+    city: Optional[str] = None
+    category: Optional[str] = None
+    priority: Optional[str] = None
+    query: Optional[str] = None
+    saved_only: bool = False
 
 
 # -----------------------------------------------------------------------------
@@ -283,6 +297,124 @@ async def save_candidate_settings(
 
     await db.commit()
     return {"success": True, "message": "Freelance Intelligence settings updated successfully."}
+
+
+@router.post("/export/excel", summary="Export freelance leads as formatted Excel spreadsheet (.xlsx)")
+async def export_freelance_excel(
+    req: ExportOpportunitiesRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
+    """
+    Exports filtered or explicitly selected freelance leads into a professional .xlsx spreadsheet.
+    Includes sanitization against spreadsheet formula injection (DDE attacks).
+    """
+    items = []
+    if req.saved_only and current_user:
+        saved_records = await freelance_service.get_saved_opportunities(db, user_id=current_user.id)
+        items = [s.opportunity for s in saved_records if s.opportunity]
+    elif req.opportunity_ids and len(req.opportunity_ids) > 0:
+        from sqlalchemy import select
+        from app.db.models import FreelanceOpportunityRecord
+        res = await db.execute(
+            select(FreelanceOpportunityRecord).where(FreelanceOpportunityRecord.id.in_(req.opportunity_ids))
+        )
+        items = list(res.scalars().all())
+    else:
+        items = await freelance_service.list_opportunities(
+            session=db,
+            city=req.city,
+            category=req.category,
+            priority=req.priority,
+            query=req.query,
+            limit=500,
+            offset=0,
+        )
+
+    if not items:
+        raise HTTPException(status_code=400, detail="No freelance leads found matching export criteria.")
+
+    excel_bytes = FreelanceExportService.generate_excel(items)
+    from datetime import datetime
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    filename = f"freelance_leads_{timestamp}.xlsx"
+
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
+    )
+
+
+@router.post("/export/csv", summary="Export freelance leads as UTF-8 CSV spreadsheet (.csv)")
+async def export_freelance_csv(
+    req: ExportOpportunitiesRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
+    """
+    Exports filtered or explicitly selected freelance leads into a clean CSV spreadsheet with UTF-8 BOM.
+    """
+    items = []
+    if req.saved_only and current_user:
+        saved_records = await freelance_service.get_saved_opportunities(db, user_id=current_user.id)
+        items = [s.opportunity for s in saved_records if s.opportunity]
+    elif req.opportunity_ids and len(req.opportunity_ids) > 0:
+        from sqlalchemy import select
+        from app.db.models import FreelanceOpportunityRecord
+        res = await db.execute(
+            select(FreelanceOpportunityRecord).where(FreelanceOpportunityRecord.id.in_(req.opportunity_ids))
+        )
+        items = list(res.scalars().all())
+    else:
+        items = await freelance_service.list_opportunities(
+            session=db,
+            city=req.city,
+            category=req.category,
+            priority=req.priority,
+            query=req.query,
+            limit=500,
+            offset=0,
+        )
+
+    if not items:
+        raise HTTPException(status_code=400, detail="No freelance leads found matching export criteria.")
+
+    csv_bytes = FreelanceExportService.generate_csv(items)
+    from datetime import datetime
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    filename = f"freelance_leads_{timestamp}.csv"
+
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Access-Control-Expose-Headers": "Content-Disposition",
+        },
+    )
+
+
+@router.post("/{opportunity_id}/enrich-contacts", summary="Trigger deep contact & social profiles enrichment")
+async def enrich_opportunity_contacts(
+    opportunity_id: str,
+    req: Optional[EnrichContactsRequest] = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+):
+    try:
+        custom_web = req.website_url if req else None
+        res = await FreelanceAuditService.enrich_contacts(db, opportunity_id, custom_website=custom_web)
+        await db.commit()
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        logger.error(f"[FreelanceAPI] Contact enrichment failed: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.get("/{opportunity_id}", summary="Get opportunity details with contact evidence and drafts")

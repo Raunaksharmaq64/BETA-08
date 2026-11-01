@@ -127,6 +127,10 @@ class ResumeExtractionResponse(BaseModel):
         default_factory=list,
         description="Skills inferred from experience narratives or project descriptions"
     )
+    domain_info: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Multi-domain classification, primary domain, and target archetypes"
+    )
     projects: List[Dict[str, Any]] = Field(default_factory=list)
     certifications: List[Dict[str, Any]] = Field(default_factory=list)
     publications: List[Dict[str, Any]] = Field(default_factory=list)

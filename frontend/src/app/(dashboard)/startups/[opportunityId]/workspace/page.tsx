@@ -153,7 +153,7 @@ export default function StartupOpportunityWorkspacePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-16">
+    <div className="space-y-6 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-800 pb-5">
         <div>
@@ -207,13 +207,12 @@ export default function StartupOpportunityWorkspacePage() {
         <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-center">
           <div className="text-[10px] uppercase font-bold text-slate-400">Validation State</div>
           <div
-            className={`text-xs font-bold mt-1 px-2 py-0.5 rounded-full inline-block ${
-              workspace.validation_state === "INDEPENDENTLY_CORROBORATED"
+            className={`text-xs font-bold mt-1 px-2 py-0.5 rounded-full inline-block ${workspace.validation_state === "INDEPENDENTLY_CORROBORATED"
                 ? "bg-emerald-950 text-emerald-300 border border-emerald-800"
                 : workspace.validation_state === "REPEATED_OBSERVATIONS"
-                ? "bg-blue-950 text-blue-300 border border-blue-800"
-                : "bg-amber-950 text-amber-300 border border-amber-800"
-            }`}
+                  ? "bg-blue-950 text-blue-300 border border-blue-800"
+                  : "bg-amber-950 text-amber-300 border border-amber-800"
+              }`}
           >
             {workspace.validation_state.replace(/_/g, " ")}
           </div>
@@ -353,9 +352,8 @@ export default function StartupOpportunityWorkspacePage() {
                     className="mt-0.5 rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-0"
                   />
                   <span
-                    className={`text-xs ${
-                      item.completed ? "line-through text-slate-500" : "text-slate-200"
-                    }`}
+                    className={`text-xs ${item.completed ? "line-through text-slate-500" : "text-slate-200"
+                      }`}
                   >
                     {item.label}
                   </span>

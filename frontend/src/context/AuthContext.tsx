@@ -27,15 +27,36 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("rightfit_user");
+        if (cached) return JSON.parse(cached);
+      } catch (e) {}
+    }
+    return null;
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        if (localStorage.getItem("rightfit_user")) return false;
+      } catch (e) {}
+    }
+    return true;
+  });
 
   const refreshUser = async () => {
     try {
       const resp = await apiClient<User>("/auth/me");
       setUser(resp.data);
+      if (typeof window !== "undefined" && resp.data) {
+        localStorage.setItem("rightfit_user", JSON.stringify(resp.data));
+      }
     } catch {
       setUser(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("rightfit_user");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -76,6 +97,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await apiClient("/auth/logout", { method: "POST" });
     } finally {
       setUser(null);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("rightfit_user");
+        sessionStorage.clear();
+      }
     }
   };
 

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Navbar from "../../../components/layout/Navbar";
 import { apiClient } from "../../../services/apiClient";
 
 interface Education {
@@ -196,226 +195,218 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-200">
-        <Navbar />
-        <div className="max-w-5xl mx-auto py-12 px-4 text-center">Loading profile...</div>
-      </div>
+      <div className="max-w-5xl mx-auto py-12 px-4 text-center text-slate-400">Loading profile...</div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <Navbar />
-
-      <main className="max-w-5xl mx-auto py-8 px-4 sm:px-6 space-y-8">
-        {/* Completeness Banner & Section Impact Unlocks */}
-        {completeness && (
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <span className="text-sm font-semibold tracking-wide text-indigo-400 uppercase">
-                  Profile Completeness & Matching Power
-                </span>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Complete each section to activate high-precision semantic matching and compensation calibration.
-                </p>
-              </div>
-              <div className="text-right">
-                <span className="text-2xl font-bold text-white">{completeness.score_percentage}%</span>
-              </div>
+    <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
+      {/* Completeness Banner & Section Impact Unlocks */}
+      {completeness && (
+        <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <span className="text-sm font-semibold tracking-wide text-indigo-400 uppercase">
+                Profile Completeness & Matching Power
+              </span>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Complete each section to activate high-precision semantic matching and compensation calibration.
+              </p>
             </div>
-            <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-indigo-500 to-emerald-400 h-2.5 rounded-full transition-all duration-500"
-                style={{ width: `${completeness.score_percentage}%` }}
-              />
+            <div className="text-right">
+              <span className="text-2xl font-bold text-white">{completeness.score_percentage}%</span>
             </div>
+          </div>
+          <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-indigo-500 to-emerald-400 h-2.5 rounded-full transition-all duration-500"
+              style={{ width: `${completeness.score_percentage}%` }}
+            />
+          </div>
 
-            {completeness.section_breakdown && completeness.section_breakdown.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
-                {completeness.section_breakdown.map((sec) => (
-                  <div
-                    key={sec.section_key}
-                    className={`p-3 rounded-xl border text-xs transition-all ${
-                      sec.is_completed
-                        ? "bg-slate-950/60 border-emerald-500/30 text-slate-300"
-                        : "bg-slate-950/40 border-amber-500/30 text-slate-400"
+          {completeness.section_breakdown && completeness.section_breakdown.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+              {completeness.section_breakdown.map((sec) => (
+                <div
+                  key={sec.section_key}
+                  className={`p-3 rounded-xl border text-xs transition-all ${sec.is_completed
+                    ? "bg-slate-950/60 border-emerald-500/30 text-slate-300"
+                    : "bg-slate-950/40 border-amber-500/30 text-slate-400"
                     }`}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-semibold text-white flex items-center gap-1.5">
-                        {sec.is_completed ? (
-                          <span className="text-emerald-400 font-bold">✓</span>
-                        ) : (
-                          <span className="text-amber-400 font-bold">○</span>
-                        )}
-                        {sec.section_name}
-                      </span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-                        {sec.weight_percentage}% wt
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-300">
-                      <span className="text-indigo-400 font-medium">Unlocks: </span>
-                      {sec.unlocks}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {completeness.missing_sections.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2 items-center text-xs text-slate-400">
-                <span>Next steps to unlock:</span>
-                {completeness.missing_sections.map((sec) => (
-                  <span key={sec} className="px-2.5 py-1 bg-amber-500/10 text-amber-300 rounded border border-amber-500/20">
-                    + {sec}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Basic Personal Information */}
-        <section className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-white">Basic Information</h2>
-            <button
-              onClick={() => setEditingBasic(!editingBasic)}
-              className="text-xs font-semibold px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-slate-700"
-            >
-              {editingBasic ? "Cancel" : "Edit Profile"}
-            </button>
-          </div>
-
-          {editingBasic ? (
-            <form onSubmit={handleSaveBasic} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Headline</label>
-                <input
-                  type="text"
-                  value={headline}
-                  onChange={(e) => setHeadline(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Summary</label>
-                <textarea
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">City</label>
-                  <input
-                    type="text"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Country</label>
-                  <input
-                    type="text"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
-                  />
-                </div>
-              </div>
-              <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded text-sm font-medium">
-                Save Changes
-              </button>
-            </form>
-          ) : (
-            <div className="space-y-2">
-              <div className="text-xl font-bold text-white">{profile?.headline || "No headline configured"}</div>
-              <p className="text-sm text-slate-300">{profile?.summary || "Add a career summary to highlight your strengths."}</p>
-              <div className="text-xs text-slate-400 mt-2">
-                Location: {profile?.city || "Remote"}, {profile?.country || "Global"}
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Education Credentials */}
-        <section className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-white">Education Credentials</h2>
-            <button
-              onClick={() => setShowEduModal(true)}
-              className="text-xs font-semibold px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white"
-            >
-              + Add Education
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {profile?.education && profile.education.length > 0 ? (
-              profile.education.map((edu) => (
-                <div key={edu.id} className="p-4 bg-slate-800/60 border border-slate-800 rounded-lg flex justify-between items-start">
-                  <div>
-                    <h3 className="font-semibold text-white">{edu.institution}</h3>
-                    <p className="text-sm text-indigo-300">{edu.degree} in {edu.field_of_study}</p>
-                    <span className="inline-block mt-2 px-2 py-0.5 text-[10px] uppercase font-bold rounded bg-slate-800 text-slate-400 border border-slate-700">
-                      Provenance: {edu.provenance}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-semibold text-white flex items-center gap-1.5">
+                      {sec.is_completed ? (
+                        <span className="text-emerald-400 font-bold">✓</span>
+                      ) : (
+                        <span className="text-amber-400 font-bold">○</span>
+                      )}
+                      {sec.section_name}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                      {sec.weight_percentage}% wt
                     </span>
                   </div>
-                  <button
-                    onClick={() => handleDeleteEdu(edu.id)}
-                    className="text-xs text-red-400 hover:text-red-300"
-                  >
-                    Delete
-                  </button>
+                  <div className="text-[11px] text-slate-300">
+                    <span className="text-indigo-400 font-medium">Unlocks: </span>
+                    {sec.unlocks}
+                  </div>
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-slate-400">No education credentials added yet.</p>
-            )}
-          </div>
-        </section>
+              ))}
+            </div>
+          )}
 
-        {/* Skills Section */}
-        <section className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-white">Skills & Competencies</h2>
-            <button
-              onClick={() => setShowSkillModal(true)}
-              className="text-xs font-semibold px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white"
-            >
-              + Add Skill
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {profile?.skills && profile.skills.length > 0 ? (
-              profile.skills.map((skill) => (
-                <span
-                  key={skill.id}
-                  className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 flex items-center space-x-2"
-                >
-                  <span className="font-medium">{skill.skill_name}</span>
-                  <span className="text-xs text-indigo-400">({skill.proficiency})</span>
-                  <button
-                    onClick={() => handleDeleteSkill(skill.id)}
-                    className="text-slate-400 hover:text-red-400 font-bold ml-1"
-                  >
-                    ×
-                  </button>
+          {completeness.missing_sections.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2 items-center text-xs text-slate-400">
+              <span>Next steps to unlock:</span>
+              {completeness.missing_sections.map((sec) => (
+                <span key={sec} className="px-2.5 py-1 bg-amber-500/10 text-amber-300 rounded border border-amber-500/20">
+                  + {sec}
                 </span>
-              ))
-            ) : (
-              <p className="text-sm text-slate-400">No skills listed yet.</p>
-            )}
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Basic Personal Information */}
+      <section className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-bold text-white">Basic Information</h2>
+          <button
+            onClick={() => setEditingBasic(!editingBasic)}
+            className="text-xs font-semibold px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-400 border border-slate-700"
+          >
+            {editingBasic ? "Cancel" : "Edit Profile"}
+          </button>
+        </div>
+
+        {editingBasic ? (
+          <form onSubmit={handleSaveBasic} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Headline</label>
+              <input
+                type="text"
+                value={headline}
+                onChange={(e) => setHeadline(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Summary</label>
+              <textarea
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">City</label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Country</label>
+                <input
+                  type="text"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded text-slate-100"
+                />
+              </div>
+            </div>
+            <button type="submit" className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded text-sm font-medium">
+              Save Changes
+            </button>
+          </form>
+        ) : (
+          <div className="space-y-2">
+            <div className="text-xl font-bold text-white">{profile?.headline || "No headline configured"}</div>
+            <p className="text-sm text-slate-300">{profile?.summary || "Add a career summary to highlight your strengths."}</p>
+            <div className="text-xs text-slate-400 mt-2">
+              Location: {profile?.city || "Remote"}, {profile?.country || "Global"}
+            </div>
           </div>
-        </section>
-      </main>
+        )}
+      </section>
+
+      {/* Education Credentials */}
+      <section className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-bold text-white">Education Credentials</h2>
+          <button
+            onClick={() => setShowEduModal(true)}
+            className="text-xs font-semibold px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white"
+          >
+            + Add Education
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {profile?.education && profile.education.length > 0 ? (
+            profile.education.map((edu) => (
+              <div key={edu.id} className="p-4 bg-slate-800/60 border border-slate-800 rounded-lg flex justify-between items-start">
+                <div>
+                  <h3 className="font-semibold text-white">{edu.institution}</h3>
+                  <p className="text-sm text-indigo-300">{edu.degree} in {edu.field_of_study}</p>
+                  <span className="inline-block mt-2 px-2 py-0.5 text-[10px] uppercase font-bold rounded bg-slate-800 text-slate-400 border border-slate-700">
+                    Provenance: {edu.provenance}
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleDeleteEdu(edu.id)}
+                  className="text-xs text-red-400 hover:text-red-300"
+                >
+                  Delete
+                </button>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-slate-400">No education credentials added yet.</p>
+          )}
+        </div>
+      </section>
+
+      {/* Skills Section */}
+      <section className="bg-slate-900 border border-slate-800 p-6 rounded-xl shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-bold text-white">Skills & Competencies</h2>
+          <button
+            onClick={() => setShowSkillModal(true)}
+            className="text-xs font-semibold px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white"
+          >
+            + Add Skill
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {profile?.skills && profile.skills.length > 0 ? (
+            profile.skills.map((skill) => (
+              <span
+                key={skill.id}
+                className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 flex items-center space-x-2"
+              >
+                <span className="font-medium">{skill.skill_name}</span>
+                <span className="text-xs text-indigo-400">({skill.proficiency})</span>
+                <button
+                  onClick={() => handleDeleteSkill(skill.id)}
+                  className="text-slate-400 hover:text-red-400 font-bold ml-1"
+                >
+                  ×
+                </button>
+              </span>
+            ))
+          ) : (
+            <p className="text-sm text-slate-400">No skills listed yet.</p>
+          )}
+        </div>
+      </section>
 
       {/* Add Education Modal */}
       {showEduModal && (

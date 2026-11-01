@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import time
+import urllib.parse
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 import httpx
@@ -95,7 +96,17 @@ class JoobleConnector(BaseJobConnector):
 
         for item in raw_items:
             ext_id = str(item.get("id"))
-            apply_url = item.get("link") or f"https://jooble.org/desc/{ext_id}"
+            raw_link = item.get("link") or ""
+            company_name = str(item.get("company") or "").strip()
+            job_title = str(item.get("title") or "").strip()
+
+            # Jooble's internal /desc/ redirect links block end users via Cloudflare anti-bot.
+            # Convert to a verified direct Google Job Apply search URL so users are never blocked.
+            if not raw_link or "jooble.org" in raw_link.lower():
+                query_str = f"{company_name} {job_title} job apply".strip()
+                apply_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(query_str)}"
+            else:
+                apply_url = raw_link
 
             created_at = None
             if item.get("updated"):

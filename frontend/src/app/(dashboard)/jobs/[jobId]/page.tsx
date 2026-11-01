@@ -110,6 +110,13 @@ export default function JobDetailPage() {
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportMsg, setReportMsg] = useState<string | null>(null);
 
+  // Application CRM Tracking state
+  const [isTrackingApp, setIsTrackingApp] = useState(false);
+  const [appTrackedMsg, setAppTrackedMsg] = useState<string | null>(null);
+
+  // Resume Tailoring Advisor state
+  const [copiedBulletId, setCopiedBulletId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!jobId) return;
 
@@ -222,6 +229,29 @@ export default function JobDetailPage() {
     }
   };
 
+  const handleTrackApplication = async () => {
+    if (!job) return;
+    setIsTrackingApp(true);
+    try {
+      await apiClient("/applications", {
+        method: "POST",
+        body: JSON.stringify({
+          opportunity_id: job.id,
+          company_name: job.company_name,
+          job_title: job.title,
+          application_url: job.application_url,
+          status: "PLANNING_TO_APPLY",
+        }),
+      });
+      setAppTrackedMsg("Tracked in Application Tracker (Planning to Apply)!");
+      setTimeout(() => setAppTrackedMsg(null), 4500);
+    } catch (err: any) {
+      alert(err?.message || "Failed to track application in CRM.");
+    } finally {
+      setIsTrackingApp(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
@@ -292,8 +322,18 @@ export default function JobDetailPage() {
             </div>
           </div>
 
-          {/* Action Buttons: Apply, Save & Report */}
+          {/* Action Buttons: Apply, Save, Track & Report */}
           <div className="flex items-center gap-3 shrink-0 flex-wrap">
+            <button
+              onClick={handleTrackApplication}
+              disabled={isTrackingApp}
+              className="px-4 py-2.5 rounded-xl text-sm font-semibold border border-indigo-700/60 bg-indigo-950/60 hover:bg-indigo-900 text-indigo-300 transition-colors flex items-center gap-1.5 shadow"
+              title="Track this job in your Application Tracker"
+            >
+              <span>📋</span>
+              <span>{isTrackingApp ? "Tracking..." : "Track Application"}</span>
+            </button>
+
             <button
               onClick={handleToggleSave}
               className={`px-4 py-2.5 rounded-xl text-sm font-semibold border transition-colors flex items-center gap-2 ${
@@ -317,7 +357,7 @@ export default function JobDetailPage() {
             </button>
 
             <a
-              href={job.application_url}
+              href={job.application_url && !job.application_url.toLowerCase().includes("jooble.org") ? job.application_url : `https://www.google.com/search?q=${encodeURIComponent(`${job.company_name} ${job.title} job apply`)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shadow-lg shadow-indigo-600/30 inline-flex items-center gap-2"
@@ -326,6 +366,21 @@ export default function JobDetailPage() {
             </a>
           </div>
         </div>
+
+        {appTrackedMsg && (
+          <div className="p-3.5 rounded-xl bg-emerald-950/90 border border-emerald-700 text-emerald-200 text-xs flex items-center justify-between shadow-lg">
+            <div className="flex items-center gap-2">
+              <span>✓</span>
+              <span>{appTrackedMsg}</span>
+            </div>
+            <Link
+              href="/applications"
+              className="px-2.5 py-1 rounded bg-emerald-800 hover:bg-emerald-700 text-white font-semibold transition-colors"
+            >
+              View in CRM →
+            </Link>
+          </div>
+        )}
 
         {/* Compensation & Trust Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-800">
@@ -562,9 +617,51 @@ export default function JobDetailPage() {
                         key={idx}
                         className="px-2.5 py-1 rounded-lg bg-amber-950/40 text-amber-300 border border-amber-800/40 text-xs font-medium"
                       >
-                        {s}
+                        + {s}
                       </span>
                     ))}
+                  </div>
+
+                  {/* Resume Optimization Advisor */}
+                  <div className="mt-3 p-3.5 bg-slate-950 rounded-xl border border-indigo-900/60 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                        <span>📝</span>
+                        <span>Resume Optimization Advisor</span>
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800">
+                        ATS Keyword Alignment
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      If you have experience with these skills, add them into your resume experience bullets to maximize ATS parsing:
+                    </p>
+                    <div className="space-y-2 pt-1">
+                      {match.skill_fit.missing_required_skills.slice(0, 3).map((skill, sIdx) => {
+                        const sampleBullet = `Leveraged ${skill} to engineer scalable backend services, optimizing data workflows and reducing latency by 28%.`;
+                        return (
+                          <div key={sIdx} className="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-semibold text-amber-300">Target Skill: {skill}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(sampleBullet);
+                                  setCopiedBulletId(`job-bullet-${sIdx}`);
+                                  setTimeout(() => setCopiedBulletId(null), 2500);
+                                }}
+                                className="text-[10px] px-2 py-0.5 rounded bg-indigo-600/40 hover:bg-indigo-600 text-indigo-200 border border-indigo-500/50 transition-colors"
+                              >
+                                {copiedBulletId === `job-bullet-${sIdx}` ? "✓ Copied!" : "📋 Copy Bullet"}
+                              </button>
+                            </div>
+                            <p className="text-[11px] text-slate-300 italic font-mono leading-relaxed">
+                              &quot;{sampleBullet}&quot;
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
