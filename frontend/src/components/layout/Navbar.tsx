@@ -76,31 +76,33 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Center: Desktop & Tablet Navigation Links (Full coverage, never clipped) */}
-          <div className="hidden md:flex items-center space-x-1 lg:space-x-1.5 overflow-x-auto no-scrollbar py-1">
-            {primaryLinks.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-2.5 lg:px-3 py-1.5 rounded-xl text-xs lg:text-[13px] font-bold transition-all duration-150 shrink-0 whitespace-nowrap ${
-                    isActive
-                      ? "neo-inset text-indigo-700 font-black border border-slate-300/80 shadow-inner scale-[1.02]"
-                      : "text-slate-900 hover:text-indigo-600 hover:bg-white/90 font-bold"
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              );
-            })}
+          {/* Center: Desktop & Tablet Navigation Links (Full coverage, unclipped dropdown) */}
+          <div className="hidden md:flex items-center space-x-1 lg:space-x-1.5 py-1">
+            <div className="flex items-center space-x-1 lg:space-x-1.5 overflow-x-auto no-scrollbar py-0.5">
+              {primaryLinks.map((link) => {
+                const isActive = pathname === link.href;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`px-2.5 lg:px-3 py-1.5 rounded-xl text-xs lg:text-[13px] font-bold transition-all duration-150 shrink-0 whitespace-nowrap ${
+                      isActive
+                        ? "neo-inset text-indigo-700 font-black border border-slate-300/80 shadow-inner scale-[1.02]"
+                        : "text-slate-900 hover:text-indigo-600 hover:bg-white/90 font-bold"
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                );
+              })}
+            </div>
 
-            {/* "More ▾" Flyout Dropdown */}
+            {/* "More ▾" Flyout Dropdown (Isolated outside overflow-x-auto to prevent clipping) */}
             <div className="relative shrink-0" ref={dropdownRef}>
               <button
                 type="button"
                 onClick={() => setMoreDropdownOpen((prev) => !prev)}
-                className={`px-3 py-1.5 rounded-xl text-xs lg:text-[13px] font-bold transition-all duration-150 flex items-center gap-1 shrink-0 whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl text-xs lg:text-[13px] font-bold transition-all duration-150 flex items-center gap-1 shrink-0 whitespace-nowrap cursor-pointer ${
                   isMoreActive || moreDropdownOpen
                     ? "neo-inset text-indigo-700 font-black border border-slate-300/80"
                     : "neo-pill text-slate-900 hover:text-indigo-600 font-bold"
@@ -114,7 +116,7 @@ export default function Navbar() {
               </button>
 
               {moreDropdownOpen && (
-                <div className="absolute right-0 lg:left-0 mt-2 w-56 neo-box rounded-2xl shadow-xl p-2 space-y-1 z-50 animate-fade-in border border-white/95">
+                <div className="absolute right-0 top-full mt-2 w-56 neo-box rounded-2xl shadow-2xl p-2 space-y-1 z-50 animate-fade-in border border-white/95">
                   {secondaryLinks.map((link) => {
                     const isActive = pathname === link.href;
                     return (
@@ -122,7 +124,7 @@ export default function Navbar() {
                         key={link.href}
                         href={link.href}
                         onClick={() => setMoreDropdownOpen(false)}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                           isActive
                             ? "neo-inset text-indigo-700 font-black"
                             : "text-slate-900 hover:bg-white/90 hover:text-indigo-600 font-bold"

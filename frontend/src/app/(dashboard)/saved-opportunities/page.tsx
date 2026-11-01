@@ -71,6 +71,15 @@ export default function UnifiedSavedOpportunitiesPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("ALL");
   const [filterType, setFilterType] = useState<string>("ALL");
+  const [expandedSkillsCards, setExpandedSkillsCards] = useState<Record<string, boolean>>({});
+
+  const toggleSkillsExpanded = (id: string) => {
+    setExpandedSkillsCards((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
 
   const fetchSaved = async () => {
     if (savedItems.length === 0) setLoading(true);
@@ -377,44 +386,65 @@ export default function UnifiedSavedOpportunitiesPage() {
                       )}
 
                       {/* Matched & Missing Skills Summary */}
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2 border-t border-slate-200/80 text-xs">
-                        {matchedSkills.length > 0 && (
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11px] font-bold text-emerald-800">Matched in Resume:</span>
-                            <div className="flex items-center gap-1 flex-wrap">
-                              {matchedSkills.slice(0, 4).map((ms, idx) => (
-                                <span
-                                  key={idx}
-                                  className="text-[10px] px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono font-bold"
-                                >
-                                  ✓ {ms}
-                                </span>
-                              ))}
-                              {matchedSkills.length > 4 && (
-                                <span className="text-[10px] text-slate-600 font-mono font-bold">+{matchedSkills.length - 4} more</span>
-                              )}
-                            </div>
+                      {(() => {
+                        const isSkillsExpanded = !!expandedSkillsCards[item.opportunity_id];
+                        const visibleMatched = isSkillsExpanded ? matchedSkills : matchedSkills.slice(0, 4);
+                        const visibleMissing = isSkillsExpanded ? missingSkills : missingSkills.slice(0, 3);
+                        return (
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2 border-t border-slate-200/80 text-xs">
+                            {matchedSkills.length > 0 && (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[11px] font-bold text-emerald-800">Matched in Resume:</span>
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  {visibleMatched.map((ms, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="text-[10px] px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300 font-mono font-bold"
+                                    >
+                                      ✓ {ms}
+                                    </span>
+                                  ))}
+                                  {matchedSkills.length > 4 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleSkillsExpanded(item.opportunity_id)}
+                                      className="text-[10px] px-2 py-0.5 rounded-lg neo-pill text-emerald-800 hover:text-emerald-950 font-mono font-bold cursor-pointer transition-all"
+                                      title={isSkillsExpanded ? "Collapse matched skills" : "Show all matched skills"}
+                                    >
+                                      {isSkillsExpanded ? "▲ Less" : `+${matchedSkills.length - 4} more`}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {missingSkills.length > 0 && (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[11px] font-bold text-amber-800">Missing from Resume:</span>
+                                <div className="flex items-center gap-1 flex-wrap">
+                                  {visibleMissing.map((mis, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="text-[10px] px-2 py-0.5 rounded-lg bg-amber-100 text-amber-900 border border-amber-300 font-mono font-bold"
+                                    >
+                                      + {mis}
+                                    </span>
+                                  ))}
+                                  {missingSkills.length > 3 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleSkillsExpanded(item.opportunity_id)}
+                                      className="text-[10px] px-2 py-0.5 rounded-lg neo-pill text-amber-800 hover:text-amber-950 font-mono font-bold cursor-pointer transition-all"
+                                      title={isSkillsExpanded ? "Collapse missing skills" : "Show all missing skills"}
+                                    >
+                                      {isSkillsExpanded ? "▲ Less" : `+${missingSkills.length - 3} more`}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        )}
-                        {missingSkills.length > 0 && (
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[11px] font-bold text-amber-800">Missing from Resume:</span>
-                            <div className="flex items-center gap-1 flex-wrap">
-                              {missingSkills.slice(0, 3).map((mis, idx) => (
-                                <span
-                                  key={idx}
-                                  className="text-[10px] px-2 py-0.5 rounded-lg bg-amber-100 text-amber-900 border border-amber-300 font-mono font-bold"
-                                >
-                                  + {mis}
-                                </span>
-                              ))}
-                              {missingSkills.length > 3 && (
-                                <span className="text-[10px] text-slate-600 font-mono font-bold">+{missingSkills.length - 3} more</span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                        );
+                      })()}
                     </div>
                   )}
 

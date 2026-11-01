@@ -74,6 +74,17 @@ const POPULAR_SKILLS = [
   "Customer Success",
 ];
 
+const POPULAR_COMPANIES = [
+  "Cloudflare",
+  "Perplexity AI",
+  "Figma",
+  "Palantir",
+  "Stripe",
+  "OpenAI",
+  "Spotify",
+  "Linear",
+];
+
 const QUICK_SEARCH_PILLS = [
   { label: "⚡ React", value: "react" },
   { label: "🌐 WebDev", value: "webdev" },
@@ -152,15 +163,31 @@ function SearchContent() {
     role?: string;
     company?: string;
     city?: string;
+    isRemoteOnly?: boolean;
+    workplaceType?: string;
+    employmentType?: string;
+    experienceLevel?: string;
+    selectedSkills?: string[];
+    minSalary?: number;
+    verificationFilter?: string;
+    sortBy?: string;
     page?: number;
   }) => {
     const qTerm = (overrides?.q !== undefined ? overrides.q : debouncedQuery).trim();
     const roleTerm = (overrides?.role !== undefined ? overrides.role : debouncedRole).trim();
     const compTerm = (overrides?.company !== undefined ? overrides.company : debouncedCompany).trim();
     const cityTerm = (overrides?.city !== undefined ? overrides.city : debouncedCity).trim();
+    const expLevel = overrides?.experienceLevel !== undefined ? overrides.experienceLevel : experienceLevel;
+    const wpType = overrides?.workplaceType !== undefined ? overrides.workplaceType : workplaceType;
+    const empType = overrides?.employmentType !== undefined ? overrides.employmentType : employmentType;
+    const remoteOnly = overrides?.isRemoteOnly !== undefined ? overrides.isRemoteOnly : isRemoteOnly;
+    const skillsList = overrides?.selectedSkills !== undefined ? overrides.selectedSkills : selectedSkills;
+    const minSal = overrides?.minSalary !== undefined ? overrides.minSalary : minSalary;
+    const verifFilt = overrides?.verificationFilter !== undefined ? overrides.verificationFilter : verificationFilter;
+    const sortVal = overrides?.sortBy !== undefined ? overrides.sortBy : sortBy;
     const pageNum = overrides?.page !== undefined ? overrides.page : page;
 
-    const cacheKey = `search_${qTerm}_${roleTerm}_${compTerm}_${cityTerm}_${isRemoteOnly}_${workplaceType}_${employmentType}_${experienceLevel}_${selectedSkills.join(",")}_${sortBy}_${pageNum}`;
+    const cacheKey = `search_${qTerm}_${roleTerm}_${compTerm}_${cityTerm}_${remoteOnly}_${wpType}_${empType}_${expLevel}_${skillsList.join(",")}_${minSal}_${verifFilt}_${sortVal}_${pageNum}`;
     const cached = fastCache.get<any>(cacheKey);
     if (cached && cached.items) {
       setJobs(cached.items);
@@ -181,17 +208,17 @@ function SearchContent() {
       if (roleTerm) params.set("role", roleTerm);
       if (compTerm) params.set("company", compTerm);
       if (cityTerm) params.set("city", cityTerm);
-      if (isRemoteOnly) params.set("is_remote", "true");
-      if (workplaceType) params.append("workplace_types", workplaceType);
-      if (employmentType) params.append("employment_types", employmentType);
-      if (experienceLevel === "FRESHER") params.set("is_fresher_friendly", "true");
-      if (experienceLevel === "INTERNSHIP") params.set("is_internship", "true");
-      if (selectedSkills.length > 0) {
-        selectedSkills.forEach((s) => params.append("skills", s));
+      if (remoteOnly) params.set("is_remote", "true");
+      if (wpType) params.append("workplace_types", wpType);
+      if (empType) params.append("employment_types", empType);
+      if (expLevel === "FRESHER") params.set("is_fresher_friendly", "true");
+      if (expLevel === "INTERNSHIP") params.set("is_internship", "true");
+      if (skillsList.length > 0) {
+        skillsList.forEach((s) => params.append("skills", s));
       }
-      if (minSalary > 0) params.set("min_salary", minSalary.toString());
-      if (verificationFilter) params.append("verification_statuses", verificationFilter);
-      params.set("sort_by", sortBy);
+      if (minSal > 0) params.set("min_salary", minSal.toString());
+      if (verifFilt) params.append("verification_statuses", verifFilt);
+      params.set("sort_by", sortVal);
       params.set("page", pageNum.toString());
       params.set("page_size", "15");
 
@@ -203,7 +230,7 @@ function SearchContent() {
         setCoverage(res.data.source_coverage || null);
 
         fastCache.set(cacheKey, res.data, 120000);
-        if (!qTerm && !roleTerm && !compTerm && selectedSkills.length === 0 && page === 1) {
+        if (!qTerm && !roleTerm && !compTerm && !cityTerm && !expLevel && !wpType && !empType && skillsList.length === 0 && pageNum === 1) {
           fastCache.set("search_jobs_default", res.data.items || [], 120000);
           fastCache.set("search_total_default", res.data.total_count || 0, 120000);
           fastCache.set("search_pages_default", res.data.total_pages || 1, 120000);
@@ -236,15 +263,12 @@ function SearchContent() {
   ]);
 
   const toggleSkill = (skill: string) => {
-    setSelectedSkills((prev) => {
-      const exists = prev.some((s) => s.toLowerCase() === skill.toLowerCase());
-      if (exists) {
-        return prev.filter((s) => s.toLowerCase() !== skill.toLowerCase());
-      } else {
-        return [...prev, skill];
-      }
-    });
+    const next = selectedSkills.some((s) => s.toLowerCase() === skill.toLowerCase())
+      ? selectedSkills.filter((s) => s.toLowerCase() !== skill.toLowerCase())
+      : [...selectedSkills, skill];
+    setSelectedSkills(next);
     setPage(1);
+    fetchJobs({ selectedSkills: next, page: 1 });
   };
 
   const handleQuickPill = (val: string) => {
@@ -273,7 +297,21 @@ function SearchContent() {
     setVerificationFilter("");
     setSortBy("BEST_FIT");
     setPage(1);
-    fetchJobs({ q: "", role: "", company: "", city: "", page: 1 });
+    fetchJobs({
+      q: "",
+      role: "",
+      company: "",
+      city: "",
+      isRemoteOnly: false,
+      workplaceType: "",
+      employmentType: "",
+      experienceLevel: "",
+      selectedSkills: [],
+      minSalary: 0,
+      verificationFilter: "",
+      sortBy: "BEST_FIT",
+      page: 1,
+    });
   };
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
@@ -283,7 +321,21 @@ function SearchContent() {
     setDebouncedCompany(company);
     setDebouncedCity(city);
     setPage(1);
-    fetchJobs({ q: query, role, company, city, page: 1 });
+    fetchJobs({
+      q: query,
+      role,
+      company,
+      city,
+      experienceLevel,
+      workplaceType,
+      employmentType,
+      isRemoteOnly,
+      selectedSkills,
+      minSalary,
+      verificationFilter,
+      sortBy,
+      page: 1,
+    });
   };
 
   const handleToggleSaveJob = async (job: JobItem) => {
@@ -355,19 +407,19 @@ function SearchContent() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       {/* Header & Save Search Action */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-300">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Job Discovery & Matching</h1>
-          <p className="text-sm text-slate-700 font-semibold mt-1">
+          <p className="text-sm text-slate-700 font-bold mt-1">
             Search verified career opportunities evaluated with transparent, evidence-based candidate matching.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsSaveModalOpen(true)}
-            className="neo-pill inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-indigo-700 hover:text-indigo-900 transition-all"
+            className="neo-pill inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-indigo-900 hover:text-indigo-600 transition-all cursor-pointer"
           >
-            <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
             Save Search & Alerts
@@ -377,13 +429,13 @@ function SearchContent() {
 
       {/* Partial Coverage Transparency Banner */}
       {coverage && coverage.is_partial_results && (
-        <div className="mt-4 p-4 rounded-xl bg-amber-950/40 border border-amber-600/40 text-amber-200 flex items-start gap-3">
-          <svg className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="mt-4 p-4 rounded-xl neo-box border border-amber-300 text-amber-900 flex items-start gap-3 shadow-sm">
+          <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div>
-            <div className="font-semibold text-amber-300">Notice: Partial Upstream Source Coverage</div>
-            <p className="text-xs text-amber-200/90 mt-0.5">
+            <div className="font-bold text-amber-950">Notice: Partial Upstream Source Coverage</div>
+            <p className="text-xs text-amber-900/90 font-medium mt-0.5">
               One or more upstream source connectors ({coverage.degraded_sources_count} of {coverage.total_configured_sources})
               are currently degraded or in circuit breaker cooldown. Zero matches on certain queries may reflect upstream provider outages rather than a lack of market openings.
             </p>
@@ -396,9 +448,10 @@ function SearchContent() {
         {/* Filters Sidebar */}
         <div className="lg:col-span-1 space-y-6 neo-box p-6 rounded-2xl border border-white/90 shadow-sm">
           <form onSubmit={handleSearchSubmit} className="space-y-4">
+            {/* Keywords */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-800">
                   Smart Keywords Search
                 </label>
                 {query && (
@@ -410,7 +463,7 @@ function SearchContent() {
                       setPage(1);
                       fetchJobs({ q: "", page: 1 });
                     }}
-                    className="text-[10px] text-slate-700 font-bold hover:text-slate-200"
+                    className="text-[10px] text-slate-700 font-bold hover:text-indigo-600"
                   >
                     Clear
                   </button>
@@ -421,6 +474,7 @@ function SearchContent() {
                 placeholder="e.g. React, WebDev, Python, AWS..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSearchSubmit(e); }}
                 className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
               />
               {/* Quick Suggestion Pills */}
@@ -432,10 +486,10 @@ function SearchContent() {
                       key={pill.value}
                       type="button"
                       onClick={() => handleQuickPill(pill.value)}
-                      className={`text-[11px] px-2 py-0.5 rounded-full border transition-all ${
+                      className={`text-[11px] px-2.5 py-0.5 rounded-full transition-all cursor-pointer ${
                         isActive
-                          ? "bg-indigo-950 border-indigo-500 text-indigo-300 font-semibold shadow-sm"
-                          : "bg-slate-950/60 border-slate-800 text-slate-700 font-bold hover:text-slate-200 hover:border-slate-700"
+                          ? "neo-pill font-black text-indigo-900 border border-indigo-400 shadow-sm"
+                          : "neo-pill text-slate-800 font-bold hover:text-indigo-600"
                       }`}
                     >
                       {pill.label}
@@ -443,7 +497,7 @@ function SearchContent() {
                   );
                 })}
               </div>
-              <p className="text-[11px] text-slate-500 mt-1.5">
+              <p className="text-[11px] text-slate-600 font-medium mt-1.5">
                 Dynamic smart search across job titles, required skills, and tech stacks.
               </p>
             </div>
@@ -451,14 +505,18 @@ function SearchContent() {
             {/* Popular Skills Multi-Select Chips */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-800">
                   Required Skills
                 </label>
                 {selectedSkills.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => setSelectedSkills([])}
-                    className="text-[10px] text-slate-700 font-bold hover:text-slate-200"
+                    onClick={() => {
+                      setSelectedSkills([]);
+                      setPage(1);
+                      fetchJobs({ selectedSkills: [], page: 1 });
+                    }}
+                    className="text-[10px] text-slate-700 font-bold hover:text-indigo-600"
                   >
                     Clear ({selectedSkills.length})
                   </button>
@@ -472,10 +530,11 @@ function SearchContent() {
                       key={sk}
                       type="button"
                       onClick={() => toggleSkill(sk)}
-                      className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${isSelected
-                        ? "bg-emerald-950/80 border-emerald-600 text-emerald-300 shadow-sm"
-                        : "bg-slate-950/70 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white"
-                        }`}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-emerald-100 border border-emerald-400 text-emerald-900 shadow-sm font-black"
+                          : "neo-pill text-slate-800 hover:text-indigo-600"
+                      }`}
                     >
                       {isSelected ? `✓ ${sk}` : `+ ${sk}`}
                     </button>
@@ -486,13 +545,18 @@ function SearchContent() {
 
             {/* Career Stage / Fresher Filter */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1">
                 Experience / Level
               </label>
               <select
                 value={experienceLevel}
-                onChange={(e) => setExperienceLevel(e.target.value)}
-                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setExperienceLevel(val);
+                  setPage(1);
+                  fetchJobs({ experienceLevel: val, page: 1 });
+                }}
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none cursor-pointer"
               >
                 <option value="">All Experience Levels</option>
                 <option value="FRESHER">🎓 Freshers & Entry Level (0-1 yrs)</option>
@@ -502,16 +566,20 @@ function SearchContent() {
 
             {/* Workplace Mode */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1">
                 Workplace Mode
               </label>
               <select
                 value={workplaceType}
                 onChange={(e) => {
-                  setWorkplaceType(e.target.value);
-                  if (e.target.value === "REMOTE") setIsRemoteOnly(true);
+                  const val = e.target.value;
+                  setWorkplaceType(val);
+                  const isRem = val === "REMOTE";
+                  if (isRem) setIsRemoteOnly(true);
+                  setPage(1);
+                  fetchJobs({ workplaceType: val, isRemoteOnly: isRem, page: 1 });
                 }}
-                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none cursor-pointer"
               >
                 <option value="">All Workplace Modes</option>
                 <option value="REMOTE">🌐 Remote</option>
@@ -522,13 +590,18 @@ function SearchContent() {
 
             {/* Employment Type */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1">
                 Employment Type
               </label>
               <select
                 value={employmentType}
-                onChange={(e) => setEmploymentType(e.target.value)}
-                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setEmploymentType(val);
+                  setPage(1);
+                  fetchJobs({ employmentType: val, page: 1 });
+                }}
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none cursor-pointer"
               >
                 <option value="">All Employment Types</option>
                 <option value="FULL_TIME">Full-Time</option>
@@ -540,7 +613,7 @@ function SearchContent() {
 
             {/* Role / Title */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1">
                 Role / Title
               </label>
               <input
@@ -548,27 +621,29 @@ function SearchContent() {
                 placeholder="e.g. Frontend Engineer"
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSearchSubmit(e); }}
                 className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
               />
             </div>
 
             {/* Company */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1">
                 Company
               </label>
               <input
                 type="text"
-                placeholder="e.g. Stripe, Google, Acme"
+                placeholder="e.g. Stripe, Cloudflare, OpenAI"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSearchSubmit(e); }}
                 className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
               />
             </div>
 
             {/* Location */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1">
                 Location
               </label>
               <input
@@ -576,19 +651,25 @@ function SearchContent() {
                 placeholder="City, State, or Country"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSearchSubmit(e); }}
                 className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
               />
             </div>
 
             {/* Minimum Salary */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1">
                 Minimum Compensation
               </label>
               <select
                 value={minSalary}
-                onChange={(e) => setMinSalary(Number(e.target.value))}
-                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setMinSalary(val);
+                  setPage(1);
+                  fetchJobs({ minSalary: val, page: 1 });
+                }}
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none cursor-pointer"
               >
                 <option value={0}>Any Compensation</option>
                 <option value={50000}>$50,000+ / year</option>
@@ -601,13 +682,18 @@ function SearchContent() {
 
             {/* Verification Status */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 font-bold mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1">
                 Verification Status
               </label>
               <select
                 value={verificationFilter}
-                onChange={(e) => setVerificationFilter(e.target.value)}
-                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setVerificationFilter(val);
+                  setPage(1);
+                  fetchJobs({ verificationFilter: val, page: 1 });
+                }}
+                className="w-full neo-inset rounded-xl px-3.5 py-2 text-slate-900 font-bold text-xs focus:outline-none cursor-pointer"
               >
                 <option value="">All Listings</option>
                 <option value="OPEN_CONFIRMED">✓ Open Confirmed (Active ATS)</option>
@@ -638,78 +724,78 @@ function SearchContent() {
         <div className="lg:col-span-3 space-y-4">
           {/* Active Filter Chips Ribbon */}
           {(query || selectedSkills.length > 0 || isRemoteOnly || experienceLevel || workplaceType || employmentType || minSalary > 0 || role || company || city || verificationFilter) && (
-            <div className="flex flex-wrap items-center gap-1.5 p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs">
-              <span className="text-slate-700 font-bold font-semibold mr-1">Active Filters:</span>
+            <div className="flex flex-wrap items-center gap-1.5 p-3 rounded-xl neo-box border border-white/90 text-xs shadow-sm">
+              <span className="text-slate-800 font-bold mr-1">Active Filters:</span>
               {query && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-950/80 text-indigo-300 border border-indigo-700/60 font-medium">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-indigo-950 font-bold border border-indigo-200">
                   <span>Keyword: {query}</span>
-                  <button type="button" onClick={() => { setQuery(""); setDebouncedQuery(""); setPage(1); fetchJobs({ q: "", page: 1 }); }} className="hover:text-white ml-0.5">✕</button>
+                  <button type="button" onClick={() => { setQuery(""); setDebouncedQuery(""); setPage(1); fetchJobs({ q: "", page: 1 }); }} className="hover:text-indigo-600 ml-0.5 cursor-pointer">✕</button>
                 </span>
               )}
               {selectedSkills.map((sk) => (
-                <span key={sk} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 font-medium">
+                <span key={sk} className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-emerald-950 font-bold border border-emerald-200">
                   <span>Skill: {sk}</span>
-                  <button type="button" onClick={() => toggleSkill(sk)} className="hover:text-white ml-0.5">✕</button>
+                  <button type="button" onClick={() => toggleSkill(sk)} className="hover:text-emerald-600 ml-0.5 cursor-pointer">✕</button>
                 </span>
               ))}
               {experienceLevel && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-950/80 text-amber-300 border border-amber-700/60 font-medium">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-amber-950 font-bold border border-amber-200">
                   <span>{experienceLevel === "FRESHER" ? "Freshers / Entry-Level" : "Internships"}</span>
-                  <button type="button" onClick={() => setExperienceLevel("")} className="hover:text-white ml-0.5">✕</button>
+                  <button type="button" onClick={() => { setExperienceLevel(""); setPage(1); fetchJobs({ experienceLevel: "", page: 1 }); }} className="hover:text-amber-600 ml-0.5 cursor-pointer">✕</button>
                 </span>
               )}
               {workplaceType && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-950/80 text-blue-300 border border-blue-700/60 font-medium">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-blue-950 font-bold border border-blue-200">
                   <span>Mode: {workplaceType}</span>
-                  <button type="button" onClick={() => setWorkplaceType("")} className="hover:text-white ml-0.5">✕</button>
+                  <button type="button" onClick={() => { setWorkplaceType(""); setPage(1); fetchJobs({ workplaceType: "", page: 1 }); }} className="hover:text-blue-600 ml-0.5 cursor-pointer">✕</button>
                 </span>
               )}
               {isRemoteOnly && !workplaceType && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-950/80 text-blue-300 border border-blue-700/60 font-medium">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-blue-950 font-bold border border-blue-200">
                   <span>Remote Only</span>
-                  <button type="button" onClick={() => setIsRemoteOnly(false)} className="hover:text-white ml-0.5">✕</button>
+                  <button type="button" onClick={() => { setIsRemoteOnly(false); setPage(1); fetchJobs({ isRemoteOnly: false, page: 1 }); }} className="hover:text-blue-600 ml-0.5 cursor-pointer">✕</button>
                 </span>
               )}
               {employmentType && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-700/60 font-medium">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-purple-950 font-bold border border-purple-200">
                   <span>Type: {employmentType}</span>
-                  <button type="button" onClick={() => setEmploymentType("")} className="hover:text-white ml-0.5">✕</button>
+                  <button type="button" onClick={() => { setEmploymentType(""); setPage(1); fetchJobs({ employmentType: "", page: 1 }); }} className="hover:text-purple-600 ml-0.5 cursor-pointer">✕</button>
                 </span>
               )}
               {minSalary > 0 && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-700/60 font-medium">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-emerald-950 font-bold border border-emerald-200">
                   <span>Min: ${minSalary.toLocaleString()}</span>
-                  <button type="button" onClick={() => setMinSalary(0)} className="hover:text-white ml-0.5">✕</button>
+                  <button type="button" onClick={() => { setMinSalary(0); setPage(1); fetchJobs({ minSalary: 0, page: 1 }); }} className="hover:text-emerald-600 ml-0.5 cursor-pointer">✕</button>
                 </span>
               )}
               {role && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-slate-900 font-bold border border-white/90 shadow-sm">
                   <span>Role: {role}</span>
-                  <button type="button" onClick={() => setRole("")} className="hover:text-white ml-0.5">✕</button>
+                  <button type="button" onClick={() => { setRole(""); setDebouncedRole(""); setPage(1); fetchJobs({ role: "", page: 1 }); }} className="hover:text-indigo-600 ml-0.5 cursor-pointer">✕</button>
                 </span>
               )}
               {company && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-slate-900 font-bold border border-white/90 shadow-sm">
                   <span>Company: {company}</span>
-                  <button type="button" onClick={() => setCompany("")} className="hover:text-white ml-0.5">✕</button>
+                  <button type="button" onClick={() => { setCompany(""); setDebouncedCompany(""); setPage(1); fetchJobs({ company: "", page: 1 }); }} className="hover:text-indigo-600 ml-0.5 cursor-pointer">✕</button>
                 </span>
               )}
               {city && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-slate-900 font-bold border border-white/90 shadow-sm">
                   <span>Location: {city}</span>
-                  <button type="button" onClick={() => setCity("")} className="hover:text-white ml-0.5">✕</button>
+                  <button type="button" onClick={() => { setCity(""); setDebouncedCity(""); setPage(1); fetchJobs({ city: "", page: 1 }); }} className="hover:text-indigo-600 ml-0.5 cursor-pointer">✕</button>
                 </span>
               )}
               {verificationFilter && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full neo-pill text-slate-900 font-bold border border-white/90 shadow-sm">
                   <span>Status: {verificationFilter === "OPEN_CONFIRMED" ? "Open Confirmed" : verificationFilter}</span>
-                  <button type="button" onClick={() => setVerificationFilter("")} className="hover:text-white ml-0.5">✕</button>
+                  <button type="button" onClick={() => { setVerificationFilter(""); setPage(1); fetchJobs({ verificationFilter: "", page: 1 }); }} className="hover:text-indigo-600 ml-0.5 cursor-pointer">✕</button>
                 </span>
               )}
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="text-xs text-rose-400 hover:text-rose-300 underline font-semibold ml-auto"
+                className="text-xs text-rose-600 hover:text-rose-800 underline font-bold ml-auto cursor-pointer"
               >
                 Clear All
               </button>
@@ -717,17 +803,22 @@ function SearchContent() {
           )}
 
           {/* Controls Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/60 px-4 py-3 rounded-xl border border-slate-800">
-            <div className="text-sm text-slate-700 font-bold">
-              Showing <span className="font-semibold text-white">{jobs.length}</span> of{" "}
-              <span className="font-semibold text-white">{totalCount}</span> opportunities
+          <div className="flex flex-wrap items-center justify-between gap-4 neo-card px-4 py-3 rounded-xl border border-white/90 shadow-sm">
+            <div className="text-sm text-slate-800 font-bold">
+              Showing <span className="font-black text-indigo-900">{jobs.length}</span> of{" "}
+              <span className="font-black text-indigo-900">{totalCount}</span> opportunities
             </div>
-            <div className="flex items-center gap-2 text-sm text-slate-700 font-bold">
+            <div className="flex items-center gap-2 text-sm text-slate-800 font-bold">
               <label>Sort by:</label>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-2.5 py-1.5 bg-slate-950 rounded-lg border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-indigo-500"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSortBy(val);
+                  setPage(1);
+                  fetchJobs({ sortBy: val, page: 1 });
+                }}
+                className="px-3 py-1.5 neo-inset rounded-lg text-slate-900 font-bold text-xs focus:outline-none cursor-pointer"
               >
                 <option value="BEST_FIT">Best Fit (Match & Verified)</option>
                 <option value="RELEVANCE">🎯 Relevance / Smart Match</option>
@@ -740,27 +831,68 @@ function SearchContent() {
 
           {/* Error Message */}
           {errorMsg && (
-            <div className="p-4 rounded-xl bg-red-950/40 border border-red-600/40 text-red-300 text-sm">
+            <div className="p-4 rounded-xl neo-box border border-red-300 text-red-900 font-bold text-sm shadow-sm">
               {errorMsg}
             </div>
           )}
 
           {/* Top Background Revalidation Glow Bar */}
           {isFiltering && (
-            <div className="fixed top-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 animate-pulse z-50 shadow-sm" />
+            <div className="fixed top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 animate-pulse z-50 shadow-sm" />
           )}
 
           {/* Loading Skeleton */}
           {isLoading && jobs.length === 0 ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="animate-pulse bg-slate-900/40 rounded-2xl p-6 border border-slate-800 h-44" />
+                <div key={i} className="animate-pulse neo-card rounded-2xl p-6 border border-white/90 h-44 shadow-sm" />
               ))}
             </div>
           ) : jobs.length === 0 ? (
-            <div className="text-center py-16 bg-slate-900/30 rounded-2xl border border-slate-800">
-              <p className="text-base font-medium text-slate-300">No opportunities matching your criteria</p>
-              <p className="text-xs text-slate-500 mt-1">Try broadening your keywords or removing location filters.</p>
+            <div className="text-center py-12 px-6 neo-box rounded-2xl border border-white/90 shadow-sm space-y-4">
+              <div className="w-12 h-12 mx-auto rounded-full neo-pill flex items-center justify-center text-indigo-600 font-bold text-xl">
+                🔍
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">No opportunities matching your criteria</h3>
+                <p className="text-xs text-slate-700 font-bold mt-1">
+                  {company
+                    ? `No active openings found for "${company}" in our current index.`
+                    : "Try broadening your keywords or removing location filters."}
+                </p>
+              </div>
+
+              {/* Popular Actively Hiring Companies */}
+              <div className="pt-2 max-w-lg mx-auto">
+                <p className="text-xs font-bold text-slate-700 mb-2">Actively hiring companies with open roles:</p>
+                <div className="flex flex-wrap items-center justify-center gap-1.5">
+                  {POPULAR_COMPANIES.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        setCompany(c);
+                        setDebouncedCompany(c);
+                        setPage(1);
+                        fetchJobs({ company: c, page: 1 });
+                      }}
+                      className="neo-pill px-3 py-1 text-xs font-bold text-indigo-900 hover:text-indigo-600 hover:scale-105 transition-all cursor-pointer"
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  className="px-4 py-2 neo-pill text-xs font-bold text-indigo-900 hover:text-indigo-600 transition-all cursor-pointer"
+                >
+                  Reset All Filters
+                </button>
+              </div>
             </div>
           ) : (
             /* Opportunity Cards */
@@ -768,32 +900,32 @@ function SearchContent() {
               {jobs.map((job) => (
                 <div
                   key={job.id}
-                  className="bg-slate-900/80 hover:bg-slate-900 transition-colors rounded-2xl p-6 border border-slate-800 hover:border-slate-700 space-y-4 shadow-sm"
+                  className="neo-card neo-box-hover rounded-2xl p-6 border border-white/90 space-y-4 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <Link
                           href={`/jobs/${job.id}`}
-                          className="text-lg font-bold text-white hover:text-indigo-400 transition-colors"
+                          className="text-lg font-bold text-slate-900 hover:text-indigo-600 transition-colors"
                         >
                           {job.title}
                         </Link>
                         {job.is_remote && (
-                          <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
-                            Remote
+                          <span className="px-2.5 py-0.5 text-xs font-bold rounded-full neo-pill text-emerald-800 border border-emerald-300">
+                            🌐 Remote
                           </span>
                         )}
                         <span className="px-2.5 py-0.5 text-xs font-bold rounded-full neo-pill text-slate-900 border border-white/90">
                           {job.workplace_type}
                         </span>
                       </div>
-                      <div className="text-sm text-slate-700 font-bold mt-1 flex items-center gap-3 flex-wrap">
-                        <span className="font-medium text-slate-200">{job.company_name}</span>
+                      <div className="text-sm text-slate-700 font-bold mt-1.5 flex items-center gap-2.5 flex-wrap">
+                        <span className="font-black text-indigo-950">{job.company_name}</span>
                         <span>•</span>
-                        <span>{job.city ? `${job.city}, ${job.country || ""}` : job.country || "Worldwide"}</span>
+                        <span>{job.city ? `${job.city}${job.country ? `, ${job.country}` : ""}` : job.country || "Worldwide"}</span>
                         <span>•</span>
-                        <span className="text-xs text-slate-500">Source: {job.source_name}</span>
+                        <span className="text-xs text-slate-700 font-bold">Source: {job.source_name}</span>
                       </div>
                     </div>
 
@@ -802,13 +934,14 @@ function SearchContent() {
                       type="button"
                       onClick={() => handleToggleSaveJob(job)}
                       title={job.is_saved ? "Remove from saved jobs" : "Save this job"}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${job.is_saved
-                        ? "bg-amber-950/60 border-amber-600/70 text-amber-300 hover:bg-amber-900/60 shadow-sm"
-                        : "bg-slate-800/90 hover:bg-slate-750 text-slate-300 border-slate-700 hover:border-slate-600"
-                        }`}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        job.is_saved
+                          ? "neo-pill text-amber-700 border border-amber-300 shadow-sm"
+                          : "neo-pill text-slate-800 hover:text-indigo-600"
+                      }`}
                     >
                       <svg
-                        className={`w-3.5 h-3.5 ${job.is_saved ? "text-amber-400 fill-current" : "text-slate-700 font-bold"}`}
+                        className={`w-3.5 h-3.5 ${job.is_saved ? "text-amber-500 fill-current" : "text-slate-600"}`}
                         fill={job.is_saved ? "currentColor" : "none"}
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -828,38 +961,38 @@ function SearchContent() {
                   <div className="flex items-center gap-3 flex-wrap text-xs pt-1">
                     {/* Verification Badge */}
                     <span
-                      className={`px-2.5 py-1 rounded-md font-medium border ${job.verification_status === "OPEN_CONFIRMED"
-                        ? "bg-emerald-950/50 border-emerald-800/70 text-emerald-300"
-                        : job.verification_status === "UNVERIFIED"
-                          ? "bg-slate-800/80 border-slate-700 text-slate-700 font-bold"
-                          : "bg-amber-950/50 border-amber-800/70 text-amber-300"
-                        }`}
+                      className={`px-2.5 py-1 rounded-md font-bold border ${
+                        job.verification_status === "OPEN_CONFIRMED"
+                          ? "neo-pill bg-emerald-50 text-emerald-800 border-emerald-300"
+                          : "neo-pill text-slate-700 font-bold"
+                      }`}
                     >
                       {job.verification_status === "OPEN_CONFIRMED" ? "✓ Open Confirmed" : job.verification_status}
                     </span>
 
                     {/* Freshness Badge */}
                     <span
-                      className={`px-2.5 py-1 rounded-md font-medium border ${job.freshness_state === "FRESH"
-                        ? "bg-blue-950/50 border-blue-800/70 text-blue-300"
-                        : job.freshness_state === "RECENT"
-                          ? "bg-cyan-950/50 border-cyan-800/70 text-cyan-300"
-                          : "bg-slate-800 border-slate-700 text-slate-700 font-bold"
-                        }`}
+                      className={`px-2.5 py-1 rounded-md font-bold neo-pill ${
+                        job.freshness_state === "FRESH"
+                          ? "text-blue-900 border-blue-300"
+                          : job.freshness_state === "RECENT"
+                            ? "text-cyan-900 border-cyan-300"
+                            : "text-slate-700 font-bold"
+                      }`}
                     >
                       Freshness: {job.freshness_state}
                     </span>
 
                     {/* Smart Match Relevance Badge */}
                     {job.relevance_score !== undefined && job.relevance_score !== null && job.relevance_score > 0 && (
-                      <span className="px-2.5 py-1 rounded-md font-semibold bg-emerald-950/60 border border-emerald-600/60 text-emerald-300 flex items-center gap-1">
+                      <span className="px-2.5 py-1 rounded-md font-bold neo-pill bg-purple-50 text-purple-900 border-purple-300 flex items-center gap-1">
                         🎯 Smart Match ({Math.round(job.relevance_score)})
                       </span>
                     )}
 
                     {/* Skill Fit Badge */}
                     {job.skill_fit_score !== undefined && job.skill_fit_score !== null && (
-                      <span className="px-2.5 py-1 rounded-md font-semibold bg-indigo-950/60 border border-indigo-700/60 text-indigo-300">
+                      <span className="px-2.5 py-1 rounded-md font-bold neo-pill bg-indigo-50 text-indigo-900 border-indigo-300">
                         ★ {job.skill_fit_score}% Skill Fit
                       </span>
                     )}
@@ -867,12 +1000,13 @@ function SearchContent() {
                     {/* Mandatory Eligibility Badge */}
                     {job.eligibility_status && (
                       <span
-                        className={`px-2.5 py-1 rounded-md font-medium border ${job.eligibility_status === "MEETS_REQUIREMENTS"
-                          ? "bg-emerald-950/40 border-emerald-700/60 text-emerald-400"
-                          : job.eligibility_status === "UNKNOWN"
-                            ? "bg-slate-800 border-slate-700 text-slate-700 font-bold"
-                            : "bg-rose-950/40 border-rose-800/60 text-rose-400"
-                          }`}
+                        className={`px-2.5 py-1 rounded-md font-bold neo-pill ${
+                          job.eligibility_status === "MEETS_REQUIREMENTS"
+                            ? "text-emerald-800 border-emerald-300"
+                            : job.eligibility_status === "UNKNOWN"
+                              ? "text-slate-700 font-bold"
+                              : "text-rose-800 border-rose-300"
+                        }`}
                       >
                         Eligibility: {job.eligibility_status.replace(/_/g, " ")}
                       </span>
@@ -884,9 +1018,9 @@ function SearchContent() {
                     {/* Company Required Skills */}
                     {job.required_skills && job.required_skills.length > 0 && (
                       <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-800 uppercase tracking-wider">
                           <span>Company Required Skills</span>
-                          <span className="text-[10px] text-slate-500 font-normal">
+                          <span className="text-[10px] text-slate-600 font-medium">
                             {job.required_skills.length} required
                           </span>
                         </div>
@@ -908,7 +1042,11 @@ function SearchContent() {
                             return (
                               <span
                                 key={idx}
-                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${isHighlighted ? "bg-emerald-100 border-emerald-300 text-emerald-900 shadow-sm" : "neo-pill text-slate-800 border-slate-200"}`}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
+                                  isHighlighted
+                                    ? "bg-emerald-100 border-emerald-300 text-emerald-900 shadow-sm"
+                                    : "neo-pill text-slate-800 border-white/90"
+                                }`}
                                 title={
                                   isMatched
                                     ? "Matched from candidate profile / resume"
@@ -917,7 +1055,7 @@ function SearchContent() {
                                       : "Required by employer"
                                 }
                               >
-                                {isHighlighted && <span className="text-emerald-400 font-bold">✓</span>}
+                                {isHighlighted && <span className="text-emerald-700 font-bold">✓</span>}
                                 <span>{skill}</span>
                               </span>
                             );
@@ -927,10 +1065,10 @@ function SearchContent() {
                     )}
 
                     {/* Candidate Matched & Missing Skills from Resume */}
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 border-t border-slate-800/80 text-xs">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 border-t border-slate-300 text-xs">
                       {job.matched_skills_preview && job.matched_skills_preview.length > 0 && (
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[11px] font-semibold text-emerald-400">Matched in Resume:</span>
+                          <span className="text-[11px] font-bold text-emerald-800">Matched in Resume:</span>
                           <div className="flex items-center gap-1 flex-wrap">
                             {job.matched_skills_preview.map((ms, idx) => (
                               <span
@@ -945,12 +1083,12 @@ function SearchContent() {
                       )}
                       {job.missing_skills_preview && job.missing_skills_preview.length > 0 && (
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-[11px] font-semibold text-amber-400">Missing from Resume:</span>
+                          <span className="text-[11px] font-bold text-amber-800">Missing from Resume:</span>
                           <div className="flex items-center gap-1 flex-wrap">
                             {job.missing_skills_preview.map((mis, idx) => (
                               <span
                                 key={idx}
-                                className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-700 font-bold border border-slate-700 font-mono"
+                                className="text-[10px] px-2 py-0.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-300 font-mono font-bold"
                               >
                                 {mis}
                               </span>
@@ -962,8 +1100,8 @@ function SearchContent() {
                   </div>
 
                   {/* Card Footer: Salary & Actions */}
-                  <div className="flex items-center justify-between pt-3 border-t border-slate-800 text-sm">
-                    <div className="font-semibold text-slate-200">
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-300 text-sm">
+                    <div className="font-bold text-slate-900">
                       {job.min_salary || job.max_salary ? (
                         <>
                           {job.currency || "$"}
@@ -971,13 +1109,13 @@ function SearchContent() {
                           <span className="text-xs text-slate-700 font-bold font-normal">/ {job.salary_period || "year"}</span>
                         </>
                       ) : (
-                        <span className="text-xs text-slate-500 font-normal">Salary not disclosed</span>
+                        <span className="text-xs text-slate-600 font-medium">Salary not disclosed</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <Link
                         href={`/jobs/${job.id}`}
-                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold neo-pill text-indigo-900 hover:text-indigo-600 border border-indigo-200 transition-all"
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold neo-pill text-indigo-900 hover:text-indigo-600 border border-indigo-200 transition-all cursor-pointer"
                       >
                         View Details →
                       </Link>
@@ -985,7 +1123,7 @@ function SearchContent() {
                         href={job.application_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold neo-btn-primary text-white shadow-sm transition-all cursor-pointer"
                       >
                         Direct Apply ↗
                       </a>
@@ -998,21 +1136,29 @@ function SearchContent() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-6 border-t border-slate-800">
+            <div className="flex items-center justify-between pt-6 border-t border-slate-300">
               <button
                 disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="px-4 py-2 rounded-xl neo-pill text-xs font-bold text-slate-900 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                onClick={() => {
+                  const newPage = Math.max(1, page - 1);
+                  setPage(newPage);
+                  fetchJobs({ page: newPage });
+                }}
+                className="px-4 py-2 rounded-xl neo-pill text-xs font-bold text-slate-900 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
               >
                 ← Previous
               </button>
-              <span className="text-xs text-slate-700 font-bold">
-                Page <span className="text-white font-semibold">{page}</span> of {totalPages}
+              <span className="text-xs text-slate-800 font-bold">
+                Page <span className="text-indigo-900 font-black">{page}</span> of {totalPages}
               </span>
               <button
                 disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="px-4 py-2 rounded-xl neo-pill text-xs font-bold text-slate-900 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                onClick={() => {
+                  const newPage = Math.min(totalPages, page + 1);
+                  setPage(newPage);
+                  fetchJobs({ page: newPage });
+                }}
+                className="px-4 py-2 rounded-xl neo-pill text-xs font-bold text-slate-900 hover:text-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
               >
                 Next →
               </button>
@@ -1023,32 +1169,32 @@ function SearchContent() {
 
       {/* Save Search & Alert Modal */}
       {isSaveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-white">Save Search & Configure Alerts</h3>
-            <p className="text-xs text-slate-700 font-bold mt-1">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="neo-box border border-white/90 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 className="text-lg font-black text-slate-900">Save Search & Configure Alerts</h3>
+            <p className="text-xs text-slate-700 font-bold">
               Receive automatic notifications when fresh opportunities matching your filters are ingested.
             </p>
 
-            <form onSubmit={handleSaveSearch} className="mt-4 space-y-4">
+            <form onSubmit={handleSaveSearch} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Search Name</label>
+                <label className="block text-xs font-bold text-slate-800 mb-1">Search Name</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Remote Backend Python Roles"
                   value={saveSearchName}
                   onChange={(e) => setSaveSearchName(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-800 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3.5 py-2 neo-inset rounded-xl text-xs font-bold text-slate-900 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Notification Cadence</label>
+                <label className="block text-xs font-bold text-slate-800 mb-1">Notification Cadence</label>
                 <select
                   value={alertFrequency}
                   onChange={(e) => setAlertFrequency(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-950 rounded-lg border border-slate-800 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3.5 py-2 neo-inset rounded-xl text-xs font-bold text-slate-900 focus:outline-none cursor-pointer"
                 >
                   <option value="INSTANT">Instant (Real-Time Ingestion)</option>
                   <option value="DAILY">Daily Digest</option>
@@ -1057,23 +1203,23 @@ function SearchContent() {
               </div>
 
               {saveSuccessMsg && (
-                <div className="p-3 rounded-lg bg-emerald-950/50 border border-emerald-800/60 text-emerald-300 text-xs">
+                <div className="p-3 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-900 text-xs font-bold">
                   {saveSuccessMsg}
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-300">
                 <button
                   type="button"
                   onClick={() => setIsSaveModalOpen(false)}
-                  className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300"
+                  className="px-4 py-2 rounded-xl neo-pill text-xs font-bold text-slate-800 hover:text-slate-900 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingSearch}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl neo-btn-primary text-xs font-bold text-white shadow-sm disabled:opacity-50 cursor-pointer"
                 >
                   {isSavingSearch ? "Saving..." : "Save Subscription"}
                 </button>
@@ -1082,8 +1228,6 @@ function SearchContent() {
           </div>
         </div>
       )}
-
-
     </div>
   );
 }
@@ -1092,7 +1236,7 @@ export default function JobSearchPage() {
   return (
     <React.Suspense
       fallback={
-        <div className="max-w-7xl mx-auto px-4 py-16 text-slate-700 font-bold text-sm">
+        <div className="max-w-7xl mx-auto px-4 py-16 text-slate-800 font-bold text-sm">
           Loading Job Discovery & Matching...
         </div>
       }
